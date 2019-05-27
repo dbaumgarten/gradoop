@@ -16,6 +16,7 @@
 package org.gradoop.benchmark.layouting;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -59,10 +60,6 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_SELECTED_ALGORITHM = "a";
   /**
-   * Option to declare list of parameters that are passed on to a constructor.
-   */
-  private static final String OPTION_CONSTRUCTOR_PARAMS = "p";
-  /**
    * Used input path.
    */
   private static String INPUT_PATH;
@@ -105,8 +102,6 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       "Path to directory containing csv files to be processed");
     OPTIONS.addRequiredOption(OPTION_SELECTED_ALGORITHM, "algorithm", true,
       "Positive integer selecting a layouting algorithm");
-    OPTIONS.addRequiredOption(OPTION_CONSTRUCTOR_PARAMS, "params", true,
-      "Whitespace separated list of algorithm parameters");
     OPTIONS.addOption(OPTION_OUTPUT_PATH, "output", true,
       "Path to directory where resulting graph sample, benchmark file and graph " +
         "statistics are written to. (Defaults to " + OUTPUT_PATH_DEFAULT + ")");
@@ -144,10 +139,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         throw new IllegalArgumentException("Unknown layouting-algorithm: " + algo);
       }
     } catch (IndexOutOfBoundsException e) {
-      throw new IllegalArgumentException("Not enogh parameters provided for given algorithm.");
+      throw new IllegalArgumentException("Not enogh parameters provided for given algorithm. " +
+        "Found: ["+String.join(",",CONSTRUCTOR_PARAMS)+"] and algorithm: "+algo);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
-        "Expected a number as paramter but found: " + e.getMessage());
+        "Expected a number as parameter but found: " + e.getMessage());
     }
   }
 
@@ -189,7 +185,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   private static void readCMDArguments(CommandLine cmd) {
     INPUT_PATH = cmd.getOptionValue(OPTION_INPUT_PATH);
     SELECTED_ALGORITHM = Integer.parseInt(cmd.getOptionValue(OPTION_SELECTED_ALGORITHM));
-    CONSTRUCTOR_PARAMS = cmd.getOptionValues(OPTION_CONSTRUCTOR_PARAMS);
+    CONSTRUCTOR_PARAMS = cmd.getArgList().toArray(new String[0]);
     OUTPUT_PATH = cmd.getOptionValue(OPTION_OUTPUT_PATH, OUTPUT_PATH_DEFAULT);
     INPUT_FORMAT = cmd.getOptionValue(OPTION_INPUT_FORMAT, INPUT_FORMAT_DEFAULT);
   }
