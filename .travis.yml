@@ -4,12 +4,6 @@ dist: trusty
 
 os:
   - linux
-  - osx
-  - windows
-
-matrix:
-  allow_failures:
-    - os: windows
 
 cache:
   directories:
@@ -20,4 +14,5 @@ before_cache:
 
 language: java
 
-osx_image: xcode9.3
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Dcheckstyle.skip=true
+script: mvn -Dtest=CrossEdgesTest,org.gradoop.flink.model.impl.operators.layouting.*Test -DfailIfNoTests=false -pl gradoop-flink -am test
