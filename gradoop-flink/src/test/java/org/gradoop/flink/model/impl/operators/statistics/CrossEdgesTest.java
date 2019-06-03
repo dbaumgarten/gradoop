@@ -26,43 +26,136 @@ import org.gradoop.flink.util.FlinkAsciiGraphLoader;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.List;
+
 public class CrossEdgesTest extends GradoopFlinkTestBase {
+
+  // a special graph with a known number of edge-crossings
+  static final String graph =
+    "g1:graph[" + "(p1:Person {name: \"Bob\", age: 24, X: 57, Y: 0})-[:friendsWith]->" +
+      "(p2:Person{name: \"Alice\", age: 30, X:316, Y: 0})-[:friendsWith]->(p1)" +
+      "(p2)-[:friendsWith]->(p3:Person {name: \"Jacob\", age: 27, X: 186, Y: 0})" +
+      "-[:friendsWith]->(p2) " +
+      "(p3)-[:friendsWith]->(p4:Person{name: \"Marc\", age: 40, X: 382, Y: 120})" +
+      "-[:friendsWith]->(p3) " +
+      "(p4)-[:friendsWith]->(p5:Person{name: \"Sara\", age: 33, X: 583, Y: 153})" +
+      "-[:friendsWith]->(p4) " + "(c1:Company {name: \"Acme Corp\", X: 599, Y: 0}) " +
+      "(c2:Company {name: \"Globex Inc.\", X: 0, Y: 0}) " + "(p2)-[:worksAt]->(c1) " +
+      "(p4)-[:worksAt]->(c1) " + "(p5)-[:worksAt]->(c1) " + "(p1)-[:worksAt]->(c2) " +
+      "(p3)-[:worksAt]->(c2) " + "] " + "g2:graph[" +
+      "(p4)-[:friendsWith]->(p6:Person {name: \"Paul\", age: 37, X: 124, Y: 164})" +
+      "-[:friendsWith]->(p4) " +
+      "(p6)-[:friendsWith]->(p7:Person {name: \"Mike\", age: 23, X: 190, Y: 76})" +
+      "-[:friendsWith]->(p6) " +
+      "(p8:Person {name: \"Jil\", age: 32, X: 434, Y: 0})-[:friendsWith]->(p7)-[:friendsWith]->" +
+      "(p8) " + "(p6)-[:worksAt]->(c2) " + "(p7)-[:worksAt]->(c2) " + "(p8)-[:worksAt]->(c1) " +
+      "]";
 
   @Test
   public void intersectTest() {
-    CrossEdges ce = new CrossEdges();
-    Edge e1 = getDummyEdge(3, 4, 3, 2);
-    Edge e2 = getDummyEdge(2, 3, 4, 3);
-    Edge e3 = getDummyEdge(3, 2, 7, 4);
-    Edge e4 = getDummyEdge(3, 2, 1, 1);
-    Edge e5 = getDummyEdge(4, 4, 4, 2);
-    Edge e6 = getDummyEdge(0, 0, 10, 10);
-    Edge e7 = getDummyEdge(0, 10, 10, 0);
-    Edge e8 = getDummyEdge(0, 0, 0, 0);
-    Edge e9 = getDummyEdge(1, 1, 2, 1);
-    Edge e10 = getDummyEdge(2, 1, 3, 1);
-    Edge e11 = getDummyEdge(1, 1, 1, 2);
-    Edge e12 = getDummyEdge(1, 2, 1, 3);
-    Edge e13 = getDummyEdge(1, 2, 1, 4);
+    CrossEdges.Line e1 = new CrossEdges.Line(3, 4, 3, 2);
+    CrossEdges.Line e2 = new CrossEdges.Line(2, 3, 4, 3);
+    CrossEdges.Line e3 = new CrossEdges.Line(3, 2, 7, 4);
+    CrossEdges.Line e4 = new CrossEdges.Line(3, 2, 1, 1);
+    CrossEdges.Line e5 = new CrossEdges.Line(4, 4, 4, 2);
+    CrossEdges.Line e6 = new CrossEdges.Line(0, 0, 10, 10);
+    CrossEdges.Line e7 = new CrossEdges.Line(0, 10, 10, 0);
+    CrossEdges.Line e8 = new CrossEdges.Line(0, 0, 0, 0);
+    CrossEdges.Line e9 = new CrossEdges.Line(1, 1, 2, 1);
+    CrossEdges.Line e10 = new CrossEdges.Line(2, 1, 3, 1);
+    CrossEdges.Line e11 = new CrossEdges.Line(1, 1, 1, 2);
+    CrossEdges.Line e12 = new CrossEdges.Line(1, 2, 1, 3);
+    CrossEdges.Line e13 = new CrossEdges.Line(1, 2, 1, 4);
 
-    Assert.assertTrue(ce.intersect(e1, e2));
-    Assert.assertTrue(ce.intersect(e2, e1));
-    Assert.assertFalse(ce.intersect(e1, e3));
-    Assert.assertFalse(ce.intersect(e2, e3));
-    Assert.assertFalse(ce.intersect(e1, e4));
-    Assert.assertFalse(ce.intersect(e4, e1));
-    Assert.assertFalse(ce.intersect(e1, e1));
-    Assert.assertFalse(ce.intersect(e5, e1));
-    Assert.assertTrue(ce.intersect(e6, e7));
-    Assert.assertTrue(ce.intersect(e7, e6));
-    Assert.assertFalse(ce.intersect(e8, e8));
-    Assert.assertFalse(ce.intersect(e1, e8));
-    Assert.assertFalse(ce.intersect(e9, e10));
-    Assert.assertFalse(ce.intersect(e10, e9));
-    Assert.assertFalse(ce.intersect(e11, e12));
-    Assert.assertFalse(ce.intersect(e12, e13));
-    Assert.assertFalse(ce.intersect(e13, e12));
+    Assert.assertTrue(e1.intersects(e2));
+    Assert.assertTrue(e2.intersects(e1));
+    Assert.assertFalse(e1.intersects(e3));
+    Assert.assertFalse(e2.intersects(e3));
+    Assert.assertFalse(e1.intersects(e4));
+    Assert.assertFalse(e4.intersects(e1));
+    Assert.assertFalse(e1.intersects(e1));
+    Assert.assertFalse(e5.intersects(e1));
+    Assert.assertTrue(e6.intersects(e7));
+    Assert.assertTrue(e7.intersects(e6));
+    Assert.assertFalse(e8.intersects(e8));
+    Assert.assertFalse(e1.intersects(e8));
+    Assert.assertFalse(e9.intersects(e10));
+    Assert.assertFalse(e10.intersects(e9));
+    Assert.assertFalse(e11.intersects(e12));
+    Assert.assertFalse(e12.intersects(e13));
+    Assert.assertFalse(e13.intersects(e12));
+  }
 
+  @Test
+  public void getNextGridCrossingTest() {
+    CrossEdges.LinePartitioner lp = new CrossEdges.LinePartitioner(10);
+    //exactly diagonal
+    Assert.assertEquals(new Tuple2<Double, Double>(20d, 20d),
+      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 25, 25)));
+
+    //exactly diagonal to corner
+    Assert.assertEquals(new Tuple2<Double, Double>(20d, 20d),
+      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 20, 20)));
+
+    //exactly diagonal from corner
+    Assert.assertNull(lp.firstGridIntersection(new CrossEdges.Line(20, 20, 15, 15)));
+
+    //diagonal
+    Tuple2<Double, Double> cross = lp.firstGridIntersection(new CrossEdges.Line(15, 15, 25, 20));
+    Assert.assertEquals(20, cross.f0, 0.00001);
+    Assert.assertEquals(17.5, cross.f1, 0.00001);
+
+    //diagonal inverted
+    Tuple2<Double, Double> cross2 =
+      lp.firstGridIntersection(new CrossEdges.Line(25, 20, 15, 15));
+    Assert.assertEquals(cross, cross2);
+
+    //horizontal
+    Tuple2<Double, Double> cross3 =
+      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 40, 15));
+    Assert.assertEquals(new Tuple2<Double, Double>(20d, 15d), cross3);
+
+    //horizontal inverted
+    Tuple2<Double, Double> cross4 =
+      lp.firstGridIntersection(new CrossEdges.Line(40, 15, 15, 15));
+    Assert.assertEquals(new Tuple2<Double, Double>(30d, 15d), cross4);
+
+    //vertical
+    Tuple2<Double, Double> cross5 =
+      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 15, 40));
+    Assert.assertEquals(new Tuple2<Double, Double>(15d, 20d), cross5);
+
+    //vertical inverted
+    Tuple2<Double, Double> cross6 =
+      lp.firstGridIntersection(new CrossEdges.Line(15, 40, 15, 15));
+    Assert.assertEquals(new Tuple2<Double, Double>(15d, 30d), cross6);
+
+    //completely inside
+    Assert.assertNull(lp.firstGridIntersection(new CrossEdges.Line(15, 13, 16, 17)));
+
+    //completely inside inverted
+    Assert.assertNull(lp.firstGridIntersection(new CrossEdges.Line(15, 13, 16, 17)));
+
+  }
+
+  @Test
+  public void lineDivisionTest() {
+    CrossEdges.LinePartitioner lp = new CrossEdges.LinePartitioner(10);
+    CrossEdges.Line l = new CrossEdges.Line(10, 11, 100, 90);
+    List<CrossEdges.Line> parts = lp.subdivideByGrid(l);
+
+    Assert.assertEquals(parts.get(0).getStartX(), l.getStartX(), 0.00001);
+    Assert.assertEquals(parts.get(0).getStartY(), l.getStartY(), 0.00001);
+    for (int i = 0; i < parts.size(); i++) {
+      Assert.assertEquals(l.getId(), parts.get(i).getId());
+      if (i > 0) {
+        Assert.assertEquals(parts.get(i).getStartX(), parts.get(i - 1).getEndX(), 0.00001);
+        Assert.assertEquals(parts.get(i).getStartY(), parts.get(i - 1).getEndY(), 0.00001);
+      }
+    }
+    Assert.assertEquals(parts.get(parts.size() - 1).getEndX(), l.getEndX(), 0.00001);
+    Assert.assertEquals(parts.get(parts.size() - 1).getEndY(), l.getEndY(), 0.00001);
+    Assert.assertTrue(parts.size() == 16);
   }
 
   private Edge getDummyEdge(int x1, int y1, int x2, int y2) {
@@ -79,35 +172,46 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
   @Test
   public void crossingEdgesTest() throws Exception {
 
-    // a special graph with a known number of edge-crossings
-    String graph =
-      "g1:graph[" + "(p1:Person {name: \"Bob\", age: 24, X: 57, Y: 0})-[:friendsWith]->" +
-        "(p2:Person{name: \"Alice\", age: 30, X:316, Y: 0})-[:friendsWith]->(p1)" +
-        "(p2)-[:friendsWith]->(p3:Person {name: \"Jacob\", age: 27, X: 186, Y: 0})" +
-        "-[:friendsWith]->(p2) " +
-        "(p3)-[:friendsWith]->(p4:Person{name: \"Marc\", age: 40, X: 382, Y: 120})" +
-        "-[:friendsWith]->(p3) " +
-        "(p4)-[:friendsWith]->(p5:Person{name: \"Sara\", age: 33, X: 583, Y: 153})" +
-        "-[:friendsWith]->(p4) " + "(c1:Company {name: \"Acme Corp\", X: 599, Y: 0}) " +
-        "(c2:Company {name: \"Globex Inc.\", X: 0, Y: 0}) " + "(p2)-[:worksAt]->(c1) " +
-        "(p4)-[:worksAt]->(c1) " + "(p5)-[:worksAt]->(c1) " + "(p1)-[:worksAt]->(c2) " +
-        "(p3)-[:worksAt]->(c2) " + "] " + "g2:graph[" +
-        "(p4)-[:friendsWith]->(p6:Person {name: \"Paul\", age: 37, X: 124, Y: 164})" +
-        "-[:friendsWith]->(p4) " +
-        "(p6)-[:friendsWith]->(p7:Person {name: \"Mike\", age: 23, X: 190, Y: 76})" +
-        "-[:friendsWith]->(p6) " +
-        "(p8:Person {name: \"Jil\", age: 32, X: 434, Y: 0})-[:friendsWith]->(p7)-[:friendsWith]->" +
-        "(p8) " + "(p6)-[:worksAt]->(c2) " + "(p7)-[:worksAt]->(c2) " + "(p8)-[:worksAt]->(c1) " +
-        "]";
+    FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(getConfig());
+    loader.initDatabaseFromString(graph);
+
+    LogicalGraph g = loader.getLogicalGraph();
+
+    CrossEdges ce = new CrossEdges(10);
+    DataSet<Tuple2<Integer, Double>> crossing = ce.execute(g);
+    Tuple2<Integer, Double> results = crossing.collect().get(0);
+
+    Assert.assertEquals(1, (int) results.f0);
+    Assert.assertEquals(0.06666666, results.f1, 0.0001);
+  }
+
+  @Test
+  public void crossingEdgesUnoptimizedTest() throws Exception {
 
     FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(getConfig());
     loader.initDatabaseFromString(graph);
 
     LogicalGraph g = loader.getLogicalGraph();
 
-    CrossEdges ce = new CrossEdges();
+    CrossEdges ce = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION);
     DataSet<Tuple2<Integer, Double>> crossing = ce.execute(g);
     Tuple2<Integer, Double> results = crossing.collect().get(0);
+
+    Assert.assertEquals(1, (int) results.f0);
+    Assert.assertEquals(0.06666666, results.f1, 0.0001);
+  }
+
+  @Test
+  public void crossingEdgesLocalTest() throws Exception {
+
+    FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(getConfig());
+    loader.initDatabaseFromString(graph);
+
+    LogicalGraph g = loader.getLogicalGraph();
+
+    CrossEdges ce = new CrossEdges(10);
+    Tuple2<Integer, Double> results = ce.executeLocally(g);
+
 
     Assert.assertEquals(1, (int) results.f0);
     Assert.assertEquals(0.06666666, results.f1, 0.0001);
