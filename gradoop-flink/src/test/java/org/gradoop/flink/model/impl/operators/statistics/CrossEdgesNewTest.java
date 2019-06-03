@@ -30,6 +30,27 @@ import java.util.List;
 
 public class CrossEdgesNewTest extends GradoopFlinkTestBase {
 
+  // a special graph with a known number of edge-crossings
+  static final String graph =
+    "g1:graph[" + "(p1:Person {name: \"Bob\", age: 24, X: 57, Y: 0})-[:friendsWith]->" +
+      "(p2:Person{name: \"Alice\", age: 30, X:316, Y: 0})-[:friendsWith]->(p1)" +
+      "(p2)-[:friendsWith]->(p3:Person {name: \"Jacob\", age: 27, X: 186, Y: 0})" +
+      "-[:friendsWith]->(p2) " +
+      "(p3)-[:friendsWith]->(p4:Person{name: \"Marc\", age: 40, X: 382, Y: 120})" +
+      "-[:friendsWith]->(p3) " +
+      "(p4)-[:friendsWith]->(p5:Person{name: \"Sara\", age: 33, X: 583, Y: 153})" +
+      "-[:friendsWith]->(p4) " + "(c1:Company {name: \"Acme Corp\", X: 599, Y: 0}) " +
+      "(c2:Company {name: \"Globex Inc.\", X: 0, Y: 0}) " + "(p2)-[:worksAt]->(c1) " +
+      "(p4)-[:worksAt]->(c1) " + "(p5)-[:worksAt]->(c1) " + "(p1)-[:worksAt]->(c2) " +
+      "(p3)-[:worksAt]->(c2) " + "] " + "g2:graph[" +
+      "(p4)-[:friendsWith]->(p6:Person {name: \"Paul\", age: 37, X: 124, Y: 164})" +
+      "-[:friendsWith]->(p4) " +
+      "(p6)-[:friendsWith]->(p7:Person {name: \"Mike\", age: 23, X: 190, Y: 76})" +
+      "-[:friendsWith]->(p6) " +
+      "(p8:Person {name: \"Jil\", age: 32, X: 434, Y: 0})-[:friendsWith]->(p7)-[:friendsWith]->" +
+      "(p8) " + "(p6)-[:worksAt]->(c2) " + "(p7)-[:worksAt]->(c2) " + "(p8)-[:worksAt]->(c1) " +
+      "]";
+
   @Test
   public void intersectTest() {
     CrossEdgesNew.Line e1 = new CrossEdgesNew.Line(3, 4, 3, 2);
@@ -151,27 +172,6 @@ public class CrossEdgesNewTest extends GradoopFlinkTestBase {
   @Test
   public void crossingEdgesTest() throws Exception {
 
-    // a special graph with a known number of edge-crossings
-    String graph =
-      "g1:graph[" + "(p1:Person {name: \"Bob\", age: 24, X: 57, Y: 0})-[:friendsWith]->" +
-        "(p2:Person{name: \"Alice\", age: 30, X:316, Y: 0})-[:friendsWith]->(p1)" +
-        "(p2)-[:friendsWith]->(p3:Person {name: \"Jacob\", age: 27, X: 186, Y: 0})" +
-        "-[:friendsWith]->(p2) " +
-        "(p3)-[:friendsWith]->(p4:Person{name: \"Marc\", age: 40, X: 382, Y: 120})" +
-        "-[:friendsWith]->(p3) " +
-        "(p4)-[:friendsWith]->(p5:Person{name: \"Sara\", age: 33, X: 583, Y: 153})" +
-        "-[:friendsWith]->(p4) " + "(c1:Company {name: \"Acme Corp\", X: 599, Y: 0}) " +
-        "(c2:Company {name: \"Globex Inc.\", X: 0, Y: 0}) " + "(p2)-[:worksAt]->(c1) " +
-        "(p4)-[:worksAt]->(c1) " + "(p5)-[:worksAt]->(c1) " + "(p1)-[:worksAt]->(c2) " +
-        "(p3)-[:worksAt]->(c2) " + "] " + "g2:graph[" +
-        "(p4)-[:friendsWith]->(p6:Person {name: \"Paul\", age: 37, X: 124, Y: 164})" +
-        "-[:friendsWith]->(p4) " +
-        "(p6)-[:friendsWith]->(p7:Person {name: \"Mike\", age: 23, X: 190, Y: 76})" +
-        "-[:friendsWith]->(p6) " +
-        "(p8:Person {name: \"Jil\", age: 32, X: 434, Y: 0})-[:friendsWith]->(p7)-[:friendsWith]->" +
-        "(p8) " + "(p6)-[:worksAt]->(c2) " + "(p7)-[:worksAt]->(c2) " + "(p8)-[:worksAt]->(c1) " +
-        "]";
-
     FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(getConfig());
     loader.initDatabaseFromString(graph);
 
@@ -180,6 +180,22 @@ public class CrossEdgesNewTest extends GradoopFlinkTestBase {
     CrossEdgesNew ce = new CrossEdgesNew(10);
     DataSet<Tuple2<Integer, Double>> crossing = ce.execute(g);
     Tuple2<Integer, Double> results = crossing.collect().get(0);
+
+    Assert.assertEquals(1, (int) results.f0);
+    Assert.assertEquals(0.06666666, results.f1, 0.0001);
+  }
+
+  @Test
+  public void crossingEdgesLocalTest() throws Exception {
+
+    FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(getConfig());
+    loader.initDatabaseFromString(graph);
+
+    LogicalGraph g = loader.getLogicalGraph();
+
+    CrossEdgesNew ce = new CrossEdgesNew(10);
+    Tuple2<Integer, Double> results = ce.executeLocally(g);
+
 
     Assert.assertEquals(1, (int) results.f0);
     Assert.assertEquals(0.06666666, results.f1, 0.0001);

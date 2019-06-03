@@ -28,8 +28,13 @@ import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.operators.UnaryGraphToValueOperator;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Count number of crossing edges in a graph-layout
@@ -86,34 +91,69 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
     this.yCoordinateProperty = yCoordinateProperty;
   }
 
-  public Tuple2<Integer, Double> executeLocally(LogicalGraph g) throws Exception{
+  /**
+   * Works just like execute() but performes the execution locally instead of using Flink.
+   * For some reason this is A LOT faster. If your Dataset is small enough to be processed on a
+   * single machine, USE THIS METHOD!
+   *
+   * @param g The graph to analyse. NEEDS to have properties (X,Y) for the position on EVERY
+   *          vertex.
+   * @return A single Tuple2. The first number is the total number of crossings. The second one
+   * is the average number of crossings per edge.
+   * @throws Exception A Flink-run is executed. Therefore exceptions might occur.
+   */
+  public Tuple2<Integer, Double> executeLocally(LogicalGraph g) throws Exception {
     DataSet<Edge> edges = g.getEdges();
 
-    edges = edges.map((MapFunction<Edge, Edge>) value -> {
-      if (value.getTargetId().compareTo(value.getSourceId()) > 0) {
+    edges = removeSuperflousEdges(edges);
+
+    List<Line> lines = getLinesFromEdges(edges, g.getVertices()).collect();
+
+    int cores = Runtime.getRuntime().availableProcessors();
+    ArrayList<Future<Integer>> results = new ArrayList<>(cores);
+
+    ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(cores);
+    for (int i = 0; i < cores; i++) {
+      final int len = lines.size() / cores;
+      final int start = len * i;
+      final int end = (i < cores - 1) ? (start + len) : lines.size() - 1;
+      results.add(i, executor.submit(new Callable<Integer>() {
+        int crosscount = 0;
+
+        @Override
+        public Integer call() {
+          for (int j = start; j < end; j++) {
+            Line line1 = lines.get(j);
+            for (Line line2 : lines) {
+              if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
+                crosscount++;
+              }
+            }
+          }
+          return crosscount;
+        }
+      }));
+    }
+
+    int crosscount = 0;
+    for (Future<Integer> f : results) {
+      crosscount += f.get();
+    }
+
+    executor.shutdown();
+
+    return new Tuple2<>(crosscount, crosscount / (double) lines.size());
+  }
+
+  private DataSet<Edge> removeSuperflousEdges(DataSet<Edge> edges) {
+    return edges.map((MapFunction<Edge, Edge>) value -> {
+      if (value.getTargetId().compareTo(value.getSourceId()) < 0) {
         GradoopId oldtarget = value.getTargetId();
         value.setTargetId(value.getSourceId());
         value.setSourceId(oldtarget);
       }
       return value;
-    }).distinct("targetId", "sourceId");
-
-
-    DataSet<Line> lines = getLinesFromEdges(edges, g.getVertices());
-    List<Tuple2<Line,Line>> clines = lines.cross(lines).collect();
-
-    int edgecount = 0;
-    int crosscount = 0;
-    for (Tuple2<Line,Line> linepair : clines){
-      Line line1 = linepair.f0;
-      Line line2 = linepair.f1;
-      if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
-        crosscount += 1;
-      }
-      edgecount += 1;
-    }
-    edgecount = (int)Math.sqrt(edgecount);
-    return new Tuple2<>(crosscount,crosscount/(double)edgecount);
+    }).distinct("sourceId", "targetId");
   }
 
   /**
@@ -128,16 +168,7 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
   public DataSet<Tuple2<Integer, Double>> execute(LogicalGraph g) {
     DataSet<Edge> edges = g.getEdges();
 
-
-    edges = edges.map((MapFunction<Edge, Edge>) value -> {
-      if (value.getTargetId().compareTo(value.getSourceId()) > 0) {
-        GradoopId oldtarget = value.getTargetId();
-        value.setTargetId(value.getSourceId());
-        value.setSourceId(oldtarget);
-      }
-      return value;
-    }).distinct("targetId", "sourceId");
-
+    edges = removeSuperflousEdges(edges);
 
     DataSet<Integer> edgecountds = edges.map(x -> 1).reduce((a, b) -> a + b);
 
@@ -197,7 +228,9 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
    * sub-lines of the same sub-cell can be joined together)
    */
   protected static class LinePartitioner implements FlatMapFunction<Line, Tuple2<Integer, Line>> {
-    /** size of the grid-cells */
+    /**
+     * size of the grid-cells
+     */
     private int cellSize;
 
     /**
@@ -325,27 +358,38 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
     }
   }
 
-  /** Pojo-Class to represent a line between two points
-   *
+  /**
+   * Pojo-Class to represent a line between two points
    */
   protected static class Line implements Cloneable {
-    /** The GradoopId of the original edge */
+    /**
+     * The GradoopId of the original edge
+     */
     private GradoopId id;
-    /** X-coordinate of starting-point */
+    /**
+     * X-coordinate of starting-point
+     */
     private double startX;
-    /** Y-coordinate of starting-point */
+    /**
+     * Y-coordinate of starting-point
+     */
     private double startY;
-    /** X-coordinate of end-point */
+    /**
+     * X-coordinate of end-point
+     */
     private double endX;
-    /** Y-coordinate of end-point */
+    /**
+     * Y-coordinate of end-point
+     */
     private double endY;
 
-    /** Create new line
+    /**
+     * Create new line
      *
      * @param startX X-coordinate of starting-point
      * @param startY Y-coordinate of starting-point
-     * @param endX X-coordinate of end-point
-     * @param endY Y-coordinate of end-point
+     * @param endX   X-coordinate of end-point
+     * @param endY   Y-coordinate of end-point
      */
     public Line(double startX, double startY, double endX, double endY) {
       this.startX = startX;
@@ -354,13 +398,14 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
       this.endY = endY;
     }
 
-    /** Create new line
+    /**
+     * Create new line
      *
-     * @param id The Gradoop-id of the original edge
+     * @param id     The Gradoop-id of the original edge
      * @param startX X-coordinate of starting-point
      * @param startY Y-coordinate of starting-point
-     * @param endX X-coordinate of end-point
-     * @param endY Y-coordinate of end-point
+     * @param endX   X-coordinate of end-point
+     * @param endY   Y-coordinate of end-point
      */
     public Line(GradoopId id, double startX, double startY, double endX, double endY) {
       this.id = id;
@@ -370,7 +415,8 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
       this.endY = endY;
     }
 
-    /** Clone this line
+    /**
+     * Clone this line
      *
      * @return A copy of this line
      */
