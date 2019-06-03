@@ -14,15 +14,17 @@ import java.util.concurrent.TimeUnit;
  */
 public class Facebook {
 
-    static final String OUTPUT_PATH = "/home/daniel/projects/graviz/out/facebook-test.png";
+    static String OUTPUT_PATH = System.getProperty("user.dir")+"/out/facebook-test.png";
+    static String INPUT_PATH = System.getProperty("user.dir")+"/datasets/facebook_gradoop_csv";
     static final int size = 10000;
     static final int iterations = 100;
 
     public static void main(String[] args) throws Exception {
+
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
-        LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource("/home/daniel/projects/graviz/datasets/facebook_gradoop_csv", cfg);
+        LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
 
 
         LayoutingAlgorithm frl = new FRLayouter(FRLayouter.calculateK(size,size, 4100) * 1,
