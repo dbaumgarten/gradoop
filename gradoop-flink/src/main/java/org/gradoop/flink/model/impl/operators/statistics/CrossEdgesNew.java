@@ -86,6 +86,36 @@ public class CrossEdgesNew implements UnaryGraphToValueOperator<DataSet<Tuple2<I
     this.yCoordinateProperty = yCoordinateProperty;
   }
 
+  public Tuple2<Integer, Double> executeLocally(LogicalGraph g) throws Exception{
+    DataSet<Edge> edges = g.getEdges();
+
+    edges = edges.map((MapFunction<Edge, Edge>) value -> {
+      if (value.getTargetId().compareTo(value.getSourceId()) > 0) {
+        GradoopId oldtarget = value.getTargetId();
+        value.setTargetId(value.getSourceId());
+        value.setSourceId(oldtarget);
+      }
+      return value;
+    }).distinct("targetId", "sourceId");
+
+
+    DataSet<Line> lines = getLinesFromEdges(edges, g.getVertices());
+    List<Tuple2<Line,Line>> clines = lines.cross(lines).collect();
+
+    int edgecount = 0;
+    int crosscount = 0;
+    for (Tuple2<Line,Line> linepair : clines){
+      Line line1 = linepair.f0;
+      Line line2 = linepair.f1;
+      if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
+        crosscount += 1;
+      }
+      edgecount += 1;
+    }
+    edgecount = (int)Math.sqrt(edgecount);
+    return new Tuple2<>(crosscount,crosscount/(double)edgecount);
+  }
+
   /**
    * Compute number of crossing edges for the given graph.
    *
