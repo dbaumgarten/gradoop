@@ -51,9 +51,9 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
    */
   public static final String DEFAULT_Y_COORDINATE_PROPERTY = "Y";
 
-  /** Pass this value as cellSize to the Constructor to disable the anti-cross-product optimization.
+  /**
+   * Pass this value as cellSize to the Constructor to disable the anti-cross-product optimization.
    * In some cases this may lead to improved performance.
-   *
    */
   public static final int DISABLE_OPTIMIZATION = 0;
 
@@ -104,7 +104,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
    * Works just like execute() but performes the execution locally instead of using Flink.
    * For some reason this is A LOT faster. If your Dataset is small enough to be processed on a
    * single machine, USE THIS METHOD!
-   *
+   * <p>
    * This method does ignore the cellSize value.
    *
    * @param g The graph to analyse. NEEDS to have properties (X,Y) for the position on EVERY
@@ -129,7 +129,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
       final int start = len * i;
       final int end = (i < cores - 1) ? (start + len) : lines.size() - 1;
       results.add(i, executor.submit(new Callable<Integer>() {
-        int crosscount = 0;
+        private int crosscount = 0;
 
         @Override
         public Integer call() {
@@ -156,6 +156,12 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
     return new Tuple2<>(crosscount, crosscount / (double) lines.size());
   }
 
+  /** Removes all edges except for one between two given vertices. This is necessary for
+   * undirected graphs as otherwise the cross-count would be incorrect
+   *
+   * @param edges The raw edges
+   * @return The reduced edges
+   */
   private DataSet<Edge> removeSuperflousEdges(DataSet<Edge> edges) {
     return edges.map((MapFunction<Edge, Edge>) value -> {
       if (value.getTargetId().compareTo(value.getSourceId()) < 0) {
@@ -187,7 +193,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
 
     DataSet<Integer> crosses;
 
-    if (cellSize <= DISABLE_OPTIMIZATION){
+    if (cellSize <= DISABLE_OPTIMIZATION) {
       crosses = lines.cross(lines).with(new CrossFunction<Line, Line, Integer>() {
         @Override
         public Integer cross(Line line1, Line line2) throws Exception {
@@ -197,19 +203,21 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
           return 0;
         }
       }).reduce((a, b) -> a + b);
-    }else {
+    } else {
       DataSet<Tuple2<Integer, Line>> segmentedLines = lines.flatMap(new LinePartitioner(cellSize));
-      crosses = segmentedLines.join(segmentedLines).where(0).equalTo(0).with(new JoinFunction<Tuple2<Integer, Line>, Tuple2<Integer, Line>, Integer>() {
-        @Override
-        public Integer join(Tuple2<Integer, Line> integerLineTuple1, Tuple2<Integer, Line> integerLineTuple2) throws Exception {
-          Line line1 = integerLineTuple1.f1;
-          Line line2 = integerLineTuple2.f1;
-          if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
-            return 1;
+      crosses = segmentedLines.join(segmentedLines).where(0).equalTo(0)
+        .with(new JoinFunction<Tuple2<Integer, Line>, Tuple2<Integer, Line>, Integer>() {
+          @Override
+          public Integer join(Tuple2<Integer, Line> integerLineTuple1,
+            Tuple2<Integer, Line> integerLineTuple2) throws Exception {
+            Line line1 = integerLineTuple1.f1;
+            Line line2 = integerLineTuple2.f1;
+            if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
+              return 1;
+            }
+            return 0;
           }
-          return 0;
-        }
-      }).reduce((a, b) -> a + b);
+        }).reduce((a, b) -> a + b);
     }
 
     return crosses.cross(edgecountds)
