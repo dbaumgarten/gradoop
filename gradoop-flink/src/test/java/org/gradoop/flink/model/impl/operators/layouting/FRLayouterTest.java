@@ -96,7 +96,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
   @Test
   public void testRepulseJoinFunction() throws Exception {
-    JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>> jf =
+    JoinFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>> jf =
       new FRRepulsionFunction(1, 20);
     Vertex v1 = getDummyVertex(1, 1);
     Vertex v2 = getDummyVertex(2, 3);
@@ -104,11 +104,11 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Vertex v4 = getDummyVertex(1, 1);
     Vertex v5 = getDummyVertex(30, 30);
 
-    Vector vec12 = Vector.fromForceTuple(jf.join(v1, v2));
-    Vector vec13 = Vector.fromForceTuple(jf.join(v1, v3));
-    Vector vec14 = Vector.fromForceTuple(jf.join(v1, v4));
-    Vector vec11 = Vector.fromForceTuple(jf.join(v1, v1));
-    Vector vec15 = Vector.fromForceTuple(jf.join(v1, v5));
+    Vector vec12 = jf.join(v1, v2).f1;
+    Vector vec13 = jf.join(v1, v3).f1;
+    Vector vec14 = jf.join(v1, v4).f1;
+    Vector vec11 = jf.join(v1, v1).f1;
+    Vector vec15 = jf.join(v1, v5).f1;
 
     Assert.assertTrue(vec12.getX() < 0 && vec12.getY() < 0);
     Assert.assertTrue(vec12.magnitude() > vec13.magnitude());
@@ -123,14 +123,14 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Vertex v1 = getDummyVertex(1, 1);
     Vertex v2 = getDummyVertex(2, 3);
 
-    Vector vec12join = Vector.fromForceTuple(jf.join(v1, v2));
+    Vector vec12join = jf.join(v1, v2).f1;
 
-    List<Tuple3<GradoopId, Double, Double>> collectorList = new ArrayList<>();
-    ListCollector<Tuple3<GradoopId, Double, Double>> collector = new ListCollector<>(collectorList);
+    List<Tuple2<GradoopId, Vector>> collectorList = new ArrayList<>();
+    ListCollector<Tuple2<GradoopId, Vector>> collector = new ListCollector<>(collectorList);
     jf.join(v1, v2, collector);
 
-    Vector vec12 = Vector.fromForceTuple(collectorList.get(0));
-    Vector vec21 = Vector.fromForceTuple(collectorList.get(1));
+    Vector vec12 = collectorList.get(0).f1;
+    Vector vec21 = collectorList.get(1).f1;
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
@@ -144,24 +144,24 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Vertex v3 = getDummyVertex(7, 5);
     Vertex v4 = getDummyVertex(1, 1);
 
-    List<Tuple3<GradoopId, Double, Double>> collectorList = new ArrayList<>();
-    ListCollector<Tuple3<GradoopId, Double, Double>> collector = new ListCollector<>(collectorList);
+    List<Tuple2<GradoopId, Vector>> collectorList = new ArrayList<>();
+    ListCollector<Tuple2<GradoopId, Vector>> collector = new ListCollector<>(collectorList);
 
     af.flatMap(new Tuple2<>(v1, v2), collector);
-    Vector vec12 = Vector.fromForceTuple(collectorList.get(0));
-    Vector vec21 = Vector.fromForceTuple(collectorList.get(1));
+    Vector vec12 = collectorList.get(0).f1;
+    Vector vec21 = collectorList.get(1).f1;
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v3), collector);
-    Vector vec13 = Vector.fromForceTuple(collectorList.get(0));
+    Vector vec13 = collectorList.get(0).f1;
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v4), collector);
-    Vector vec14 = Vector.fromForceTuple(collectorList.get(0));
+    Vector vec14 = collectorList.get(0).f1;
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v1), collector);
-    Vector vec11 = Vector.fromForceTuple(collectorList.get(0));
+    Vector vec11 = collectorList.get(0).f1;
     collectorList.clear();
 
 

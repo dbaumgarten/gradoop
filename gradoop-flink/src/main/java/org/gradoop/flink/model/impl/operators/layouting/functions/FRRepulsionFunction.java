@@ -34,9 +34,9 @@ import java.util.Random;
  * vertices at once.
  */
 public class FRRepulsionFunction implements
-  JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>>,
-  CrossFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>>,
-  FlatJoinFunction<Vertex,Vertex,Tuple3<GradoopId, Double, Double>> {
+  JoinFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>>,
+  CrossFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>>,
+  FlatJoinFunction<Vertex,Vertex,Tuple2<GradoopId, Vector>> {
   /** Rng. Used to get random directions for vertices at the same position */
   private Random rng;
   /** Parameter for the FR-Algorithm */
@@ -70,9 +70,9 @@ public class FRRepulsionFunction implements
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
   @Override
-  public Tuple3<GradoopId, Double, Double> join(Vertex first, Vertex second) {
+  public Tuple2<GradoopId, Vector> join(Vertex first, Vertex second) {
     Vector force = calculateForce(first,second);
-    return new Tuple3<>(first.getId(),force.getX(),force.getY());
+    return new Tuple2<>(first.getId(),force);
   }
 
   /** Alias for join() to fullfill the CrossFunction-Interface.
@@ -82,7 +82,7 @@ public class FRRepulsionFunction implements
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
   @Override
-  public Tuple3<GradoopId, Double, Double> cross(Vertex vertex, Vertex vertex2) {
+  public Tuple2<GradoopId, Vector> cross(Vertex vertex, Vertex vertex2) {
     return join(vertex, vertex2);
   }
 
@@ -126,13 +126,13 @@ public class FRRepulsionFunction implements
    */
   @Override
   public void join(Vertex first, Vertex second,
-    Collector<Tuple3<GradoopId, Double, Double>> collector){
+    Collector<Tuple2<GradoopId, Vector>> collector){
 
     Vector force = calculateForce(first,second);
     if (force.magnitude() == 0){
       return;
     }
-    collector.collect(new Tuple3<>(first.getId(),force.getX(),force.getY()));
-    collector.collect(new Tuple3<>(second.getId(),-force.getX(),-force.getY()));
+    collector.collect(new Tuple2<>(first.getId(),force));
+    collector.collect(new Tuple2<>(second.getId(),force.mul(-1)));
   }
 }
