@@ -124,19 +124,20 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
     ArrayList<Future<Integer>> results = new ArrayList<>(cores);
 
     ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(cores);
-    for (int i = 0; i < cores; i++) {
+    for (int core = 0; core < cores; core++) {
       final int len = lines.size() / cores;
-      final int start = len * i;
-      final int end = (i < cores - 1) ? (start + len) : lines.size() - 1;
-      results.add(i, executor.submit(new Callable<Integer>() {
+      final int start = len * core;
+      final int end = (core < cores - 1) ? (start + len) : lines.size();
+      results.add(core, executor.submit(new Callable<Integer>() {
         private int crosscount = 0;
 
         @Override
         public Integer call() {
-          for (int j = start; j < end; j++) {
-            Line line1 = lines.get(j);
-            for (Line line2 : lines) {
-              if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
+          for (int i = start; i < end; i++) {
+            Line line1 = lines.get(i);
+            for (int j = i+1; j < lines.size(); j++) {
+              Line line2 = lines.get(j);
+              if (line1.intersects(line2)) {
                 crosscount++;
               }
             }
