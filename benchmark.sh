@@ -13,6 +13,7 @@ OUTPUT="/out/facebook/"
 ALGORITHMS="0,1,2"
 PARALLELISM="1,2,4"
 ITERATIONS="1,10,20"
+CELLSIZE="333"
 
 #--------------------------------------------------
 
@@ -20,6 +21,7 @@ IFS=','
 read -ra PARALLELISM <<< "$PARALLELISM"
 read -ra ITERATIONS <<< "$ITERATIONS"
 read -ra ALGORITHMS <<< "$ALGORITHMS"
+read -ra CELLSIZE <<< "$CELLSIZE"
 unset IFS
 
 
@@ -44,9 +46,12 @@ do
     if [ "$A" == "2" ]; then
       for I in "${ITERATIONS[@]}"
       do
-        echo A:$A P:$P I:$I
-        ARGS="-a 2 150 $I 10000 10000 100"
-        ${COMMAND} ${ARGS}
+        for C in "${CELLSIZE[@]}"
+        do
+          echo A:$A P:$P I:$I C:$C
+          ARGS="-a 2 150 $I 10000 10000 $C"
+          ${COMMAND} ${ARGS}
+        done
       done
     fi
   done

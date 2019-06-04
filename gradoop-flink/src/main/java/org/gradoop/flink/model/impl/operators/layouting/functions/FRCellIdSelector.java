@@ -27,27 +27,22 @@ public class FRCellIdSelector implements KeySelector<Vertex, Integer> {
   /** Type of neighbor to select if from */
   public enum NeighborType { UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF }
 
-  /** Numer of cells per axis */
-  private int cellResolution;
   /** Type of neighbor to get cellid from */
   private NeighborType type;
 
   /**
    * A KeySelector that extracts the cellid of a Vertex. (Or the cellid of one of it's neighbors)
-   *
-   * @param cellResolution Number of cells per axis
    * @param type Selects which id to return. The 'real' one or the id of a specific neighbor.
    */
-  public FRCellIdSelector(int cellResolution, NeighborType type) {
-    this.cellResolution = cellResolution;
+  public FRCellIdSelector(NeighborType type) {
     this.type = type;
   }
 
   @Override
   public Integer getKey(Vertex value) {
     int cellid = value.getPropertyValue(FRLayouter.CELLID_PROPERTY).getInt();
-    int xcell = cellid % cellResolution;
-    int ycell = cellid / cellResolution;
+    int xcell = cellid >> 16;
+    int ycell = cellid & 0xFFFF;
     if (type == NeighborType.RIGHT || type == NeighborType.UPRIGHT ||
       type == NeighborType.DOWNRIGHT) {
       xcell++;
@@ -65,9 +60,6 @@ public class FRCellIdSelector implements KeySelector<Vertex, Integer> {
       ycell++;
     }
 
-    if (xcell >= cellResolution || ycell >= cellResolution || xcell < 0 || ycell < 0) {
-      return -1;
-    }
-    return ycell * cellResolution + xcell;
+    return (xcell << 16 | ycell);
   }
 }

@@ -61,9 +61,9 @@ public class FRLayouter extends LayoutingAlgorithm {
    */
   protected int height;
   /**
-   * Number of subcells per axis
+   * Maximum distance for computing repulsion-forces between vertices
    */
-  protected int cellResolution;
+  protected int maxRepulsionDistance;
 
   /**
    * Create new Instance of FRLayouter
@@ -73,15 +73,15 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @param iterations Number of iterations to perform of the algorithm
    * @param width      Width of the layouting space
    * @param height     Height of the layouting space
-   * @param resolution In how many subcells the layouting-space should be divided per axis.
-   *                   Low= precise results, High= faster computation
+   * @param maxRepulsionDistance   Maximum distance between two vertices before stopping to compute
+   *                   repulsions between them
    */
-  public FRLayouter(double k, int iterations, int width, int height, int resolution) {
+  public FRLayouter(double k, int iterations, int width, int height, int maxRepulsionDistance) {
     this.k = k;
     this.width = width;
     this.height = height;
     this.iterations = iterations;
-    this.cellResolution = resolution;
+    this.maxRepulsionDistance = maxRepulsionDistance;
   }
 
   /**
@@ -149,30 +149,30 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return Dataset of applied forces. May (and will) contain multiple forces for each vertex.
    */
   protected DataSet<Tuple3<GradoopId, Double, Double>> repulsionForces(DataSet<Vertex> vertices) {
-    vertices = vertices.map(new FRCellIdMapper(cellResolution, width, height));
+    vertices = vertices.map(new FRCellIdMapper(maxRepulsionDistance));
 
     KeySelector<Vertex, Integer> selfselector =
-      new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.SELF);
-    FRRepulsionFunction repulsionFunction = new FRRepulsionFunction(k);
+      new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF);
+    FRRepulsionFunction repulsionFunction = new FRRepulsionFunction(k, maxRepulsionDistance);
 
     DataSet<Tuple3<GradoopId, Double, Double>> self = vertices.join(vertices)
-      .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.SELF))
+      .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF))
       .equalTo(selfselector).with((JoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> up = vertices.join(vertices)
-      .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UP))
+      .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UP))
       .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> left = vertices.join(vertices)
-      .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.LEFT))
+      .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.LEFT))
       .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> uright = vertices.join(vertices)
-      .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UPRIGHT))
+      .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UPRIGHT))
       .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> uleft = vertices.join(vertices)
-      .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UPLEFT))
+      .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UPLEFT))
       .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
 
