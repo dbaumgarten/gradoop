@@ -15,10 +15,12 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting;
 
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.aggregation.Aggregations;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.operators.IterativeDataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
@@ -185,7 +187,8 @@ public class FRLayouter extends LayoutingAlgorithm {
   protected DataSet<Tuple3<GradoopId, Double, Double>> attractionForces(DataSet<Vertex> vertices,
     DataSet<Edge> edges) {
     return edges.join(vertices).where("sourceId").equalTo("id").join(vertices).where("f0.targetId")
-      .equalTo("id").with(new FRAttractionFunction(k));
+      .equalTo("id").with((first,second)->new Tuple2<Vertex,Vertex>(first.f1,second)).returns(new TypeHint<Tuple2<Vertex, Vertex>>() {
+      }).flatMap(new FRAttractionFunction(k));
   }
 
 }

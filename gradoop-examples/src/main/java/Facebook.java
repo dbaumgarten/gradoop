@@ -27,8 +27,8 @@ public class Facebook {
         LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
 
 
-        LayoutingAlgorithm frl = new FRLayouter(FRLayouter.calculateK(size,size, 4100) * 1,
-          iterations, size, size, 100);
+        LayoutingAlgorithm frl = new FRLayouter(FRLayouter.calculateK(size,size, 4100) * 5,
+          iterations, size, size, 30);
         LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
         Plotter.Options opts =
