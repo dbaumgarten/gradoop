@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.common.model.impl.properties.Properties;
+import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdSelector;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
@@ -125,6 +126,42 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
+  }
+
+  @Test
+  public void testAttractionFunction() throws Exception {
+    FRAttractionFunction af = new FRAttractionFunction(10);
+    Vertex v1 = getDummyVertex(1, 1);
+    Vertex v2 = getDummyVertex(2, 3);
+    Vertex v3 = getDummyVertex(7, 5);
+    Vertex v4 = getDummyVertex(1, 1);
+
+    List<Tuple3<GradoopId, Double, Double>> collectorList = new ArrayList<>();
+    ListCollector<Tuple3<GradoopId, Double, Double>> collector = new ListCollector<>(collectorList);
+
+    af.flatMap(new Tuple2<>(v1, v2),collector);
+    Vector vec12 = Vector.fromForceTuple(collectorList.get(0));
+    Vector vec21 = Vector.fromForceTuple(collectorList.get(1));
+    collectorList.clear();
+
+    af.flatMap(new Tuple2<>(v1, v3),collector);
+    Vector vec13 = Vector.fromForceTuple(collectorList.get(0));
+    collectorList.clear();
+
+    af.flatMap(new Tuple2<>(v1, v4),collector);
+    Vector vec14 = Vector.fromForceTuple(collectorList.get(0));
+    collectorList.clear();
+
+    af.flatMap(new Tuple2<>(v1, v1),collector);
+    Vector vec11 = Vector.fromForceTuple(collectorList.get(0));
+    collectorList.clear();
+
+
+    Assert.assertEquals(vec12,vec21.mul(-1));
+    Assert.assertTrue(vec12.getX() > 0 && vec12.getY() > 0);
+    Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
+    Assert.assertTrue(vec14.magnitude() == 0);
+    Assert.assertTrue(vec11.magnitude() == 0);
   }
 
 
