@@ -92,25 +92,29 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
   @Test
   public void testRepulseJoinFunction() throws Exception {
-    JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>> jf = new FRRepulsionFunction(1);
+    JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>> jf =
+      new FRRepulsionFunction(1,20);
     Vertex v1 = getDummyVertex(1, 1);
     Vertex v2 = getDummyVertex(2, 3);
     Vertex v3 = getDummyVertex(7, 5);
     Vertex v4 = getDummyVertex(1, 1);
+    Vertex v5 = getDummyVertex(30, 30);
 
     Vector vec12 = Vector.fromForceTuple(jf.join(v1, v2));
     Vector vec13 = Vector.fromForceTuple(jf.join(v1, v3));
     Vector vec14 = Vector.fromForceTuple(jf.join(v1, v4));
     Vector vec11 = Vector.fromForceTuple(jf.join(v1, v1));
+    Vector vec15 = Vector.fromForceTuple(jf.join(v1, v5));
 
     Assert.assertTrue(vec12.getX() < 0 && vec12.getY() < 0);
     Assert.assertTrue(vec12.magnitude() > vec13.magnitude());
     Assert.assertTrue(vec14.magnitude() > 0);
     Assert.assertTrue(vec11.magnitude() == 0);
+    Assert.assertTrue(vec15.magnitude() == 0);
   }
 
   @Test
-  public void testRepulseFlatMap() throws Exception {
+  public void testRepulseFlatJoin() throws Exception {
     FRRepulsionFunction jf = new FRRepulsionFunction(1);
     Vertex v1 = getDummyVertex(1, 1);
     Vertex v2 = getDummyVertex(2, 3);
@@ -119,7 +123,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
     List<Tuple3<GradoopId, Double, Double>> collectorList = new ArrayList<>();
     ListCollector<Tuple3<GradoopId, Double, Double>> collector = new ListCollector<>(collectorList);
-    jf.flatMap(new Tuple2<>(v1, v2), collector);
+    jf.join(v1, v2, collector);
 
     Vector vec12 = Vector.fromForceTuple(collectorList.get(0));
     Vector vec21 = Vector.fromForceTuple(collectorList.get(1));
