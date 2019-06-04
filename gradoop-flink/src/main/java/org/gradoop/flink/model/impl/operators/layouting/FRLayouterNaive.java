@@ -16,10 +16,12 @@
 package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
+import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
  * Performs a naive version of the RF-Algorithm by using the cartesian product between vertices
@@ -39,7 +41,7 @@ public class FRLayouterNaive extends FRLayouter {
   }
 
   @Override
-  public DataSet<Tuple3<GradoopId, Double, Double>> repulsionForces(DataSet<Vertex> vertices) {
+  public DataSet<Tuple2<GradoopId, Vector>> repulsionForces(DataSet<Vertex> vertices) {
     return vertices.cross(vertices).with(new FRRepulsionFunction(k));
   }
 }

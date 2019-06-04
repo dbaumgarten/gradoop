@@ -48,18 +48,6 @@ public class Vector {
   }
 
   /**
-   * Create a vector from values extracted from a force-tuple
-   *
-   * @param in The force-tuple to extract values (f1,f2) from
-   * @return A matching vector
-   */
-  public static Vector fromForceTuple(Tuple3<GradoopId, Double, Double> in) {
-    double x = in.f1;
-    double y = in.f2;
-    return new Vector(x, y);
-  }
-
-  /**
    * Create a vector from the coordinate-properties of a Vertex
    *
    * @param v The vertex to extract position coordinates from properties (X,Y)
