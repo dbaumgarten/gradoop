@@ -10,10 +10,13 @@ OUTPUT="/out/facebook/"
 
 #--------------------------------------------------
 
-ALGORITHMS="0"
+ALGORITHMS="2"
 PARALLELISM="2"
-ITERATIONS="1,10,20"
+ITERATIONS="10,50,100"
 CELLSIZE="333"
+
+SIZE=10000
+K=700
 
 #--------------------------------------------------
 
@@ -29,17 +32,17 @@ for A in "${ALGORITHMS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f lgcsv"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f lgcsv -d -x image"
 
     if [ "$A" == "0" ]; then
       echo A:$A P:$P
-      ARGS="-a 0 10000 10000"
+      ARGS="-a 0 $SIZE $SIZE"
       ${COMMAND} ${ARGS}
     fi
 
     if [ "$A" == "1" ]; then
       echo A:$A P:$P I:$I
-      ARGS="-a 1 150 1 10000 10000"
+      ARGS="-a 1 $K 1 $SIZE $SIZE"
       ${COMMAND} ${ARGS}
     fi
 
@@ -49,7 +52,7 @@ do
         for C in "${CELLSIZE[@]}"
         do
           echo A:$A P:$P I:$I C:$C
-          ARGS="-a 2 150 $I 10000 10000 $C"
+          ARGS="-a 2 $K $I $SIZE $SIZE $C"
           ${COMMAND} ${ARGS}
         done
       done
