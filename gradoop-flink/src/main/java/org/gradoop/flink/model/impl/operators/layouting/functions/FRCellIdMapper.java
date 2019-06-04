@@ -21,35 +21,27 @@ import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
- * A map-function that sssigns a cellid to each input-vertex, depending on its position in the
+ * A map-function that assigns a cellid to each input-vertex, depending on its position in the
  * layouting-space.
  * The cellid is stored as a property in FRLayouter.CELLID_PROPERTY
  */
 public class FRCellIdMapper implements MapFunction<Vertex, Vertex> {
-  /** Number of cells per axis */
-  private int cellResolution;
-  /** Width of the layouting-space */
-  private int width;
-  /** Height of the layouting-space */
-  private int height;
+  /** Size of subcells (width and height) */
+  private int cellSize;
 
   /** Create new CellIdMapper
-   * @param cellResolution Number of cells per axis
-   * @param width          width of the layouting-space
-   * @param height         height of the layouting-space
+   * @param cellSize Size of subcells (width and height)
    */
-  public FRCellIdMapper(int cellResolution, int width, int height) {
-    this.cellResolution = cellResolution;
-    this.width = width;
-    this.height = height;
+  public FRCellIdMapper(int cellSize) {
+    this.cellSize = cellSize;
   }
 
   @Override
   public Vertex map(Vertex value) {
     Vector pos = Vector.fromVertexPosition(value);
-    int xcell = ((int) pos.getX()) / (width / cellResolution);
-    int ycell = ((int) pos.getY()) / (height / cellResolution);
-    int cellid = ycell * cellResolution + xcell;
+    int xcell = ((int) pos.getX()) / cellSize;
+    int ycell = ((int) pos.getY()) / cellSize;
+    int cellid = (xcell << 16) | ycell;
     value.setProperty(FRLayouter.CELLID_PROPERTY, cellid);
     return value;
   }

@@ -36,64 +36,68 @@ import java.util.List;
 
 public class FRLayouterTest extends LayoutingAlgorithmTest {
 
+  private int id(int x, int y) {
+    return (x << 16) | y;
+  }
+
   @Test
   public void testCellIdSelector() throws Exception {
-    int resolution = 10;
+    int cellSize = 10;
     KeySelector<Vertex, Integer> selfselector =
-      new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.SELF);
-    FRCellIdMapper mapper = new FRCellIdMapper(10, 100, 100);
+      new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF);
+    FRCellIdMapper mapper = new FRCellIdMapper(cellSize);
 
     Assert.assertEquals(0, (long) selfselector.getKey(mapper.map(getDummyVertex(0, 0))));
-    Assert.assertEquals(99, (long) selfselector.getKey(mapper.map(getDummyVertex(99, 98))));
-    Assert.assertEquals(90, (long) selfselector.getKey(mapper.map(getDummyVertex(0, 95))));
+    Assert.assertEquals(id(9, 9), (long) selfselector.getKey(mapper.map(getDummyVertex(99, 98))));
+    Assert.assertEquals(id(0, 9), (long) selfselector.getKey(mapper.map(getDummyVertex(0, 95))));
 
     KeySelector<Vertex, Integer> neighborslector =
-      new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.RIGHT);
-    Assert.assertEquals(01, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(36, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(99)));
+      new FRCellIdSelector(FRCellIdSelector.NeighborType.RIGHT);
+    Assert.assertEquals(id(1,0), (long) neighborslector.getKey(getDummyVertex(id(0,0))));
+    Assert.assertEquals(id(6,3), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(10,9), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.LEFT);
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(34, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(98, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.LEFT);
+    Assert.assertEquals(id(-1,0), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4,3), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(8,9), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.UP);
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(25, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(89, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UP);
+    Assert.assertEquals(id(0,-1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(5,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(9,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.DOWN);
-    Assert.assertEquals(10, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(45, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWN);
+    Assert.assertEquals(id(0,1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(5,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(9,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.UPRIGHT);
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(26, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UPRIGHT);
+    Assert.assertEquals(id(1,-1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(6,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(10,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.UPLEFT);
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(24, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(88, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UPLEFT);
+    Assert.assertEquals(id(-1,-1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(8,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.DOWNLEFT);
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(44, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWNLEFT);
+    Assert.assertEquals(id(-1,1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(8,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
-    neighborslector = new FRCellIdSelector(resolution, FRCellIdSelector.NeighborType.DOWNRIGHT);
-    Assert.assertEquals(11, (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(46, (long) neighborslector.getKey(getDummyVertex(35)));
-    Assert.assertEquals(-1, (long) neighborslector.getKey(getDummyVertex(99)));
+    neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWNRIGHT);
+    Assert.assertEquals(id(1,1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(6,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
+    Assert.assertEquals(id(10,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
 
   }
 
   @Test
   public void testRepulseJoinFunction() throws Exception {
     JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>> jf =
-      new FRRepulsionFunction(1,20);
+      new FRRepulsionFunction(1, 20);
     Vertex v1 = getDummyVertex(1, 1);
     Vertex v2 = getDummyVertex(2, 3);
     Vertex v3 = getDummyVertex(7, 5);
@@ -143,25 +147,25 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     List<Tuple3<GradoopId, Double, Double>> collectorList = new ArrayList<>();
     ListCollector<Tuple3<GradoopId, Double, Double>> collector = new ListCollector<>(collectorList);
 
-    af.flatMap(new Tuple2<>(v1, v2),collector);
+    af.flatMap(new Tuple2<>(v1, v2), collector);
     Vector vec12 = Vector.fromForceTuple(collectorList.get(0));
     Vector vec21 = Vector.fromForceTuple(collectorList.get(1));
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v3),collector);
+    af.flatMap(new Tuple2<>(v1, v3), collector);
     Vector vec13 = Vector.fromForceTuple(collectorList.get(0));
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v4),collector);
+    af.flatMap(new Tuple2<>(v1, v4), collector);
     Vector vec14 = Vector.fromForceTuple(collectorList.get(0));
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v1),collector);
+    af.flatMap(new Tuple2<>(v1, v1), collector);
     Vector vec11 = Vector.fromForceTuple(collectorList.get(0));
     collectorList.clear();
 
 
-    Assert.assertEquals(vec12,vec21.mul(-1));
+    Assert.assertEquals(vec12, vec21.mul(-1));
     Assert.assertTrue(vec12.getX() > 0 && vec12.getY() > 0);
     Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
     Assert.assertTrue(vec14.magnitude() == 0);
