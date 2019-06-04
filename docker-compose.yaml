@@ -10,8 +10,8 @@ services:
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
     volumes:
-      - /home/daniel/projects/graviz/datasets:/datasets
-      - /home/daniel/projects/graviz/out:/out
+      - /home/daniel/projects/gradoop/datasets:/datasets
+      - /home/daniel/projects/gradoop/out:/out
 
   taskmanager:
     image: flink:1.7.2-hadoop24-scala_2.11
@@ -26,5 +26,5 @@ services:
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
     volumes:
-      - /home/daniel/projects/graviz/datasets:/datasets
-      - /home/daniel/projects/graviz/out:/out
+      - /home/daniel/projects/gradoop/datasets:/datasets
+      - /home/daniel/projects/gradoop/out:/out
