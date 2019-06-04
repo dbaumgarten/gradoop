@@ -1,4 +1,4 @@
-FLINK_BIN="docker run --rm -it --net=host -v /home/daniel/projects/gradoop/gradoop-examples/target:/data -w /data -v /home/daniel/projects/graviz/out:/out flink:1.7.2-hadoop24-scala_2.11 flink"
+FLINK_BIN="docker run --rm -it --net=host -v /home/daniel/projects/gradoop/gradoop-examples/target:/data -w /data -v /home/daniel/projects/gradoop/out:/out flink:1.7.2-hadoop24-scala_2.11 flink"
 
 JAR="/data/gradoop-examples-0.5.0-SNAPSHOT.jar"
 
@@ -10,8 +10,8 @@ OUTPUT="/out/facebook/"
 
 #--------------------------------------------------
 
-ALGORITHMS="0,1,2"
-PARALLELISM="1,2,4"
+ALGORITHMS="0"
+PARALLELISM="2"
 ITERATIONS="1,10,20"
 CELLSIZE="333"
 

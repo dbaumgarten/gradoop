@@ -26,7 +26,7 @@ public class Facebook {
 
         LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
 
-        double k = FRLayouter.calculateK(size,size, 4100) * 5;
+        double k = FRLayouter.calculateK(size,size, 4100) * 1;
         System.out.println("K is: "+k);
         LayoutingAlgorithm frl = new FRLayouter(k,
           iterations, size, size, 300);

@@ -22,11 +22,17 @@ import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.benchmark.sampling.SamplingBenchmark;
 import org.gradoop.examples.AbstractRunner;
+import org.gradoop.flink.io.api.DataSink;
+import org.gradoop.flink.io.impl.csv.CSVDataSink;
+import org.gradoop.flink.io.impl.csv.indexed.IndexedCSVDataSink;
+import org.gradoop.flink.io.impl.deprecated.json.JSONDataSink;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
+import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
+import org.gradoop.flink.util.GradoopFlinkConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -173,8 +179,37 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     LogicalGraph graphSample = algorithm.execute(graph);
 
     // write graph sample and benchmark data
-    writeLogicalGraph(graphSample, OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX);
-    writeBenchmark(graphSample.getConfig().getExecutionEnvironment(), algorithm);
+    graph.writeTo(getDataSink(OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX, DEFAULT_FORMAT,
+      graph.getConfig()), true);
+
+    Double crossedges =
+      new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(graphSample).f1;
+
+    writeBenchmark(graphSample.getConfig().getExecutionEnvironment(), algorithm, crossedges);
+  }
+
+  /**
+   * Returns an EPGM DataSink for a given directory and format.
+   *
+   * @param directory output path
+   * @param format output format (csv, indexed, json)
+   * @param config gradoop config
+   * @return DataSink for EPGM Data
+   */
+  private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config) {
+    directory = appendSeparator(directory);
+    format = format.toLowerCase();
+
+    switch (format) {
+    case "json":
+      return new JSONDataSink(directory, config);
+    case "csv":
+      return new CSVDataSink(directory, config);
+    case "indexed":
+      return new IndexedCSVDataSink(directory, config);
+    default:
+      throw new IllegalArgumentException("Unsupported format: " + format);
+    }
   }
 
   /**
@@ -195,19 +230,22 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    *
    * @param env       given ExecutionEnvironment
    * @param layouting layouting algorithm under test
+   * @param crossedges number of detected edge-crossings
    * @throws IOException exception during file writing
    */
-  private static void writeBenchmark(ExecutionEnvironment env, LayoutingAlgorithm layouting) throws
+  private static void writeBenchmark(ExecutionEnvironment env, LayoutingAlgorithm layouting,
+    double crossedges) throws
     IOException {
     String head = String
-      .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params", "Runtime [s]");
+      .format("%s|%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params", "Runtime " +
+        "[s]","Crossedges");
 
     // build log
     String layoutingName = layouting.getClass().getSimpleName();
-    String tail = String.format("%s|%s|%s|%s|%s%n", env.getParallelism(),
+    String tail = String.format("%s|%s|%s|%s|%s|%s%n", env.getParallelism(),
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
       String.join(", ", CONSTRUCTOR_PARAMS),
-      env.getLastJobExecutionResult().getNetRuntime(TimeUnit.SECONDS));
+      env.getLastJobExecutionResult().getNetRuntime(TimeUnit.SECONDS),crossedges);
 
     File f = new File(OUTPUT_PATH + OUTPUT_PATH_BENCHMARK_SUFFIX);
     if (f.exists() && !f.isDirectory()) {
