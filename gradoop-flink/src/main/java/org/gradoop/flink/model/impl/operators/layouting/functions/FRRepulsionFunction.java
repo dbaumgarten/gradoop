@@ -16,6 +16,7 @@
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
 import org.apache.flink.api.common.functions.CrossFunction;
+import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -28,27 +29,41 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import java.util.Random;
 
 /**
- * A JoinFunction that computes the repulsion-forces between two given vertices.
+ * A Join/Cross/FlatJoin-Function that computes the repulsion-forces between two given vertices.
+ * Implements both Join and FlatJoin to compute repulsions for a single vertex or for both
+ * vertices at once.
  */
 public class FRRepulsionFunction implements
   JoinFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>>,
   CrossFunction<Vertex, Vertex, Tuple3<GradoopId, Double, Double>>,
-  FlatMapFunction<Tuple2<Vertex, Vertex>, Tuple3<GradoopId, Double, Double>> {
+  FlatJoinFunction<Vertex,Vertex,Tuple3<GradoopId, Double, Double>> {
   /** Rng. Used to get random directions for vertices at the same position */
   private Random rng;
   /** Parameter for the FR-Algorithm */
   private double k;
+  /** Maximum distance between two vertices that still produces a repulsion */
+  private double maxDistance;
 
   /** Create new RepulsionFunction
    *
    * @param k A parameter of the FR-Algorithm
    */
   public FRRepulsionFunction(double k) {
-    rng = new Random();
-    this.k = k;
+    this(k,Float.MAX_VALUE);
   }
 
-  /** Computes repulsion forces between two given Vertexes.
+  /** Create new RepulsionFunction
+   *
+   * @param k A parameter of the FR-Algorithm
+   * @param maxDistance Maximum distance between two vertices that still produces a repulsion
+   */
+  public FRRepulsionFunction(double k, double maxDistance) {
+    rng = new Random();
+    this.k = k;
+    this.maxDistance = maxDistance;
+  }
+
+  /** Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
    *
    * @param first First Vertex
    * @param second Second Certex
@@ -56,23 +71,8 @@ public class FRRepulsionFunction implements
    */
   @Override
   public Tuple3<GradoopId, Double, Double> join(Vertex first, Vertex second) {
-    Vector pos1 = Vector.fromVertexPosition(first);
-    Vector pos2 = Vector.fromVertexPosition(second);
-    double distance = pos1.distance(pos2);
-    Vector direction = pos2.sub(pos1);
-
-    if (first.getId().equals(second.getId())) {
-      return new Tuple3<GradoopId, Double, Double>(first.getId(), 0.0, 0.0);
-    }
-    if (distance == 0) {
-      distance = 0.1;
-      direction.setX(rng.nextInt());
-      direction.setY(rng.nextInt());
-    }
-
-    Vector force = direction.normalized().mul(-Math.pow(k, 2) / distance);
-
-    return new Tuple3<GradoopId, Double, Double>(first.getId(), force.getX(), force.getY());
+    Vector force = calculateForce(first,second);
+    return new Tuple3<>(first.getId(),force.getX(),force.getY());
   }
 
   /** Alias for join() to fullfill the CrossFunction-Interface.
@@ -86,21 +86,53 @@ public class FRRepulsionFunction implements
     return join(vertex, vertex2);
   }
 
-  /** Calculates repulsion forces vor both-vertexes AT ONCE. (All other functions only compute
-   * the forces for the first vertex.
+
+  /** Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
    *
-   * @param vertexVertexTuple A Tuple containing both vertexes
-   * @param collector This collector will receive exactly two force-tuples. One for each
-   *                  input-vertex.
+   * @param first First Vertex
+   * @param second Second Certex
+   * @return A force-tuple representing the repulsion-force for the first vertex
+   */
+  protected Vector calculateForce(Vertex first, Vertex second){
+    Vector pos1 = Vector.fromVertexPosition(first);
+    Vector pos2 = Vector.fromVertexPosition(second);
+    double distance = pos1.distance(pos2);
+    Vector direction = pos2.sub(pos1);
+
+    if (first.getId().equals(second.getId())) {
+      return new Vector(0,0);
+    }
+
+    if (distance > maxDistance){
+      return new Vector(0,0);
+    }
+
+    if (distance == 0) {
+      distance = 0.1;
+      direction.setX(rng.nextInt());
+      direction.setY(rng.nextInt());
+    }
+
+    return direction.normalized().mul(-Math.pow(k, 2) / distance);
+  }
+
+  /** Implement FlatJoin and produce the force-tuples for both vertices at once.
+   * (Forces of magnitude 0 will be ignored)
+   *
+   * @param first The first vertex
+   * @param second The second vertex
+   * @param collector Contains up to two force-tuples representing repulsion-forces between both
+   *                  vertices.
    */
   @Override
-  public void flatMap(Tuple2<Vertex, Vertex> vertexVertexTuple,
-    Collector<Tuple3<GradoopId, Double, Double>> collector) {
-    Tuple3<GradoopId, Double, Double> firstForce =
-      join(vertexVertexTuple.f0, vertexVertexTuple.f1);
-    Tuple3<GradoopId, Double, Double> secondForce =
-      new Tuple3<>(vertexVertexTuple.f1.getId(), -firstForce.f1, -firstForce.f2);
-    collector.collect(firstForce);
-    collector.collect(secondForce);
+  public void join(Vertex first, Vertex second,
+    Collector<Tuple3<GradoopId, Double, Double>> collector){
+
+    Vector force = calculateForce(first,second);
+    if (force.magnitude() == 0){
+      return;
+    }
+    collector.collect(new Tuple3<>(first.getId(),force.getX(),force.getY()));
+    collector.collect(new Tuple3<>(second.getId(),-force.getX(),-force.getY()));
   }
 }

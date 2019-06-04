@@ -15,6 +15,8 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting;
 
+import org.apache.flink.api.common.functions.FlatJoinFunction;
+import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.aggregation.Aggregations;
@@ -155,23 +157,23 @@ public class FRLayouter extends LayoutingAlgorithm {
 
     DataSet<Tuple3<GradoopId, Double, Double>> self = vertices.join(vertices)
       .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.SELF))
-      .equalTo(selfselector).with(repulsionFunction);
+      .equalTo(selfselector).with((JoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> up = vertices.join(vertices)
       .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UP))
-      .equalTo(selfselector).flatMap(repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> left = vertices.join(vertices)
       .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.LEFT))
-      .equalTo(selfselector).flatMap(repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> uright = vertices.join(vertices)
       .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UPRIGHT))
-      .equalTo(selfselector).flatMap(repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
     DataSet<Tuple3<GradoopId, Double, Double>> uleft = vertices.join(vertices)
       .where(new FRCellIdSelector(cellResolution, FRCellIdSelector.NeighborType.UPLEFT))
-      .equalTo(selfselector).flatMap(repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
 
 
     return self.union(up).union(left).union(uright).union(uleft);
