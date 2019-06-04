@@ -16,7 +16,6 @@
 package org.gradoop.benchmark.layouting;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -31,6 +30,7 @@ import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 
@@ -65,6 +65,15 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * 2 ---> FR
    */
   private static final String OPTION_SELECTED_ALGORITHM = "a";
+
+  /**
+   * Option to ENABLE_PLOTTING the layouted graph
+   */
+  private static final String OPTION_OUTPUT_FORMAT = "x";
+  /**
+   * Option to dynamically name the output-directory according to the parameters
+   */
+  private static final String OPTION_DYNAMIC_OUT = "d";
   /**
    * Used input path.
    */
@@ -101,6 +110,12 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * List of parameters that are used to instantiate the selected layouting algorithm.
    */
   private static String[] CONSTRUCTOR_PARAMS;
+  /**
+   * If true dynamically generate output path
+   */
+  private static boolean ENABLE_DYNAMIC_OUTPUT_PATH;
+
+  private static String OUTPUT_FORMAT;
 
 
   static {
@@ -113,6 +128,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         "statistics are written to. (Defaults to " + OUTPUT_PATH_DEFAULT + ")");
     OPTIONS.addOption(OPTION_INPUT_FORMAT, "format", true,
       "Format of the input data. Defaults to 'csv'");
+    OPTIONS.addOption(OPTION_OUTPUT_FORMAT,"outformat", true,"Select output format");
+    OPTIONS.addOption(OPTION_DYNAMIC_OUT,"dyn",false,"If true include args in output foldername");
   }
 
   /** Build the selected LayoutingAlgorithm with the given constuctor parameters
@@ -176,16 +193,21 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     // instantiate selected layouting algorithm and create layout
     LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(SELECTED_ALGORITHM, CONSTRUCTOR_PARAMS);
-    LogicalGraph graphSample = algorithm.execute(graph);
+    LogicalGraph layouted = algorithm.execute(graph);
 
     // write graph sample and benchmark data
-    graph.writeTo(getDataSink(OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX, DEFAULT_FORMAT,
-      graph.getConfig()), true);
+    String outpath = OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX;
+    if (ENABLE_DYNAMIC_OUTPUT_PATH){
+      outpath += getDynamicOutputFolderName() + "/";
+    }
 
+    layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig()), true);
+
+    //This also executes the flink programm as a side-effect
     Double crossedges =
-      new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(graphSample).f1;
+      new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
 
-    writeBenchmark(graphSample.getConfig().getExecutionEnvironment(), algorithm, crossedges);
+    writeBenchmark(layouted.getConfig().getExecutionEnvironment(), algorithm, crossedges);
   }
 
   /**
@@ -207,6 +229,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       return new CSVDataSink(directory, config);
     case "indexed":
       return new IndexedCSVDataSink(directory, config);
+    case "image":
+      return new Plotter(new Plotter.Options().dimensions(10000,10000).ignoreVertices(true).scaleImage(1000,1000),directory+"image.png");
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
@@ -223,6 +247,16 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     CONSTRUCTOR_PARAMS = cmd.getArgList().toArray(new String[0]);
     OUTPUT_PATH = cmd.getOptionValue(OPTION_OUTPUT_PATH, OUTPUT_PATH_DEFAULT);
     INPUT_FORMAT = cmd.getOptionValue(OPTION_INPUT_FORMAT, INPUT_FORMAT_DEFAULT);
+    ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
+    OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
+  }
+
+  /** Generates a folder name from the input arguments
+   *
+   * @return A foldername
+   */
+  private static String getDynamicOutputFolderName(){
+    return SELECTED_ALGORITHM+"-"+String.join("-",CONSTRUCTOR_PARAMS);
   }
 
   /**
