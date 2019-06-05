@@ -53,8 +53,8 @@ public class FRForceApplicator extends
   @Override
   public Vertex join(Vertex first, Tuple2<GradoopId, Vector> second) throws Exception {
     int iteration = getIterationRuntimeContext().getSuperstepNumber();
-    double temp = k / 2.0;
-    double speedLimit = -(temp / maxIterations) * iteration + temp + (k / 10.0);
+    double tmp = width / 3.0;
+    double speedLimit = -(tmp / maxIterations) * iteration + tmp + (width / 200.0);
 
     Vector movement = second.f1;
     movement = movement.clamped(speedLimit);
