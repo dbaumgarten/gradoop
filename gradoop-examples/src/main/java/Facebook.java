@@ -17,7 +17,7 @@ public class Facebook {
     static String OUTPUT_PATH = System.getProperty("user.dir")+"/out/facebook-test.png";
     static String INPUT_PATH = System.getProperty("user.dir")+"/datasets/facebook_gradoop_csv";
     static final int size = 10000;
-    static final int iterations = 100;
+    static final int iterations = 25;
 
     public static void main(String[] args) throws Exception {
 
