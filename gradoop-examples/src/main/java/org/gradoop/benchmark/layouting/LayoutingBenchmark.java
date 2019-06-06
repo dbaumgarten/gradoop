@@ -75,6 +75,10 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_DYNAMIC_OUT = "d";
   /**
+   * Option to specify the output-path for the benchmark-results
+   */
+  private static final String OPTION_BENCHMARK_PATH = "b";
+  /**
    * Used input path.
    */
   private static String INPUT_PATH;
@@ -99,10 +103,6 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX = "graph_layout/";
   /**
-   * Output path suffix defining where resulting benchmark file is written to.
-   */
-  private static final String OUTPUT_PATH_BENCHMARK_SUFFIX = "benchmark";
-  /**
    * Integer defining the layouting algorithm that is to be evaluated.
    */
   private static int SELECTED_ALGORITHM;
@@ -114,8 +114,14 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * If true dynamically generate output path
    */
   private static boolean ENABLE_DYNAMIC_OUTPUT_PATH;
-
+  /** Output-format choosen by user
+   *
+   */
   private static String OUTPUT_FORMAT;
+  /**
+   * Output path defining where resulting benchmark file is written to.
+   */
+  private static String OUTPUT_PATH_BENCHMARK = "./benchmark.txt";
 
 
   static {
@@ -130,6 +136,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       "Format of the input data. Defaults to 'csv'");
     OPTIONS.addOption(OPTION_OUTPUT_FORMAT,"outformat", true,"Select output format");
     OPTIONS.addOption(OPTION_DYNAMIC_OUT,"dyn",false,"If true include args in output foldername");
+    OPTIONS.addOption(OPTION_BENCHMARK_PATH,"benchmarkfile",true,"Path where the " +
+      "benchmark-file is written to");
   }
 
   /** Build the selected LayoutingAlgorithm with the given constuctor parameters
@@ -249,6 +257,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     INPUT_FORMAT = cmd.getOptionValue(OPTION_INPUT_FORMAT, INPUT_FORMAT_DEFAULT);
     ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
     OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
+    OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
   }
 
   /** Generates a folder name from the input arguments
@@ -281,11 +290,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       String.join(", ", CONSTRUCTOR_PARAMS),
       env.getLastJobExecutionResult().getNetRuntime(TimeUnit.SECONDS),crossedges);
 
-    File f = new File(OUTPUT_PATH + OUTPUT_PATH_BENCHMARK_SUFFIX);
+    File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
       FileUtils.writeStringToFile(f, tail, true);
     } else {
-      PrintWriter writer = new PrintWriter(OUTPUT_PATH + OUTPUT_PATH_BENCHMARK_SUFFIX, "UTF-8");
+      PrintWriter writer = new PrintWriter( OUTPUT_PATH_BENCHMARK, "UTF-8");
       writer.print(head);
       writer.print(tail);
       writer.close();

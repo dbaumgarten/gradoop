@@ -32,7 +32,7 @@ for A in "${ALGORITHMS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f lgcsv -d -x image"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f lgcsv -d -x image -b benchmark.txt"
 
     if [ "$A" == "0" ]; then
       echo A:$A P:$P
