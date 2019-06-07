@@ -17,6 +17,7 @@ package org.gradoop.benchmark.layouting;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.io.FileUtils;
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.benchmark.sampling.SamplingBenchmark;
@@ -79,6 +80,14 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_BENCHMARK_PATH = "b";
   /**
+   * Option to disable Statistics
+   */
+  private static final String OPTION_NO_STATISTICS = "n";
+  /**
+   * Option to enable splitting into multiple jobs
+   */
+  private static final String OPTION_MULTIJOB = "m";
+  /**
    * Used input path.
    */
   private static String INPUT_PATH;
@@ -122,6 +131,14 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * Output path defining where resulting benchmark file is written to.
    */
   private static String OUTPUT_PATH_BENCHMARK = "./benchmark.txt";
+  /**
+   * If true, do not compute statistics. Only layout and output.
+   */
+  private static boolean DISABLE_STATISTICS = false;
+  /**
+   * If true split layouting and statistics(+plotting) in two jobs
+   */
+  private static boolean MULTIJOB = false;
 
 
   static {
@@ -138,6 +155,9 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     OPTIONS.addOption(OPTION_DYNAMIC_OUT,"dyn",false,"If true include args in output foldername");
     OPTIONS.addOption(OPTION_BENCHMARK_PATH,"benchmarkfile",true,"Path where the " +
       "benchmark-file is written to");
+    OPTIONS.addOption(OPTION_NO_STATISTICS,"nostat",false,"Disable calculation of statistics. E.g" +
+      ". CrossEdges");
+    OPTIONS.addOption(OPTION_MULTIJOB,"multijob",false,"Split layouting and statistic in two jobs");
   }
 
   /** Build the selected LayoutingAlgorithm with the given constuctor parameters
@@ -209,13 +229,32 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       outpath += getDynamicOutputFolderName() + "/";
     }
 
-    layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig()), true);
 
-    //This also executes the flink programm as a side-effect
-    Double crossedges =
-      new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
+    JobExecutionResult jerlayout = null;
+    if(MULTIJOB){
+      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig()), true);
+      jerlayout = getExecutionEnvironment().execute("Layouting");
+      layouted = readLogicalGraph(outpath, "csv");
+    }
 
-    writeBenchmark(layouted.getConfig().getExecutionEnvironment(), algorithm, crossedges);
+    if (!MULTIJOB  || !OUTPUT_FORMAT.equals("csv")){
+      layouted.writeTo(getDataSink(outpath,OUTPUT_FORMAT,graph.getConfig()),true);
+    }
+
+    Double crossedges = -1d;
+    if (!DISABLE_STATISTICS){
+      //This also executes the flink programm as a side-effect
+      crossedges = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
+    }else if(!MULTIJOB  || !OUTPUT_FORMAT.equals("csv")){
+      getExecutionEnvironment().execute("Output-Conversion");
+    }
+
+    if (jerlayout == null){
+      jerlayout = layouted.getConfig().getExecutionEnvironment().getLastJobExecutionResult();
+    }
+
+    writeBenchmark(jerlayout,layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm,
+      crossedges);
   }
 
   /**
@@ -258,6 +297,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
     OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
     OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
+    DISABLE_STATISTICS = cmd.hasOption(OPTION_NO_STATISTICS);
+    MULTIJOB = cmd.hasOption(OPTION_MULTIJOB);
   }
 
   /** Generates a folder name from the input arguments
@@ -271,12 +312,14 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   /**
    * Method to crate and add lines to a benchmark file.
    *
-   * @param env       given ExecutionEnvironment
+   * @param result  The JoExecutionResult for the layouting
+   * @param parallelism Parallelism level used for the layouting
    * @param layouting layouting algorithm under test
    * @param crossedges number of detected edge-crossings
    * @throws IOException exception during file writing
    */
-  private static void writeBenchmark(ExecutionEnvironment env, LayoutingAlgorithm layouting,
+  private static void writeBenchmark(JobExecutionResult result,
+    int parallelism, LayoutingAlgorithm layouting,
     double crossedges) throws
     IOException {
     String head = String
@@ -285,10 +328,10 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     // build log
     String layoutingName = layouting.getClass().getSimpleName();
-    String tail = String.format("%s|%s|%s|%s|%s|%s%n", env.getParallelism(),
+    String tail = String.format("%s|%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
       String.join(", ", CONSTRUCTOR_PARAMS),
-      env.getLastJobExecutionResult().getNetRuntime(TimeUnit.SECONDS),crossedges);
+      result.getNetRuntime(TimeUnit.SECONDS),crossedges);
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
