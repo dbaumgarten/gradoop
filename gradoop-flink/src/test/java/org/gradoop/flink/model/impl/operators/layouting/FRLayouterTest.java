@@ -136,6 +136,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
+    Assert.assertNotEquals(collectorList.get(0).getId(),collectorList.get(1).getId());
   }
 
   @Test
@@ -152,6 +153,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     af.flatMap(new Tuple2<>(v1, v2), collector);
     Vector vec12 = collectorList.get(0).getValue();
     Vector vec21 = collectorList.get(1).getValue();
+    Assert.assertNotEquals(collectorList.get(0).getId(),collectorList.get(1).getId());
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v3), collector);

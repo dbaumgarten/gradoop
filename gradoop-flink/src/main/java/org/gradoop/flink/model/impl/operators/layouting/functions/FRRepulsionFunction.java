@@ -46,6 +46,11 @@ public class FRRepulsionFunction implements
   /** Maximum distance between two vertices that still produces a repulsion */
   private double maxDistance;
 
+  /** Object reuse for output */
+  private Force firstForce = new Force();
+  /** Object reuse for output */
+  private Force secondForce = new Force();
+
   /** Create new RepulsionFunction
    *
    * @param k A parameter of the FR-Algorithm
@@ -74,7 +79,8 @@ public class FRRepulsionFunction implements
   @Override
   public Force join(LVertex first, LVertex second) {
     Vector force = calculateForce(first,second);
-    return new Force(first.getId(),force);
+    firstForce.set(first.getId(),force);
+    return firstForce;
   }
 
   /** Alias for join() to fullfill the CrossFunction-Interface.
@@ -134,7 +140,11 @@ public class FRRepulsionFunction implements
     if (force.magnitude() == 0){
       return;
     }
-    collector.collect(new Force(first.getId(),force));
-    collector.collect(new Force(second.getId(),force.mul(-1)));
+
+    firstForce.set(first.getId(),force);
+    secondForce.set(second.getId(),force.mul(-1));
+
+    collector.collect(firstForce);
+    collector.collect(secondForce);
   }
 }
