@@ -16,14 +16,9 @@
 package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
-import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
  * Performs a naive version of the RF-Algorithm by using the cartesian product between vertices
@@ -32,14 +27,13 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
  */
 public class FRLayouterNaive extends FRLayouter {
   /** Create new FRLayouterNaive
-   *
-   * @param k Parameter for the FR-Algorithm. optimum distance between connected vertices
-   * @param iterations Number of iterations to perform
-   * @param width Width of the layouting-space
+   *  @param width Width of the layouting-space
    * @param height Height of the layouting-space
+   * @param iterations Number of iterations to perform
+   * @param k Parameter for the FR-Algorithm. optimum distance between connected vertices
    */
-  public FRLayouterNaive(double k, int iterations, int width, int height) {
-    super(k, iterations, width, height, 1);
+  public FRLayouterNaive(int width, int height, int iterations, double k) {
+    super(width, height, iterations, k, 1);
   }
 
   @Override

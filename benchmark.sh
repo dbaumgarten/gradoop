@@ -17,11 +17,12 @@ OUTPUT="hdfs:///db32geta/ldbc_1-out/"
 
 ALGORITHMS="2"
 PARALLELISM="96"
-ITERATIONS="1"
-CELLSIZE="12"
+ITERATIONS="1,3,5,7,10,15"
+CELLSIZE="15"
 
-SIZE=10000
-K=6
+SIZE=40000
+K=30
+
 
 #--------------------------------------------------
 
@@ -37,18 +38,16 @@ for A in "${ALGORITHMS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -n -b benchmark.txt"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -n -b benchmark.txt -a $A $SIZE $SIZE"
 
     if [ "$A" == "0" ]; then
       echo A:$A P:$P
-      ARGS="-a 0 $SIZE $SIZE"
-      ${COMMAND} ${ARGS}
+      ${COMMAND}
     fi
 
     if [ "$A" == "1" ]; then
       echo A:$A P:$P I:$I
-      ARGS="-a 1 $K 1 $SIZE $SIZE"
-      ${COMMAND} ${ARGS}
+      ${COMMAND} 1
     fi
 
     if [ "$A" == "2" ]; then
@@ -57,7 +56,7 @@ do
         for C in "${CELLSIZE[@]}"
         do
           echo A:$A P:$P I:$I C:$C
-          ARGS="-a 2 $K $I $SIZE $SIZE $C"
+          ARGS="$I $K $C"
           ${COMMAND} ${ARGS}
         done
       done

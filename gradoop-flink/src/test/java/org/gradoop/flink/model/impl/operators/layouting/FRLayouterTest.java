@@ -19,10 +19,7 @@ import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.util.ListCollector;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Vertex;
-import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdSelector;
@@ -192,6 +189,6 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FRLayouter(FRLayouter.calculateK(w, h, 10), 5, w, h, 4);
+    return new FRLayouter(w, h, 5, FRLayouter.calculateK(w, h, 10), 4);
   }
 }
