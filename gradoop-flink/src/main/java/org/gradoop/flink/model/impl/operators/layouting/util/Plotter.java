@@ -88,8 +88,8 @@ public class Plotter implements DataSink {
 
   protected static class PlotterOutputFormat extends FileOutputFormat<Edge> {
 
-    private BufferedImage img;
-    private Graphics gfx;
+    transient private BufferedImage img;
+    transient private Graphics gfx;
     private String path;
     private Options options;
     private Set<Tuple2<Integer,Integer>> vertices;
