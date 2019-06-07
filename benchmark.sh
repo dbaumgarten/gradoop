@@ -1,22 +1,27 @@
-FLINK_BIN="docker run --rm -it --net=host -v /home/daniel/projects/gradoop/gradoop-examples/target:/data -w /data -v /home/daniel/projects/gradoop/out:/out flink:1.7.2-hadoop24-scala_2.11 flink"
+FLINK_BIN="/opt/flink-1.6.0/bin/flink"
 
-JAR="/data/gradoop-examples-0.5.0-SNAPSHOT.jar"
+JAR="gradoop-examples-0.5.0-SNAPSHOT.jar"
 
 CLASS="org.gradoop.benchmark.layouting.LayoutingBenchmark"
 
-INPUT="/datasets/facebook_gradoop_csv"
+INPUT="hdfs:///ldbc/csv_gradoop_new/ldbc_1"
 
-OUTPUT="/out/facebook/"
+OUTPUT="hdfs:///db32geta/ldbc_1-out/"
 
 #--------------------------------------------------
 
+#ALGORITHMS="0,1,2"
+#PARALLELISM="6,12,24,48,96"
+#ITERATIONS="1,25,50,100"
+#CELLSIZE="333"
+
 ALGORITHMS="2"
-PARALLELISM="2"
-ITERATIONS="10,50,100"
-CELLSIZE="333"
+PARALLELISM="96"
+ITERATIONS="1"
+CELLSIZE="12"
 
 SIZE=10000
-K=700
+K=6
 
 #--------------------------------------------------
 
@@ -32,7 +37,7 @@ for A in "${ALGORITHMS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f lgcsv -d -x image -b benchmark.txt"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -n -b benchmark.txt"
 
     if [ "$A" == "0" ]; then
       echo A:$A P:$P
