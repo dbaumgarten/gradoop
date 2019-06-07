@@ -15,9 +15,10 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
+
+import java.io.Serializable;
 
 
 /**
@@ -25,7 +26,10 @@ import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
  * All math-operations will return a new Vector (instead of modifying the existing vector). This
  * prevents strange side-effects when performing complex computations.
  */
-public class Vector extends Tuple2<Double,Double> {
+public class Vector implements Serializable {
+
+  public double f0;
+  public double f1;
 
   /**
    * Construct a vector from f0 and f1 coordinates
@@ -34,14 +38,16 @@ public class Vector extends Tuple2<Double,Double> {
    * @param y Y-Coordinate of the new vector
    */
   public Vector(double x, double y) {
-    super(x,y);
+    f0 = x;
+    f1 = y;
   }
 
   /** Construct new zero-Vector
    *
    */
   public Vector(){
-    super(0d,0d);
+    f0 = 0d;
+    f1 = 0d;
   }
 
   /**
@@ -62,8 +68,8 @@ public class Vector extends Tuple2<Double,Double> {
    * @param v The vertex that will receive the values of this vector as coordinates
    */
   public void setVertexPosition(Vertex v) {
-    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) f0.doubleValue());
-    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) f1.doubleValue());
+    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) f0);
+    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) f1);
   }
 
   /**
@@ -189,14 +195,14 @@ public class Vector extends Tuple2<Double,Double> {
   public boolean equals(Object other) {
     if (other != null && other instanceof Vector) {
       Vector otherv = (Vector) other;
-      return f0.equals(otherv.f0) && f1.equals(otherv.f1);
+      return f0 == otherv.f0 && f1 == otherv.f1;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return ((int) f0.doubleValue() << 16) + (int) f1.doubleValue();
+    return ((int) f0 << 16) + (int) f1;
   }
 
   @Override
@@ -270,7 +276,7 @@ public class Vector extends Tuple2<Double,Double> {
    * @return A copy of this object
    */
   public Vector copy(){
-    return new Vector(f0.doubleValue(),f1.doubleValue());
+    return new Vector(f0,f1);
   }
 
   //-----------------------------------------------------------------------------------
