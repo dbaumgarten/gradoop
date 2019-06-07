@@ -65,4 +65,14 @@ public class Force extends Tuple2<GradoopId,Vector> {
   public void setValue(Vector value) {
     this.f1 = value;
   }
+
+  /** Set id and value at once. Useful for functions that reuse objects
+   *
+   * @param id Id to set
+   * @param value Value to set
+   */
+  public void set(GradoopId id, Vector value){
+    this.f0 = id;
+    this.f1 = value;
+  }
 }

@@ -39,6 +39,11 @@ public class FRAttractionFunction implements
   /** Parameter for the FR-Algorithm */
   private double k;
 
+  /** Object reuse for output */
+  private Force firstForce = new Force();
+  /** Object reuse for output */
+  private Force secondForce = new Force();
+
   /** Create new FRAttractionFunction
    *
    * @param k Algorithm factor. Optimum distance between connected vertices
@@ -58,9 +63,8 @@ public class FRAttractionFunction implements
 
     Vector force = pos2.sub(pos1).normalized().mul(Math.pow(distance, 2) / k);
 
-    Force firstForce = new Force(vertices.f0.getId(),force);
-
-    Force secondForce = new Force(vertices.f1.getId(),force.mul(-1));
+    firstForce.set(vertices.f0.getId(),force);
+    secondForce.set(vertices.f1.getId(),force.mul(-1));
 
     collector.collect(firstForce);
     collector.collect(secondForce);

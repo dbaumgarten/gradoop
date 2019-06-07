@@ -25,10 +25,10 @@ public class Facebook {
         GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
         LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-        double k = FRLayouter.calculateK(size,size, 4100) * 5;
+        double k = FRLayouter.calculateK(size,size, 4100)*3;
         System.out.println("K is: "+k);
         LayoutingAlgorithm frl = new FRLayouter(k,
-          iterations, size, size, 300);
+          iterations, size, size, (int)k/2);
         LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
         Plotter p =
