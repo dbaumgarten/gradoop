@@ -244,6 +244,17 @@ public class Vector extends Tuple2<Double,Double> {
     return this;
   }
 
+  /** Copy the values of the other vector into this one
+   *
+   * @param other The other vector
+   * @return this
+   */
+  public Vector set(Vector other){
+    f0 = other.f0;
+    f1 = other.f1;
+    return this;
+  }
+
   /** Reset this vector to 0
    *
    * @return This object for method-chaining
@@ -259,7 +270,7 @@ public class Vector extends Tuple2<Double,Double> {
    * @return A copy of this object
    */
   public Vector copy(){
-    return new Vector(f0,f1);
+    return new Vector(f0.doubleValue(),f1.doubleValue());
   }
 
   //-----------------------------------------------------------------------------------
