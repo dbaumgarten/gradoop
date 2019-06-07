@@ -116,7 +116,7 @@ public class FRLayouter extends LayoutingAlgorithm {
     DataSet<Force> attractions = attractionForces(loop, edges);
 
     DataSet<Force> forces =
-      repulsions.union(attractions).groupBy("id").reduce((first,second)->{
+      repulsions.union(attractions).groupBy(Force.ID).reduce((first,second)->{
         first.setValue(first.getValue().add(second.getValue()));
         return first;
         });
@@ -125,7 +125,9 @@ public class FRLayouter extends LayoutingAlgorithm {
 
     vertices = loop.closeWith(moved);
 
-    gradoopVertices = vertices.join(gradoopVertices).where("id").equalTo("id").with(new JoinFunction<LVertex, Vertex, Vertex>() {
+    gradoopVertices =
+      vertices.join(gradoopVertices).where(LVertex.ID).equalTo("id").with(new JoinFunction<LVertex,
+        Vertex, Vertex>() {
       @Override
       public Vertex join(LVertex lVertex, Vertex vertex) throws Exception {
         lVertex.getPosition().setVertexPosition(vertex);
@@ -149,7 +151,7 @@ public class FRLayouter extends LayoutingAlgorithm {
    */
   protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices,
     DataSet<Force> forces, int iterations) {
-    return vertices.join(forces).where("id").equalTo("id")
+    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
       .with(new FRForceApplicator(width, height, k, iterations));
   }
 
@@ -200,8 +202,9 @@ public class FRLayouter extends LayoutingAlgorithm {
    */
   protected DataSet<Force> attractionForces(DataSet<LVertex> vertices,
     DataSet<LEdge> edges) {
-    return edges.join(vertices).where("sourceId").equalTo("id").join(vertices).where("f0.targetId")
-      .equalTo("id").with((first,second)->new Tuple2<LVertex,LVertex>(first.f1,second)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
+    return edges.join(vertices).where(LEdge.SOURCE_ID).equalTo(LVertex.ID).join(vertices).where(
+      "f0."+LEdge.TARGET_ID)
+      .equalTo(LVertex.ID).with((first,second)->new Tuple2<LVertex,LVertex>(first.f1,second)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
       }).flatMap(new FRAttractionFunction(k));
   }
 
