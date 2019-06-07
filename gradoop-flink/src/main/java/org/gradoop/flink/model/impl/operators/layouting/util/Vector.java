@@ -231,4 +231,137 @@ public class Vector extends Tuple2<Double,Double> {
   public void setY(double y) {
     this.f1 = y;
   }
+
+  /** Set x and y at once
+   *
+   * @param x X to set
+   * @param y y to set
+   * @return This object for method-chaining
+   */
+  public Vector set(double x, double y){
+    f0 = x;
+    f1 = y;
+    return this;
+  }
+
+  /** Reset this vector to 0
+   *
+   * @return This object for method-chaining
+   */
+  public Vector reset(){
+    f0 = 0d;
+    f1 = 0d;
+    return this;
+  }
+
+  /** Copy this object
+   *
+   * @return A copy of this object
+   */
+  public Vector copy(){
+    return new Vector(f0,f1);
+  }
+
+  //-----------------------------------------------------------------------------------
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Substract another vector from this vector and return the result
+   *
+   * @param other Vector to substract
+   * @return this-other
+   */
+  public Vector mSub(Vector other) {
+    f0 -= other.f0;
+    f1 -= other.f1;
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Add another vector to this vector and return the result
+   *
+   * @param other The vector to add
+   * @return this+other
+   */
+  public Vector mAdd(Vector other) {
+    f0 += other.f0;
+    f1 += other.f1;
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Multiply this vector by a factor and return the result
+   *
+   * @param factor The factor to multiply this vector with
+   * @return this*factor
+   */
+  public Vector mMul(double factor) {
+    f0 *= factor;
+    f1 *= factor;
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Divide this vector by a factor and return the result
+   *
+   * @param factor The factor to divide this vector by
+   * @return this/factor
+   */
+  public Vector mDiv(double factor) {
+    f0 /= factor;
+    f1 /= factor;
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Clamp this vector to a given length.
+   * The returned vector will have the same orientation as this one, but will have at most a
+   * length of maxLen.
+   * If maxLen is smaller the the lenght of this Vector this vector (a copy of it) will be returned.
+   *
+   * @param maxLen maximum lenght of vector
+   * @return This vector but constrained to the given length
+   */
+  public Vector mClamped(double maxLen) {
+    double len = magnitude();
+    if (len == 0) {
+      return new Vector(0, 0);
+    }
+    f0 = (f0 / len) * Math.min(len, maxLen);
+    f1 = (f1 / len) * Math.min(len, maxLen);
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Normalize this vector.
+   *
+   * @return a vector with the same orientation as this one and a length of 1. If this vector is
+   * (0,0) then (0,0) will be returned instead.
+   */
+  public Vector mNormalized() {
+    double len = magnitude();
+    if (len == 0) {
+      f0 = 0.0;
+      f1 = 0.0;
+      return this;
+    }
+    f0 /= len;
+    f1 /= len;
+    return this;
+  }
+
+  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+   * Confine this point to the given bounding-box.
+   *
+   * @param minX Bounding-box
+   * @param maxX Bounding-box
+   * @param minY Bounding-box
+   * @param maxY Bounding-box
+   * @return A vector that does not violate the given bounding box.
+   */
+  public Vector mConfined(double minX, double maxX, double minY, double maxY) {
+    f0 = Math.min(Math.max(f0, minX), maxX);
+    f1 = Math.min(Math.max(f1, minY), maxY);
+    return this;
+  }
+
 }
