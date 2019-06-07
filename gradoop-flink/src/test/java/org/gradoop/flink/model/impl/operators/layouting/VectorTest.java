@@ -118,4 +118,67 @@ public class VectorTest {
     Assert.assertEquals(a.normalized().scalar(a.normalized().mul(-1)), -1, 0.0001f);
 
   }
+
+  //-------------------------------------------------------------------
+
+  @Test
+  public void mSub() {
+    Vector a = new Vector(3, 3);
+    Vector b = new Vector(1, 2);
+    a.mSub(b);
+    Assert.assertEquals(new Vector(2, 1), a);
+  }
+
+  @Test
+  public void mAdd() {
+    Vector a = new Vector(3, 3);
+    Vector b = new Vector(1, 2);
+    a.mAdd(b);
+    Assert.assertEquals(new Vector(4, 5), a);
+  }
+
+  @Test
+  public void mMul() {
+    Vector a = new Vector(2, 3);
+    a.mMul(5);
+    Assert.assertEquals(new Vector(10, 15), a);
+  }
+
+  @Test
+  public void mDiv() {
+    Vector a = new Vector(3, 6);
+    a.mDiv(3);
+    Assert.assertEquals(new Vector(1, 2), a);
+  }
+
+  @Test
+  public void mClamped() {
+    Vector a = new Vector(4, 2);
+    a.mClamped(2);
+    Assert.assertEquals(2, a.magnitude(), 0.0001f);
+    Assert.assertEquals(1, a.normalized().scalar(a.normalized()), 0.0001f);
+    Assert.assertEquals(new Vector(0, 0), new Vector(0, 0).clamped(10));
+  }
+
+  @Test
+  public void mNormalized() {
+    Vector a = new Vector(4, 2);
+    Vector b = a.mNormalized();
+    Assert.assertEquals(1, b.magnitude(), 0.0001f);
+    Assert.assertEquals(1, a.normalized().scalar(b.normalized()), 0.0001f);
+    Assert.assertEquals(new Vector(0, 0), new Vector(0, 0).normalized());
+  }
+
+
+  @Test
+  public void mConfined() {
+    Vector a = new Vector(10, 50);
+    Assert.assertEquals(a.mConfined(0, 100, 0, 100), a);
+    a = new Vector(10, 50);
+    Assert.assertEquals(a.mConfined(20, 100, 60, 100), new Vector(20, 60));
+    a = new Vector(10, 50);
+    Assert.assertEquals(a.mConfined(0, 5, 0, 10), new Vector(5, 10));
+    a = new Vector(10, 50);
+    Assert.assertEquals(a.mConfined(0, 100, 0, 10), new Vector(10, 10));
+  }
 }

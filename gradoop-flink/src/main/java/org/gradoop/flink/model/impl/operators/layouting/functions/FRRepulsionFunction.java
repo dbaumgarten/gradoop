@@ -121,7 +121,7 @@ public class FRRepulsionFunction implements
       direction.setY(rng.nextInt());
     }
 
-    return direction.normalized().mul(-Math.pow(k, 2) / distance);
+    return direction.mNormalized().mMul(-Math.pow(k, 2) / distance);
   }
 
   /** Implement FlatJoin and produce the force-tuples for both vertices at once.

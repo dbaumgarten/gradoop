@@ -125,14 +125,14 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     LVertex v1 = getDummyVertex(1, 1);
     LVertex v2 = getDummyVertex(2, 3);
 
-    Vector vec12join = jf.join(v1, v2).getValue();
+    Vector vec12join = jf.join(v1, v2).getValue().copy();
 
     List<Force> collectorList = new ArrayList<>();
     ListCollector<Force> collector = new ListCollector<>(collectorList);
     jf.join(v1, v2, collector);
 
-    Vector vec12 = collectorList.get(0).getValue();
-    Vector vec21 = collectorList.get(1).getValue();
+    Vector vec12 = collectorList.get(0).getValue().copy();
+    Vector vec21 = collectorList.get(1).getValue().copy();
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
@@ -151,28 +151,28 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     ListCollector<Force> collector = new ListCollector<>(collectorList);
 
     af.flatMap(new Tuple2<>(v1, v2), collector);
-    Vector vec12 = collectorList.get(0).getValue();
-    Vector vec21 = collectorList.get(1).getValue();
+    Vector vec12 = collectorList.get(0).getValue().copy();
+    Vector vec21 = collectorList.get(1).getValue().copy();
     Assert.assertNotEquals(collectorList.get(0).getId(),collectorList.get(1).getId());
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v3), collector);
-    Vector vec13 = collectorList.get(0).getValue();
+    Vector vec13 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v4), collector);
-    Vector vec14 = collectorList.get(0).getValue();
+    Vector vec14 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v1), collector);
-    Vector vec11 = collectorList.get(0).getValue();
+    Vector vec11 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
 
     Assert.assertEquals(vec12, vec21.mul(-1));
     Assert.assertTrue(vec12.getX() > 0 && vec12.getY() > 0);
     Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
-    Assert.assertTrue(vec14.magnitude() == 0);
+    Assert.assertEquals(vec14,new Vector());
     Assert.assertTrue(vec11.magnitude() == 0);
   }
 

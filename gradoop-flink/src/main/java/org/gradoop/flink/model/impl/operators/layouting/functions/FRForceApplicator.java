@@ -59,11 +59,11 @@ public class FRForceApplicator extends
     double speedLimit = -(tmp / maxIterations) * iteration + tmp + (width / 200.0);
 
     Vector movement = second.getValue();
-    movement = movement.clamped(speedLimit);
+    movement.mClamped(speedLimit);
 
     Vector position = first.getPosition();
-    position = position.add(movement);
-    position = position.confined(0, width - 1, 0, height - 1);
+    position.mAdd(movement);
+    position.mConfined(0, width - 1, 0, height - 1);
 
     first.setPosition(position);
     return first;
