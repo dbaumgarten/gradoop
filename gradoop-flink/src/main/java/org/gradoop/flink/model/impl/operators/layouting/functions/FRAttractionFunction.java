@@ -45,6 +45,9 @@ public class FRAttractionFunction implements
   private Force secondForce = new Force();
   /** Object reuse for output */
   private Vector force = new Vector();
+  /** Object reuse */
+  private Vector force2 = new Vector();
+
 
   /** Create new FRAttractionFunction
    *
@@ -63,10 +66,11 @@ public class FRAttractionFunction implements
     Vector pos2 = vertices.f1.getPosition();
     double distance = pos1.distance(pos2);
 
-    force.reset().mAdd(pos2.mSub(pos1).mNormalized().mMul(Math.pow(distance, 2) / k));
+    force.set(pos2.mSub(pos1).mNormalized().mMul(Math.pow(distance, 2) / k));
+    force2.set(force).mMul(-1);
 
     firstForce.set(vertices.f0.getId(),force);
-    secondForce.set(vertices.f1.getId(),force.mul(-1));
+    secondForce.set(vertices.f1.getId(),force2);
 
     collector.collect(firstForce);
     collector.collect(secondForce);

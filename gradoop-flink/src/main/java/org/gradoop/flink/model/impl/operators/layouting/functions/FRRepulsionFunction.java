@@ -50,6 +50,10 @@ public class FRRepulsionFunction implements
   private Force firstForce = new Force();
   /** Object reuse for output */
   private Force secondForce = new Force();
+  /** Object reuse */
+  private Vector calculatedForce = new Vector();
+  /** Object reuse */
+  private Vector calculatedForce2 = new Vector();
 
   /** Create new RepulsionFunction
    *
@@ -96,6 +100,7 @@ public class FRRepulsionFunction implements
 
 
   /** Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
+   * ATTENTION! Subsequent calls will modify previously returned results!
    *
    * @param first First Vertex
    * @param second Second Certex
@@ -105,14 +110,16 @@ public class FRRepulsionFunction implements
     Vector pos1 = first.getPosition();
     Vector pos2 = second.getPosition();
     double distance = pos1.distance(pos2);
-    Vector direction = pos2.sub(pos1);
+    Vector direction = pos2.mSub(pos1);
 
     if (first.getId().equals(second.getId())) {
-      return new Vector(0,0);
+      calculatedForce.reset();
+      return calculatedForce;
     }
 
     if (distance > maxDistance){
-      return new Vector(0,0);
+      calculatedForce.reset();
+      return calculatedForce;
     }
 
     if (distance == 0) {
@@ -121,7 +128,8 @@ public class FRRepulsionFunction implements
       direction.setY(rng.nextInt());
     }
 
-    return direction.mNormalized().mMul(-Math.pow(k, 2) / distance);
+    calculatedForce.set(direction.mNormalized().mMul(-Math.pow(k, 2) / distance));
+    return calculatedForce;
   }
 
   /** Implement FlatJoin and produce the force-tuples for both vertices at once.
@@ -137,12 +145,15 @@ public class FRRepulsionFunction implements
     Collector<Force> collector){
 
     Vector force = calculateForce(first,second);
+
     if (force.magnitude() == 0){
       return;
     }
 
     firstForce.set(first.getId(),force);
-    secondForce.set(second.getId(),force.mul(-1));
+
+    calculatedForce2.set(force).mMul(-1);
+    secondForce.set(second.getId(),calculatedForce2);
 
     collector.collect(firstForce);
     collector.collect(secondForce);
