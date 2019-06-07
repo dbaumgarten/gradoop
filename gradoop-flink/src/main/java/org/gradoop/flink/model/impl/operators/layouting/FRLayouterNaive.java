@@ -21,6 +21,8 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
@@ -41,7 +43,7 @@ public class FRLayouterNaive extends FRLayouter {
   }
 
   @Override
-  public DataSet<Tuple2<GradoopId, Vector>> repulsionForces(DataSet<Vertex> vertices) {
+  public DataSet<Force> repulsionForces(DataSet<LVertex> vertices) {
     return vertices.cross(vertices).with(new FRRepulsionFunction(k));
   }
 }

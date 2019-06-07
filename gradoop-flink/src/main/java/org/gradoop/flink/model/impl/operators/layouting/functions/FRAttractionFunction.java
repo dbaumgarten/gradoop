@@ -24,6 +24,8 @@ import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
@@ -33,7 +35,7 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
  * vertices.
  */
 public class FRAttractionFunction implements
-  FlatMapFunction<Tuple2<Vertex,Vertex>,Tuple2<GradoopId, Vector>> {
+  FlatMapFunction<Tuple2<LVertex,LVertex>,Force> {
   /** Parameter for the FR-Algorithm */
   private double k;
 
@@ -47,18 +49,18 @@ public class FRAttractionFunction implements
 
 
   @Override
-  public void flatMap(Tuple2<Vertex,Vertex> vertices,
-    Collector<Tuple2<GradoopId, Vector>> collector) throws
+  public void flatMap(Tuple2<LVertex,LVertex> vertices,
+    Collector<Force> collector) throws
     Exception {
-    Vector pos1 = Vector.fromVertexPosition(vertices.f0);
-    Vector pos2 = Vector.fromVertexPosition(vertices.f1);
+    Vector pos1 = vertices.f0.getPosition();
+    Vector pos2 = vertices.f1.getPosition();
     double distance = pos1.distance(pos2);
 
     Vector force = pos2.sub(pos1).normalized().mul(Math.pow(distance, 2) / k);
 
-    Tuple2<GradoopId, Vector> firstForce = new Tuple2<>(vertices.f0.getId(),force);
+    Force firstForce = new Force(vertices.f0.getId(),force);
 
-    Tuple2<GradoopId, Vector> secondForce = new Tuple2<>(vertices.f1.getId(),force.mul(-1));
+    Force secondForce = new Force(vertices.f1.getId(),force.mul(-1));
 
     collector.collect(firstForce);
     collector.collect(secondForce);

@@ -34,18 +34,15 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdSelector;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplicator;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
  * Layouts a graph using the Fruchtermann-Reingold algorithm
  */
 public class FRLayouter extends LayoutingAlgorithm {
-
-  /**
-   * Name of the property the cellid for a vertex is stored in
-   */
-  public static final String CELLID_PROPERTY = "cellid";
-
   /**
    * Main-parameter of the FR-Algorithm. Optimum distance between connected vertices.
    */
@@ -106,26 +103,37 @@ public class FRLayouter extends LayoutingAlgorithm {
       new RandomLayouter(width / 10, width - (width / 10), height / 10, height - (height / 10));
     g = rl.execute(g);
 
-    DataSet<Vertex> vertices = g.getVertices();
-    DataSet<Edge> edges = g.getEdges();
+    DataSet<Vertex> gradoopVertices = g.getVertices();
+    DataSet<Edge> gradoopEdges = g.getEdges();
 
-    IterativeDataSet<Vertex> loop = vertices.iterate(iterations);
+    DataSet<LVertex> vertices = gradoopVertices.map((v)->new LVertex(v));
+    DataSet<LEdge> edges = gradoopEdges.map((e)->new LEdge(e));
 
-    DataSet<Tuple2<GradoopId, Vector>> repulsions = repulsionForces(loop);
+    IterativeDataSet<LVertex> loop = vertices.iterate(iterations);
 
-    DataSet<Tuple2<GradoopId, Vector>> attractions = attractionForces(loop, edges);
+    DataSet<Force> repulsions = repulsionForces(loop);
 
-    DataSet<Tuple2<GradoopId, Vector>> forces =
-      repulsions.union(attractions).groupBy(0).reduce((first,second)->{
-        first.f1 = first.f1.add(second.f1);
+    DataSet<Force> attractions = attractionForces(loop, edges);
+
+    DataSet<Force> forces =
+      repulsions.union(attractions).groupBy("id").reduce((first,second)->{
+        first.setValue(first.getValue().add(second.getValue()));
         return first;
         });
 
-    DataSet<Vertex> moved = applyForces(loop, forces, iterations);
+    DataSet<LVertex> moved = applyForces(loop, forces, iterations);
 
     vertices = loop.closeWith(moved);
 
-    return g.getFactory().fromDataSets(vertices, edges);
+    gradoopVertices = vertices.join(gradoopVertices).where("id").equalTo("id").with(new JoinFunction<LVertex, Vertex, Vertex>() {
+      @Override
+      public Vertex join(LVertex lVertex, Vertex vertex) throws Exception {
+        lVertex.getPosition().setVertexPosition(vertex);
+        return vertex;
+      }
+    });
+
+    return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
   }
 
   /**
@@ -139,9 +147,9 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return The input vertices with x and y coordinated chaned according to the given force and
    * current iteration number.
    */
-  protected DataSet<Vertex> applyForces(DataSet<Vertex> vertices,
-    DataSet<Tuple2<GradoopId, Vector>> forces, int iterations) {
-    return vertices.join(forces).where("id").equalTo(0)
+  protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices,
+    DataSet<Force> forces, int iterations) {
+    return vertices.join(forces).where("id").equalTo("id")
       .with(new FRForceApplicator(width, height, k, iterations));
   }
 
@@ -152,32 +160,32 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @param vertices A dataset of vertices
    * @return Dataset of applied forces. May (and will) contain multiple forces for each vertex.
    */
-  protected DataSet<Tuple2<GradoopId, Vector>> repulsionForces(DataSet<Vertex> vertices) {
+  protected DataSet<Force> repulsionForces(DataSet<LVertex> vertices) {
     vertices = vertices.map(new FRCellIdMapper(maxRepulsionDistance));
 
-    KeySelector<Vertex, Integer> selfselector =
+    KeySelector<LVertex, Integer> selfselector =
       new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF);
     FRRepulsionFunction repulsionFunction = new FRRepulsionFunction(k, maxRepulsionDistance);
 
-    DataSet<Tuple2<GradoopId, Vector>> self = vertices.join(vertices)
+    DataSet<Force> self = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF))
-      .equalTo(selfselector).with((JoinFunction)repulsionFunction);
+      .equalTo(selfselector).with((JoinFunction<LVertex,LVertex,Force>)repulsionFunction);
 
-    DataSet<Tuple2<GradoopId, Vector>> up = vertices.join(vertices)
+    DataSet<Force> up = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UP))
-      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction<LVertex,LVertex,Force>)repulsionFunction);
 
-    DataSet<Tuple2<GradoopId, Vector>> left = vertices.join(vertices)
+    DataSet<Force> left = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.LEFT))
-      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction<LVertex,LVertex,Force>)repulsionFunction);
 
-    DataSet<Tuple2<GradoopId, Vector>> uright = vertices.join(vertices)
+    DataSet<Force> uright = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UPRIGHT))
-      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction<LVertex,LVertex,Force>)repulsionFunction);
 
-    DataSet<Tuple2<GradoopId, Vector>> uleft = vertices.join(vertices)
+    DataSet<Force> uleft = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.UPLEFT))
-      .equalTo(selfselector).with((FlatJoinFunction)repulsionFunction);
+      .equalTo(selfselector).with((FlatJoinFunction<LVertex,LVertex,Force>)repulsionFunction);
 
 
     return self.union(up).union(left).union(uright).union(uleft);
@@ -190,10 +198,10 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @param edges    The edges between vertices
    * @return A mapping from VertexId to x and y forces
    */
-  protected DataSet<Tuple2<GradoopId, Vector>> attractionForces(DataSet<Vertex> vertices,
-    DataSet<Edge> edges) {
+  protected DataSet<Force> attractionForces(DataSet<LVertex> vertices,
+    DataSet<LEdge> edges) {
     return edges.join(vertices).where("sourceId").equalTo("id").join(vertices).where("f0.targetId")
-      .equalTo("id").with((first,second)->new Tuple2<Vertex,Vertex>(first.f1,second)).returns(new TypeHint<Tuple2<Vertex, Vertex>>() {
+      .equalTo("id").with((first,second)->new Tuple2<LVertex,LVertex>(first.f1,second)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
       }).flatMap(new FRAttractionFunction(k));
   }
 

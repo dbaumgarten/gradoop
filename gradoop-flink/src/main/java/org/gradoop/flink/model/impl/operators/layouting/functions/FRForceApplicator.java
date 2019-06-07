@@ -20,13 +20,15 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /** Applies forces to vertices.
  *
  */
 public class FRForceApplicator extends
-  RichJoinFunction<Vertex, Tuple2<GradoopId, Vector>, Vertex> {
+  RichJoinFunction<LVertex, Force, LVertex> {
   /** Width of the layouting-space */
   private int width;
   /** Height of the layouting-space */
@@ -51,19 +53,19 @@ public class FRForceApplicator extends
   }
 
   @Override
-  public Vertex join(Vertex first, Tuple2<GradoopId, Vector> second) throws Exception {
+  public LVertex join(LVertex first, Force second) throws Exception {
     int iteration = getIterationRuntimeContext().getSuperstepNumber();
     double tmp = width / 3.0;
     double speedLimit = -(tmp / maxIterations) * iteration + tmp + (width / 200.0);
 
-    Vector movement = second.f1;
+    Vector movement = second.getValue();
     movement = movement.clamped(speedLimit);
 
-    Vector position = Vector.fromVertexPosition(first);
+    Vector position = first.getPosition();
     position = position.add(movement);
     position = position.confined(0, width - 1, 0, height - 1);
 
-    position.setVertexPosition(first);
+    first.setPosition(position);
     return first;
   }
 

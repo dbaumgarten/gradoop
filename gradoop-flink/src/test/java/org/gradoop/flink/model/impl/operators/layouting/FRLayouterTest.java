@@ -27,6 +27,8 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFu
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdSelector;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,7 +45,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
   @Test
   public void testCellIdSelector() throws Exception {
     int cellSize = 10;
-    KeySelector<Vertex, Integer> selfselector =
+    KeySelector<LVertex, Integer> selfselector =
       new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF);
     FRCellIdMapper mapper = new FRCellIdMapper(cellSize);
 
@@ -51,7 +53,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Assert.assertEquals(id(9, 9), (long) selfselector.getKey(mapper.map(getDummyVertex(99, 98))));
     Assert.assertEquals(id(0, 9), (long) selfselector.getKey(mapper.map(getDummyVertex(0, 95))));
 
-    KeySelector<Vertex, Integer> neighborslector =
+    KeySelector<LVertex, Integer> neighborslector =
       new FRCellIdSelector(FRCellIdSelector.NeighborType.RIGHT);
     Assert.assertEquals(id(1,0), (long) neighborslector.getKey(getDummyVertex(id(0,0))));
     Assert.assertEquals(id(6,3), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
@@ -96,19 +98,19 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
   @Test
   public void testRepulseJoinFunction() throws Exception {
-    JoinFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>> jf =
+    JoinFunction<LVertex, LVertex, Force> jf =
       new FRRepulsionFunction(1, 20);
-    Vertex v1 = getDummyVertex(1, 1);
-    Vertex v2 = getDummyVertex(2, 3);
-    Vertex v3 = getDummyVertex(7, 5);
-    Vertex v4 = getDummyVertex(1, 1);
-    Vertex v5 = getDummyVertex(30, 30);
+    LVertex v1 = getDummyVertex(1, 1);
+    LVertex v2 = getDummyVertex(2, 3);
+    LVertex v3 = getDummyVertex(7, 5);
+    LVertex v4 = getDummyVertex(1, 1);
+    LVertex v5 = getDummyVertex(30, 30);
 
-    Vector vec12 = jf.join(v1, v2).f1;
-    Vector vec13 = jf.join(v1, v3).f1;
-    Vector vec14 = jf.join(v1, v4).f1;
-    Vector vec11 = jf.join(v1, v1).f1;
-    Vector vec15 = jf.join(v1, v5).f1;
+    Vector vec12 = jf.join(v1, v2).getValue();
+    Vector vec13 = jf.join(v1, v3).getValue();
+    Vector vec14 = jf.join(v1, v4).getValue();
+    Vector vec11 = jf.join(v1, v1).getValue();
+    Vector vec15 = jf.join(v1, v5).getValue();
 
     Assert.assertTrue(vec12.getX() < 0 && vec12.getY() < 0);
     Assert.assertTrue(vec12.magnitude() > vec13.magnitude());
@@ -120,17 +122,17 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
   @Test
   public void testRepulseFlatJoin() throws Exception {
     FRRepulsionFunction jf = new FRRepulsionFunction(1);
-    Vertex v1 = getDummyVertex(1, 1);
-    Vertex v2 = getDummyVertex(2, 3);
+    LVertex v1 = getDummyVertex(1, 1);
+    LVertex v2 = getDummyVertex(2, 3);
 
-    Vector vec12join = jf.join(v1, v2).f1;
+    Vector vec12join = jf.join(v1, v2).getValue();
 
-    List<Tuple2<GradoopId, Vector>> collectorList = new ArrayList<>();
-    ListCollector<Tuple2<GradoopId, Vector>> collector = new ListCollector<>(collectorList);
+    List<Force> collectorList = new ArrayList<>();
+    ListCollector<Force> collector = new ListCollector<>(collectorList);
     jf.join(v1, v2, collector);
 
-    Vector vec12 = collectorList.get(0).f1;
-    Vector vec21 = collectorList.get(1).f1;
+    Vector vec12 = collectorList.get(0).getValue();
+    Vector vec21 = collectorList.get(1).getValue();
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
@@ -139,29 +141,29 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
   @Test
   public void testAttractionFunction() throws Exception {
     FRAttractionFunction af = new FRAttractionFunction(10);
-    Vertex v1 = getDummyVertex(1, 1);
-    Vertex v2 = getDummyVertex(2, 3);
-    Vertex v3 = getDummyVertex(7, 5);
-    Vertex v4 = getDummyVertex(1, 1);
+    LVertex v1 = getDummyVertex(1, 1);
+    LVertex v2 = getDummyVertex(2, 3);
+    LVertex v3 = getDummyVertex(7, 5);
+    LVertex v4 = getDummyVertex(1, 1);
 
-    List<Tuple2<GradoopId, Vector>> collectorList = new ArrayList<>();
-    ListCollector<Tuple2<GradoopId, Vector>> collector = new ListCollector<>(collectorList);
+    List<Force> collectorList = new ArrayList<>();
+    ListCollector<Force> collector = new ListCollector<>(collectorList);
 
     af.flatMap(new Tuple2<>(v1, v2), collector);
-    Vector vec12 = collectorList.get(0).f1;
-    Vector vec21 = collectorList.get(1).f1;
+    Vector vec12 = collectorList.get(0).getValue();
+    Vector vec21 = collectorList.get(1).getValue();
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v3), collector);
-    Vector vec13 = collectorList.get(0).f1;
+    Vector vec13 = collectorList.get(0).getValue();
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v4), collector);
-    Vector vec14 = collectorList.get(0).f1;
+    Vector vec14 = collectorList.get(0).getValue();
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v1), collector);
-    Vector vec11 = collectorList.get(0).f1;
+    Vector vec11 = collectorList.get(0).getValue();
     collectorList.clear();
 
 
@@ -173,16 +175,14 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
   }
 
 
-  private Vertex getDummyVertex(int cellid) {
-    Vertex v = new Vertex(new GradoopId(), "testlabel", new Properties(), null);
-    v.setProperty(FRLayouter.CELLID_PROPERTY, new Integer(cellid));
+  private LVertex getDummyVertex(int cellid) {
+    LVertex v = new LVertex();
+    v.setCellid(cellid);
     return v;
   }
 
-  private Vertex getDummyVertex(int x, int y) throws Exception {
-    Vertex v = new Vertex(GradoopId.get(), "testlabel", new Properties(), null);
-    Vector pos = new Vector(x, y);
-    pos.setVertexPosition(v);
+  private LVertex getDummyVertex(int x, int y) throws Exception {
+    LVertex v = new LVertex(GradoopId.get(), new Vector(x,y));
     return v;
   }
 
