@@ -18,11 +18,12 @@ package org.gradoop.flink.model.impl.operators.layouting.functions;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 
 /**
  * A KeySelector that extracts the cellid of a Vertex.
  */
-public class FRCellIdSelector implements KeySelector<Vertex, Integer> {
+public class FRCellIdSelector implements KeySelector<LVertex, Integer> {
 
   /** Type of neighbor to select if from */
   public enum NeighborType { UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF }
@@ -39,8 +40,8 @@ public class FRCellIdSelector implements KeySelector<Vertex, Integer> {
   }
 
   @Override
-  public Integer getKey(Vertex value) {
-    int cellid = value.getPropertyValue(FRLayouter.CELLID_PROPERTY).getInt();
+  public Integer getKey(LVertex value) {
+    int cellid = value.getCellid();
     int xcell = cellid >> 16;
     int ycell = cellid & 0xFFFF;
     if (type == NeighborType.RIGHT || type == NeighborType.UPRIGHT ||

@@ -24,6 +24,8 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 import java.util.Random;
@@ -34,9 +36,9 @@ import java.util.Random;
  * vertices at once.
  */
 public class FRRepulsionFunction implements
-  JoinFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>>,
-  CrossFunction<Vertex, Vertex, Tuple2<GradoopId, Vector>>,
-  FlatJoinFunction<Vertex,Vertex,Tuple2<GradoopId, Vector>> {
+  JoinFunction<LVertex, LVertex, Force>,
+  CrossFunction<LVertex, LVertex, Force>,
+  FlatJoinFunction<LVertex,LVertex,Force> {
   /** Rng. Used to get random directions for vertices at the same position */
   private Random rng;
   /** Parameter for the FR-Algorithm */
@@ -70,9 +72,9 @@ public class FRRepulsionFunction implements
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
   @Override
-  public Tuple2<GradoopId, Vector> join(Vertex first, Vertex second) {
+  public Force join(LVertex first, LVertex second) {
     Vector force = calculateForce(first,second);
-    return new Tuple2<>(first.getId(),force);
+    return new Force(first.getId(),force);
   }
 
   /** Alias for join() to fullfill the CrossFunction-Interface.
@@ -82,7 +84,7 @@ public class FRRepulsionFunction implements
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
   @Override
-  public Tuple2<GradoopId, Vector> cross(Vertex vertex, Vertex vertex2) {
+  public Force cross(LVertex vertex, LVertex vertex2) {
     return join(vertex, vertex2);
   }
 
@@ -93,9 +95,9 @@ public class FRRepulsionFunction implements
    * @param second Second Certex
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
-  protected Vector calculateForce(Vertex first, Vertex second){
-    Vector pos1 = Vector.fromVertexPosition(first);
-    Vector pos2 = Vector.fromVertexPosition(second);
+  protected Vector calculateForce(LVertex first, LVertex second){
+    Vector pos1 = first.getPosition();
+    Vector pos2 = second.getPosition();
     double distance = pos1.distance(pos2);
     Vector direction = pos2.sub(pos1);
 
@@ -125,14 +127,14 @@ public class FRRepulsionFunction implements
    *                  vertices.
    */
   @Override
-  public void join(Vertex first, Vertex second,
-    Collector<Tuple2<GradoopId, Vector>> collector){
+  public void join(LVertex first, LVertex second,
+    Collector<Force> collector){
 
     Vector force = calculateForce(first,second);
     if (force.magnitude() == 0){
       return;
     }
-    collector.collect(new Tuple2<>(first.getId(),force));
-    collector.collect(new Tuple2<>(second.getId(),force.mul(-1)));
+    collector.collect(new Force(first.getId(),force));
+    collector.collect(new Force(second.getId(),force.mul(-1)));
   }
 }

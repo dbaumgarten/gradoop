@@ -18,6 +18,7 @@ package org.gradoop.flink.model.impl.operators.layouting.functions;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
@@ -25,7 +26,7 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
  * layouting-space.
  * The cellid is stored as a property in FRLayouter.CELLID_PROPERTY
  */
-public class FRCellIdMapper implements MapFunction<Vertex, Vertex> {
+public class FRCellIdMapper implements MapFunction<LVertex, LVertex> {
   /** Size of subcells (width and height) */
   private int cellSize;
 
@@ -37,12 +38,12 @@ public class FRCellIdMapper implements MapFunction<Vertex, Vertex> {
   }
 
   @Override
-  public Vertex map(Vertex value) {
-    Vector pos = Vector.fromVertexPosition(value);
+  public LVertex map(LVertex value) {
+    Vector pos = value.getPosition();
     int xcell = ((int) pos.getX()) / cellSize;
     int ycell = ((int) pos.getY()) / cellSize;
     int cellid = (xcell << 16) | ycell;
-    value.setProperty(FRLayouter.CELLID_PROPERTY, cellid);
+    value.setCellid(cellid);
     return value;
   }
 }
