@@ -19,7 +19,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.io.FileUtils;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.ProgramDescription;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.benchmark.sampling.SamplingBenchmark;
 import org.gradoop.examples.AbstractRunner;
 import org.gradoop.flink.io.api.DataSink;
@@ -168,24 +167,20 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static LayoutingAlgorithm buildLayoutingAlgorithm(int algo, String[] opts) {
     try {
+      int width = Integer.parseInt(opts[0]);
+      int height = Integer.parseInt(opts[1]);
       switch (algo) {
       case 0:
-        int width = Integer.parseInt(opts[0]);
-        int height = Integer.parseInt(opts[1]);
         return new RandomLayouter(0, width, 0, height);
       case 1:
-        double k = Double.parseDouble(opts[0]);
-        int iterations = Integer.parseInt(opts[1]);
-        width = Integer.parseInt(opts[2]);
-        height = Integer.parseInt(opts[3]);
-        return new FRLayouterNaive(k, iterations, width, height);
+        int iterations = Integer.parseInt(opts[2]);
+        double k = Double.parseDouble(opts[3]);
+        return new FRLayouterNaive(width, height, iterations, k);
       case 2:
-        k = Double.parseDouble(opts[0]);
-        iterations = Integer.parseInt(opts[1]);
-        width = Integer.parseInt(opts[2]);
-        height = Integer.parseInt(opts[3]);
+        iterations = Integer.parseInt(opts[2]);
+        k = Double.parseDouble(opts[3]);
         int grid = Integer.parseInt(opts[4]);
-        return new FRLayouter(k, iterations, width, height, grid);
+        return new FRLayouter(width, height, iterations, k, grid);
       default:
         throw new IllegalArgumentException("Unknown layouting-algorithm: " + algo);
       }
@@ -277,7 +272,9 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "indexed":
       return new IndexedCSVDataSink(directory, config);
     case "image":
-      return new Plotter(new Plotter.Options().dimensions(10000,10000).ignoreVertices(true).scaleImage(1000,1000),directory+"image.png");
+      int width = Integer.parseInt(CONSTRUCTOR_PARAMS[0]);
+      int height = Integer.parseInt(CONSTRUCTOR_PARAMS[1]);
+      return new Plotter(new Plotter.Options().dimensions(width,height).ignoreVertices(true).scaleImage(1000,1000),directory+"image.png");
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }

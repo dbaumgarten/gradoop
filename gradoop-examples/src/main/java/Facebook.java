@@ -17,7 +17,7 @@ public class Facebook {
     static String OUTPUT_PATH = System.getProperty("user.dir")+"/out/facebook-test.png";
     static String INPUT_PATH = System.getProperty("user.dir")+"/datasets/facebook_gradoop_csv";
     static final int size = 10000;
-    static final int iterations = 25;
+    static final int iterations = 50;
 
     public static void main(String[] args) throws Exception {
 
@@ -27,8 +27,7 @@ public class Facebook {
         LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
         double k = FRLayouter.calculateK(size,size, 4100)*3;
         System.out.println("K is: "+k);
-        LayoutingAlgorithm frl = new FRLayouter(k,
-          iterations, size, size, (int)k/2);
+        LayoutingAlgorithm frl = new FRLayouter(size, size, iterations, k, (int)k*2);
         LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
         Plotter p =

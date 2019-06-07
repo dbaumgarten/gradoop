@@ -17,15 +17,11 @@ package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.aggregation.Aggregations;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
@@ -37,7 +33,6 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFun
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
-import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 /**
  * Layouts a graph using the Fruchtermann-Reingold algorithm
@@ -66,16 +61,14 @@ public class FRLayouter extends LayoutingAlgorithm {
 
   /**
    * Create new Instance of FRLayouter
-   *
-   * @param k          Optimal distance between connected vertices. Optimal k can be computed
-   *                   with calculateK()
-   * @param iterations Number of iterations to perform of the algorithm
-   * @param width      Width of the layouting space
+   *  @param width      Width of the layouting space
    * @param height     Height of the layouting space
+   * @param iterations Number of iterations to perform of the algorithm
+   * @param k          Optimal distance between connected vertices. Optimal k can be computed
+*                   with calculateK()
    * @param maxRepulsionDistance   Maximum distance between two vertices before stopping to compute
-   *                   repulsions between them
    */
-  public FRLayouter(double k, int iterations, int width, int height, int maxRepulsionDistance) {
+  public FRLayouter(int width, int height, int iterations, double k, int maxRepulsionDistance) {
     this.k = k;
     this.width = width;
     this.height = height;
