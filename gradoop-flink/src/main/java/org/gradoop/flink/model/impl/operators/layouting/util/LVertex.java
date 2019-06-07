@@ -1,5 +1,6 @@
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 
@@ -7,10 +8,12 @@ import org.gradoop.common.model.impl.pojo.Vertex;
  * the layouting. This way we do not need to drag around a full Vertex through every operation.
  *
  */
-public class LVertex {
-  private GradoopId id;
-  private Vector position;
-  private int cellid;
+public class LVertex extends Tuple3<GradoopId,Vector,Integer> {
+
+  /**
+   * Position of the ID-property in the tuple
+   */
+  public static final int ID = 0;
 
   /** Create new LVertex
    *
@@ -18,8 +21,7 @@ public class LVertex {
    * @param position Position of the original vertex
    */
   public LVertex(GradoopId id, Vector position) {
-    this.id = id;
-    this.position = position;
+    super(id,position,-1);
   }
 
   /** Create new LVertex
@@ -28,9 +30,7 @@ public class LVertex {
    * @param position Cellid of the original vertex
    */
   public LVertex(GradoopId id, Vector position, int cellid) {
-    this.id = id;
-    this.position = position;
-    this.cellid = cellid;
+    super(id,position,cellid);
   }
 
   /** Create new LVertex
@@ -38,16 +38,14 @@ public class LVertex {
    * @param v The original vertex to copy all information from
    */
   public LVertex(Vertex v){
-    id = v.getId();
-    position = Vector.fromVertexPosition(v);
+    super(v.getId(),Vector.fromVertexPosition(v),-1);
   }
 
   /** Default-Constructor to comply with Pojo-Rules
    *
    */
   public LVertex(){
-    this.id = GradoopId.get();
-    this.position = new Vector(0,0);
+    super();
   }
 
   /**
@@ -56,7 +54,7 @@ public class LVertex {
    * @return value of id
    */
   public GradoopId getId() {
-    return id;
+    return f0;
   }
 
   /**
@@ -65,7 +63,7 @@ public class LVertex {
    * @param id the new value
    */
   public void setId(GradoopId id) {
-    this.id = id;
+    this.f0 = id;
   }
 
   /**
@@ -74,7 +72,7 @@ public class LVertex {
    * @return value of position
    */
   public Vector getPosition() {
-    return position;
+    return f1;
   }
 
   /**
@@ -83,7 +81,7 @@ public class LVertex {
    * @param position the new value
    */
   public void setPosition(Vector position) {
-    this.position = position;
+    this.f1 = position;
   }
 
   /**
@@ -92,7 +90,7 @@ public class LVertex {
    * @return value of cellid
    */
   public int getCellid() {
-    return cellid;
+    return f2;
   }
 
   /**
@@ -101,6 +99,6 @@ public class LVertex {
    * @param cellid the new value
    */
   public void setCellid(int cellid) {
-    this.cellid = cellid;
+    this.f2 = cellid;
   }
 }

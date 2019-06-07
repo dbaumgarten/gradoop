@@ -1,32 +1,40 @@
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 
-public class LEdge {
-  private GradoopId id;
-  private GradoopId sourceId;
-  private GradoopId targetId;
-  private Vector sourcePosition;
-  private Vector targetPosition;
+public class LEdge extends Tuple5<GradoopId,GradoopId,GradoopId,Vector,Vector> {
+
+  /**
+   * Position of the ID-property in the tuple
+   */
+  public static final int ID = 0;
+
+  /**
+   * Position of the sourceId-property in the tuple
+   */
+  public static final int SOURCE_ID = 1;
+  /**
+   * Position of the targetId-property in the tuple
+   */
+  public static final int TARGET_ID = 2;
 
   public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, Vector sourcePosition,
     Vector targetPosition) {
-    this.id = id;
-    this.sourceId = sourceId;
-    this.targetId = targetId;
-    this.sourcePosition = sourcePosition;
-    this.targetPosition = targetPosition;
+    this.f0 = id;
+    this.f1 = sourceId;
+    this.f2 = targetId;
+    this.f3 = sourcePosition;
+    this.f4 = targetPosition;
   }
 
   public LEdge(Edge e){
-    id = e.getId();
-    sourceId = e.getSourceId();
-    targetId = e.getTargetId();
+    super(e.getId(),e.getSourceId(),e.getTargetId(), new Vector(0,0), new Vector(0,0));
   }
 
   public LEdge(){
-
+    super();
   }
 
   /**
@@ -35,7 +43,7 @@ public class LEdge {
    * @return value of id
    */
   public GradoopId getId() {
-    return id;
+    return f0;
   }
 
   /**
@@ -44,7 +52,7 @@ public class LEdge {
    * @param id the new value
    */
   public void setId(GradoopId id) {
-    this.id = id;
+    this.f0 = id;
   }
 
   /**
@@ -53,7 +61,7 @@ public class LEdge {
    * @return value of sourceId
    */
   public GradoopId getSourceId() {
-    return sourceId;
+    return f1;
   }
 
   /**
@@ -62,7 +70,7 @@ public class LEdge {
    * @param sourceId the new value
    */
   public void setSourceId(GradoopId sourceId) {
-    this.sourceId = sourceId;
+    this.f1 = sourceId;
   }
 
   /**
@@ -71,7 +79,7 @@ public class LEdge {
    * @return value of targetId
    */
   public GradoopId getTargetId() {
-    return targetId;
+    return f2;
   }
 
   /**
@@ -80,7 +88,7 @@ public class LEdge {
    * @param targetId the new value
    */
   public void setTargetId(GradoopId targetId) {
-    this.targetId = targetId;
+    this.f2 = targetId;
   }
 
   /**
@@ -89,7 +97,7 @@ public class LEdge {
    * @return value of sourcePosition
    */
   public Vector getSourcePosition() {
-    return sourcePosition;
+    return f3;
   }
 
   /**
@@ -98,7 +106,7 @@ public class LEdge {
    * @param sourcePosition the new value
    */
   public void setSourcePosition(Vector sourcePosition) {
-    this.sourcePosition = sourcePosition;
+    this.f3 = sourcePosition;
   }
 
   /**
@@ -107,7 +115,7 @@ public class LEdge {
    * @return value of targetPosition
    */
   public Vector getTargetPosition() {
-    return targetPosition;
+    return f4;
   }
 
   /**
@@ -116,6 +124,6 @@ public class LEdge {
    * @param targetPosition the new value
    */
   public void setTargetPosition(Vector targetPosition) {
-    this.targetPosition = targetPosition;
+    this.f4 = targetPosition;
   }
 }

@@ -15,8 +15,7 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.gradoop.common.model.impl.id.GradoopId;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
@@ -26,25 +25,23 @@ import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
  * All math-operations will return a new Vector (instead of modifying the existing vector). This
  * prevents strange side-effects when performing complex computations.
  */
-public class Vector {
-  /**
-   * The x coordinate of the vector
-   */
-  private double x;
-  /**
-   * The y coordinate of the vector
-   */
-  private double y;
+public class Vector extends Tuple2<Double,Double> {
 
   /**
-   * Construct a vector from x and y coordinates
+   * Construct a vector from f0 and f1 coordinates
    *
    * @param x X-Coordinate of the new vector
    * @param y Y-Coordinate of the new vector
    */
   public Vector(double x, double y) {
-    this.x = x;
-    this.y = y;
+    super(x,y);
+  }
+
+  /** Construct new zero-Vector
+   *
+   */
+  public Vector(){
+    super(0d,0d);
   }
 
   /**
@@ -65,8 +62,8 @@ public class Vector {
    * @param v The vertex that will receive the values of this vector as coordinates
    */
   public void setVertexPosition(Vertex v) {
-    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) x);
-    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) y);
+    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) f0.doubleValue());
+    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) f1.doubleValue());
   }
 
   /**
@@ -76,7 +73,7 @@ public class Vector {
    * @return this-other
    */
   public Vector sub(Vector other) {
-    return new Vector(x - other.x, y - other.y);
+    return new Vector(f0 - other.f0, f1 - other.f1);
   }
 
   /**
@@ -86,7 +83,7 @@ public class Vector {
    * @return this+other
    */
   public Vector add(Vector other) {
-    return new Vector(x + other.x, y + other.y);
+    return new Vector(f0 + other.f0, f1 + other.f1);
   }
 
   /**
@@ -96,7 +93,7 @@ public class Vector {
    * @return this*factor
    */
   public Vector mul(double factor) {
-    return new Vector(x * factor, y * factor);
+    return new Vector(f0 * factor, f1 * factor);
   }
 
   /**
@@ -106,17 +103,17 @@ public class Vector {
    * @return this/factor
    */
   public Vector div(double factor) {
-    return new Vector(x / factor, y / factor);
+    return new Vector(f0 / factor, f1 / factor);
   }
 
   /**
    * Calculate the euclidean distance between this vector and another vector
    *
    * @param other The other vector
-   * @return Math.sqrt(Math.pow ( x - other.x, 2) + Math.pow(y - other.y, 2))
+   * @return Math.sqrt(Math.pow ( f0 - other.f0, 2) + Math.pow(f1 - other.f1, 2))
    */
   public double distance(Vector other) {
-    return Math.sqrt(Math.pow(x - other.x, 2) + Math.pow(y - other.y, 2));
+    return Math.sqrt(Math.pow(f0 - other.f0, 2) + Math.pow(f1 - other.f1, 2));
   }
 
   /**
@@ -126,7 +123,7 @@ public class Vector {
    * @return Skalar-product of this and other
    */
   public double scalar(Vector other) {
-    return x * other.x + y * other.y;
+    return f0 * other.f0 + f1 * other.f1;
   }
 
   /**
@@ -143,8 +140,8 @@ public class Vector {
     if (len == 0) {
       return new Vector(0, 0);
     }
-    double newx = (x / len) * Math.min(len, maxLen);
-    double newy = (y / len) * Math.min(len, maxLen);
+    double newx = (f0 / len) * Math.min(len, maxLen);
+    double newy = (f1 / len) * Math.min(len, maxLen);
     return new Vector(newx, newy);
   }
 
@@ -159,8 +156,8 @@ public class Vector {
     if (len == 0) {
       return new Vector(0, 0);
     }
-    double newx = x / len;
-    double newy = y / len;
+    double newx = f0 / len;
+    double newy = f1 / len;
     return new Vector(newx, newy);
   }
 
@@ -170,7 +167,7 @@ public class Vector {
    * @return euclidean length of this vector
    */
   public double magnitude() {
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    return Math.sqrt(Math.pow(f0, 2) + Math.pow(f1, 2));
   }
 
   /**
@@ -183,8 +180,8 @@ public class Vector {
    * @return A vector that does not violate the given bounding box.
    */
   public Vector confined(double minX, double maxX, double minY, double maxY) {
-    double newx = Math.min(Math.max(x, minX), maxX);
-    double newy = Math.min(Math.max(y, minY), maxY);
+    double newx = Math.min(Math.max(f0, minX), maxX);
+    double newy = Math.min(Math.max(f1, minY), maxY);
     return new Vector(newx, newy);
   }
 
@@ -192,46 +189,46 @@ public class Vector {
   public boolean equals(Object other) {
     if (other != null && other instanceof Vector) {
       Vector otherv = (Vector) other;
-      return x == otherv.x && y == otherv.y;
+      return f0.equals(otherv.f0) && f1.equals(otherv.f1);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return ((int) x << 16) + (int) y;
+    return ((int) f0.doubleValue() << 16) + (int) f1.doubleValue();
   }
 
   @Override
   public String toString() {
-    return "Vector{" + "x=" + x + ", y=" + y + '}';
+    return "Vector{" + "x=" + f0 + ", y=" + f1 + '}';
   }
 
   /**
    * @return X coordinate of the vector
    */
   public double getX() {
-    return x;
+    return f0;
   }
 
   /**
-   * @param x Set x coordinate of the vector
+   * @param x Set X coordinate of the vector
    **/
   public void setX(double x) {
-    this.x = x;
+    this.f0 = x;
   }
 
   /**
    * @return Y coordinate of the vector
    */
   public double getY() {
-    return y;
+    return f1;
   }
 
   /**
    * @param y Set Y coordinate of the vector
    **/
   public void setY(double y) {
-    this.y = y;
+    this.f1 = y;
   }
 }
