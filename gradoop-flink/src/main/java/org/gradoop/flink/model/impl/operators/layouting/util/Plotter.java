@@ -4,6 +4,7 @@ import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.io.FileOutputFormat;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.gradoop.common.model.impl.pojo.Edge;
@@ -43,11 +44,15 @@ public class Plotter implements DataSink {
    * @return The prepared edges
    */
   public DataSet<Edge> prepareEdges(DataSet<Vertex> vertices, DataSet<Edge> edges) {
+    final Options options = this.options;
     return edges.join(vertices).where("sourceId").equalTo("id")
       .with(new JoinFunction<Edge, Vertex, Edge>() {
         public Edge join(Edge first, Vertex second) throws Exception {
           first.setProperty("source_x", second.getPropertyValue("X"));
           first.setProperty("source_y", second.getPropertyValue("Y"));
+          if(options.vertex_label != null){
+            first.setProperty("source_label", second.getPropertyValue(options.vertex_label));
+          }
           return first;
         }
       }).join(vertices).where("targetId").equalTo("id")
@@ -55,6 +60,9 @@ public class Plotter implements DataSink {
         public Edge join(Edge first, Vertex second) throws Exception {
           first.setProperty("target_x", second.getPropertyValue("X"));
           first.setProperty("target_y", second.getPropertyValue("Y"));
+          if(options.vertex_label != null){
+            first.setProperty("target_label", second.getPropertyValue(options.vertex_label));
+          }
           return first;
         }
       });
@@ -92,7 +100,7 @@ public class Plotter implements DataSink {
     transient private Graphics gfx;
     private String path;
     private Options options;
-    private Set<Tuple2<Integer,Integer>> vertices;
+    private Set<Tuple3<Integer,Integer,String>> vertices;
 
     /**
      * Create a new plotter
@@ -202,18 +210,23 @@ public class Plotter implements DataSink {
      * Draw a single vertex
      *
      */
-    protected void drawVertex(int x, int y) {
+    protected void drawVertex(int x, int y, String label) {
       gfx.drawRect(x, y, options.vertex_width, options.vertex_height);
+      if (label != null) {
+        gfx.drawString(label, x, y + (options.vertex_height) + 10 + (options.vertex_label_size/2));
+      }
     }
 
     @Override
     public void writeRecord(Edge edge){
       drawEdge(edge);
       if (!options.ignoreVertices) {
-        vertices.add(new Tuple2<>(edge.getPropertyValue("source_x").getInt(),
-          edge.getPropertyValue("source_y").getInt()));
-        vertices.add(new Tuple2<>(edge.getPropertyValue("target_x").getInt(),
-          edge.getPropertyValue("target_y").getInt()));
+        vertices.add(new Tuple3<>(edge.getPropertyValue("source_x").getInt(),
+          edge.getPropertyValue("source_y").getInt(),(options.vertex_label != null)?
+          edge.getPropertyValue("source_label").getString():null));
+        vertices.add(new Tuple3<>(edge.getPropertyValue("target_x").getInt(),
+          edge.getPropertyValue("target_y").getInt(),(options.vertex_label != null)?
+          edge.getPropertyValue("target_label").getString():null));
       }
     }
 
@@ -221,8 +234,9 @@ public class Plotter implements DataSink {
     public void close() throws IOException {
       if (!options.ignoreVertices) {
         gfx.setColor(options.vertex_color);
-        for (Tuple2<Integer, Integer> t : vertices) {
-          drawVertex(t.f0, t.f1);
+        gfx.setFont(new Font("Arial",Font.PLAIN,options.vertex_label_size));
+        for (Tuple3<Integer, Integer,String> t : vertices) {
+          drawVertex(t.f0, t.f1, t.f2);
         }
       }
       if (options.scale) {
@@ -251,6 +265,8 @@ public class Plotter implements DataSink {
     protected int scale_width;
     protected int scale_height;
     protected boolean ignoreVertices = false;
+    protected String vertex_label;
+    protected int vertex_label_size = 10;
 
     /**
      * The dimensions for the drawing-space. Should match (or be larger) then the original
@@ -317,6 +333,26 @@ public class Plotter implements DataSink {
      */
     public Options ignoreVertices(boolean b){
       ignoreVertices = b;
+      return this;
+    }
+
+    /** Name of the vertex-property to write below a vertex
+     *
+     * @param prop Property-name. Default: null
+     * @return this
+     */
+    public Options vertexLabelProperty(String prop){
+      vertex_label = prop;
+      return this;
+    }
+
+    /** Set the font-size of the vertex labels
+     *
+     * @param size Font size. Default: 10
+     * @return this
+     */
+    public Options vertexLabelSize(int size){
+      vertex_label_size = size;
       return this;
     }
 
