@@ -25,18 +25,17 @@ public class Facebook {
         GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
         LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-        double k = FRLayouter.calculateK(size,size, 4100)*3;
-        System.out.println("K is: "+k);
-        LayoutingAlgorithm frl = new FRLayouter(size, size, iterations, k, (int)k*2);
+        LayoutingAlgorithm frl = new FRLayouter(iterations,4100);
+        System.out.println(frl);
         LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
         Plotter p =
-          new Plotter(new Plotter.Options().dimensions(size, size).ignoreVertices(true).scaleImage(size/10,size/10),
+          new Plotter(new Plotter.Options().dimensions(frl.getWidth(), frl.getHeight()).ignoreVertices(true),
             OUTPUT_PATH);
 
         layouted.writeTo(p);
 
-        System.out.println("Crossings: "+new CrossEdges(100).executeLocally(layouted));
+        System.out.println("Crossings: "+new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted));
 
         System.out.println("Runtime: " + env.getLastJobExecutionResult().getNetRuntime(TimeUnit.MILLISECONDS) + "ms");
     }

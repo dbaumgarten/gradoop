@@ -75,4 +75,13 @@ public class RandomLayouter extends LayoutingAlgorithm implements MapFunction<Ve
     return old;
   }
 
+  @Override
+  public int getWidth() {
+    return maxX;
+  }
+
+  @Override
+  public int getHeight() {
+    return maxY;
+  }
 }

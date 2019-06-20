@@ -20,8 +20,9 @@ PARALLELISM="96"
 ITERATIONS="1,3,5,7,10,15"
 CELLSIZE="15"
 
-SIZE=40000
-K=30
+SIZE=0
+K=0
+VERTCOUNT=4000
 
 
 #--------------------------------------------------
@@ -38,16 +39,16 @@ for A in "${ALGORITHMS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -n -b benchmark.txt -a $A $SIZE $SIZE"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -n -b benchmark.txt -a $A"
 
     if [ "$A" == "0" ]; then
       echo A:$A P:$P
-      ${COMMAND}
+      ${COMMAND} 0 $SIZE $SIZE
     fi
 
     if [ "$A" == "1" ]; then
       echo A:$A P:$P I:$I
-      ${COMMAND} 1
+      ${COMMAND} $VERTCOUNT $SIZE $SIZE 1 
     fi
 
     if [ "$A" == "2" ]; then
@@ -56,7 +57,7 @@ do
         for C in "${CELLSIZE[@]}"
         do
           echo A:$A P:$P I:$I C:$C
-          ARGS="$I $K $C"
+          ARGS="$VERTCOUNT $SIZE $SIZE $I $K $C"
           ${COMMAND} ${ARGS}
         done
       done

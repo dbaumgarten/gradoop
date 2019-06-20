@@ -189,6 +189,6 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FRLayouter(w, h, 5, FRLayouter.calculateK(w, h, 10), 4);
+    return new FRLayouter(5,12);
   }
 }

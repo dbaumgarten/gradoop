@@ -167,20 +167,22 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static LayoutingAlgorithm buildLayoutingAlgorithm(int algo, String[] opts) {
     try {
-      int width = Integer.parseInt(opts[0]);
-      int height = Integer.parseInt(opts[1]);
+      int vertexCount = Integer.parseInt(get(opts,0));
+      int width = Integer.parseInt(get(opts,1));
+      int height = Integer.parseInt(get(opts,2));
       switch (algo) {
       case 0:
         return new RandomLayouter(0, width, 0, height);
       case 1:
-        int iterations = Integer.parseInt(opts[2]);
-        double k = Double.parseDouble(opts[3]);
-        return new FRLayouterNaive(width, height, iterations, k);
+        int iterations = Integer.parseInt(get(opts,3));
+        double k = Double.parseDouble(get(opts,4));
+        return new FRLayouterNaive(iterations,vertexCount).area(width,height).k(k);
       case 2:
-        iterations = Integer.parseInt(opts[2]);
-        k = Double.parseDouble(opts[3]);
-        int grid = Integer.parseInt(opts[4]);
-        return new FRLayouter(width, height, iterations, k, grid);
+        iterations = Integer.parseInt(get(opts,3));
+        k = Double.parseDouble(get(opts,4));
+        int grid = Integer.parseInt(get(opts,5));
+        return new FRLayouter(iterations,vertexCount).k(k).maxRepulsionDistance(grid).area(width,
+          height);
       default:
         throw new IllegalArgumentException("Unknown layouting-algorithm: " + algo);
       }
@@ -191,6 +193,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       throw new IllegalArgumentException(
         "Expected a number as parameter but found: " + e.getMessage());
     }
+  }
+
+  private static String get(String[] arr, int idx){
+    if (arr.length <= idx){
+      return "0";
+    }
+    return arr[idx];
   }
 
 
@@ -327,7 +336,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     String layoutingName = layouting.getClass().getSimpleName();
     String tail = String.format("%s|%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
-      String.join(", ", CONSTRUCTOR_PARAMS),
+      String.join(", ", layouting.toString()),
       result.getNetRuntime(TimeUnit.SECONDS),crossedges);
 
     File f = new File(OUTPUT_PATH_BENCHMARK);

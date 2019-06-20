@@ -26,18 +26,24 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
  * NOT INTENDED FOR PRACTICAL USE. Intended for performance-comparisons
  */
 public class FRLayouterNaive extends FRLayouter {
-  /** Create new FRLayouterNaive
-   *  @param width Width of the layouting-space
-   * @param height Height of the layouting-space
+
+  /** Create new Instance of FRLayouterNaive
+   *
    * @param iterations Number of iterations to perform
-   * @param k Parameter for the FR-Algorithm. optimum distance between connected vertices
+   * @param vertexCount (Estimated) number of vertices in the graph. Needed to calculate default
+   *                    parammeters
    */
-  public FRLayouterNaive(int width, int height, int iterations, double k) {
-    super(width, height, iterations, k, 1);
+  public FRLayouterNaive (int iterations, int vertexCount) {
+    super(iterations,vertexCount);
   }
 
   @Override
   public DataSet<Force> repulsionForces(DataSet<LVertex> vertices) {
-    return vertices.cross(vertices).with(new FRRepulsionFunction(k));
+    return vertices.cross(vertices).with(new FRRepulsionFunction(getK()));
+  }
+
+  @Override
+  public FRLayouterNaive maxRepulsionDistance(int maxRepulsionDistance) {
+    throw new UnsupportedOperationException("This method is not available for FRLayouterNaive");
   }
 }
