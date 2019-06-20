@@ -32,6 +32,16 @@ public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
    */
   public static final String Y_COORDINATE_PROPERTY = "Y";
 
+  /** The name of the property where the layout-width is stored in the graph-head
+   *
+   */
+  public static final String LAYOUT_WIDTH = "WIDTH";
+
+  /** The name of the property where the layout-height is stored in the graph-head
+   *
+   */
+  public static final String LAYOUT_HEIGHT = "HEIGHT";
+
   /**
    * Layouts the given graph. After layouting all vertices will have two new properties:
    * X: the assigned x-coordinate
@@ -41,4 +51,16 @@ public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
    * @return The input-graph, but every vertex now has X and Y coordinates as properties
    */
   public abstract LogicalGraph execute(LogicalGraph g);
+
+  /** The width of the layout-area for this layouter
+   *
+   * @return  The width
+   */
+  public abstract int getWidth();
+
+  /** The height of the layout-area for this layouter
+   *
+   * @return  The height
+   */
+  public abstract int getHeight();
 }

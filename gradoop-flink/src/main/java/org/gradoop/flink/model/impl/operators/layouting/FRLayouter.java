@@ -38,62 +38,119 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
  * Layouts a graph using the Fruchtermann-Reingold algorithm
  */
 public class FRLayouter extends LayoutingAlgorithm {
-  /**
-   * Main-parameter of the FR-Algorithm. Optimum distance between connected vertices.
-   */
-  protected double k;
+
+  protected static final double DEFAULT_K = 100;
+
   /**
    * Number of iterations to perform
    */
   protected int iterations;
   /**
-   * Width of the layouting-space
+   * User supplied k. Main-parameter of the FR-Algorithm. Optimum distance between connected
+   * vertices.
    */
-  protected int width;
+  protected double custom_k = 0;
   /**
-   * Height of the layouting-space
+   * User supplied width of the layouting-space
    */
-  protected int height;
+  protected int custom_width = 0;
   /**
-   * Maximum distance for computing repulsion-forces between vertices
+   * User supplied height of the layouting-space
    */
-  protected int maxRepulsionDistance;
-
+  protected int custom_height = 0;
   /**
-   * Create new Instance of FRLayouter
-   *  @param width      Width of the layouting space
-   * @param height     Height of the layouting space
-   * @param iterations Number of iterations to perform of the algorithm
-   * @param k          Optimal distance between connected vertices. Optimal k can be computed
-*                   with calculateK()
-   * @param maxRepulsionDistance   Maximum distance between two vertices before stopping to compute
+   * User supplied maximum distance for computing repulsion-forces between vertices
    */
-  public FRLayouter(int width, int height, int iterations, double k, int maxRepulsionDistance) {
-    this.k = k;
-    this.width = width;
-    this.height = height;
-    this.iterations = iterations;
-    this.maxRepulsionDistance = maxRepulsionDistance;
-  }
-
-  /**
-   * Calculates the optimal distance between two nodes connected by an edge
+  protected int custom_maxRepulsionDistance = 0;
+  /** (Estimated) number of vertices in the graph. Needed to calculate default
+   *  parameters
    *
-   * @param width  Width of the layouting-space
-   * @param height Height of the layouting-space
-   * @param count  Number of vertices in the graph (does not need to be 100% precise)
-   * @return The calculated k for the given input values
    */
-  public static double calculateK(int width, int height, int count) {
-    return Math.sqrt((width * height) / (double) count);
+  protected int numberOfVertices;
+
+
+  /** Create new Instance of FRLayouter.
+   *
+   * @param iterations Number of iterations to perform
+   * @param vertexCount (Estimated) number of vertices in the graph. Needed to calculate default
+   *                    parammeters
+   */
+  public FRLayouter(int iterations, int vertexCount) {
+    this.iterations = iterations;
+    this.numberOfVertices = vertexCount;
   }
 
+
+  /** Override default k-parameter of the FR-Algorithm
+   * Default: 100
+   * @param k new k
+   * @return this (for method-chaining)
+   */
+  public FRLayouter k(double k){
+    this.custom_k = k;
+    return this;
+  }
+
+  /** Override default layout-space size
+   * Default:  width = height = Math.sqrt(Math.pow(k, 2) * numberOfVertices) * 0.5
+   * @param width new width
+   * @param height new height
+   * @return this (for method-chaining)
+   */
+  public FRLayouter area(int  width, int height){
+    this.custom_width = width;
+    this.custom_height = height;
+    return this;
+  }
+
+  /** Override default maxRepulsionDistance of the FR-Algorithm. Vertices with larger distance
+   * are ignored in repulsion-force calculation
+   * Default-Value is relative to current k. If k is overriden, this is changed
+   * accordingly automatically
+   * Default: 2k
+   * @param maxRepulsionDistance new value
+   * @return this (for method-chaining)
+   */
+  public FRLayouter maxRepulsionDistance(int maxRepulsionDistance){
+    this.custom_maxRepulsionDistance = maxRepulsionDistance;
+    return this;
+  }
+
+  /**
+   * Gets k
+   *
+   * @return value of k
+   */
+  public double getK() {
+    return (custom_k!=0)?custom_k:DEFAULT_K;
+  }
+
+
+  @Override
+  public int getWidth() {
+    return (custom_width!=0)?custom_width:(int)(Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
+  }
+
+  @Override
+  public int getHeight() {
+    return (custom_height!=0)?custom_height:(int)(Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
+  }
+
+  /**
+   * Gets maxRepulsionDistance
+   *
+   * @return value of maxRepulsionDistance
+   */
+  public int getMaxRepulsionDistance() {
+    return (custom_maxRepulsionDistance!=0)?custom_maxRepulsionDistance:(int)(2*getK());
+  }
 
   @Override
   public LogicalGraph execute(LogicalGraph g) {
 
     RandomLayouter rl =
-      new RandomLayouter(width / 10, width - (width / 10), height / 10, height - (height / 10));
+      new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
+        getHeight() - (getHeight() / 10));
     g = rl.execute(g);
 
     DataSet<Vertex> gradoopVertices = g.getVertices();
@@ -145,7 +202,7 @@ public class FRLayouter extends LayoutingAlgorithm {
   protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices,
     DataSet<Force> forces, int iterations) {
     return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
-      .with(new FRForceApplicator(width, height, k, iterations));
+      .with(new FRForceApplicator(getWidth(), getHeight(), getK(), iterations));
   }
 
 
@@ -156,11 +213,11 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return Dataset of applied forces. May (and will) contain multiple forces for each vertex.
    */
   protected DataSet<Force> repulsionForces(DataSet<LVertex> vertices) {
-    vertices = vertices.map(new FRCellIdMapper(maxRepulsionDistance));
+    vertices = vertices.map(new FRCellIdMapper(getMaxRepulsionDistance()));
 
     KeySelector<LVertex, Integer> selfselector =
       new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF);
-    FRRepulsionFunction repulsionFunction = new FRRepulsionFunction(k, maxRepulsionDistance);
+    FRRepulsionFunction repulsionFunction = new FRRepulsionFunction(getK(), getMaxRepulsionDistance());
 
     DataSet<Force> self = vertices.join(vertices)
       .where(new FRCellIdSelector(FRCellIdSelector.NeighborType.SELF))
@@ -198,7 +255,14 @@ public class FRLayouter extends LayoutingAlgorithm {
     return edges.join(vertices).where(LEdge.SOURCE_ID).equalTo(LVertex.ID).join(vertices).where(
       "f0."+LEdge.TARGET_ID)
       .equalTo(LVertex.ID).with((first,second)->new Tuple2<LVertex,LVertex>(first.f1,second)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
-      }).flatMap(new FRAttractionFunction(k));
+      }).flatMap(new FRAttractionFunction(getK()));
   }
 
+
+  @Override
+  public String toString() {
+    return "FRLayouter{" + "iterations=" + iterations + ", k=" + getK() + ", width=" + getWidth() +
+      ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
+      ", numberOfVertices=" + numberOfVertices + '}';
+  }
 }
