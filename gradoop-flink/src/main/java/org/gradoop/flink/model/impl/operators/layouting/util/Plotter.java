@@ -50,6 +50,14 @@ public class Plotter implements DataSink, Serializable {
     this.imageHeight = imageHeight;
   }
 
+  public Plotter(String path, LayoutingAlgorithm algo, int imageWidth, int imageHeight) {
+    this.path = path;
+    this.layoutWidth = algo.getWidth();
+    this.layoutHeight = algo.getHeight();
+    this.imageWidth = imageWidth;
+    this.imageHeight = imageHeight;
+  }
+
   /**
    * Sets optional value vertexSize
    *
