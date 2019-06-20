@@ -236,13 +236,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     JobExecutionResult jerlayout = null;
     if(MULTIJOB){
-      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig()), true);
+      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(),algorithm));
       jerlayout = getExecutionEnvironment().execute("Layouting");
       layouted = readLogicalGraph(outpath, "csv");
     }
 
     if (!MULTIJOB  || !OUTPUT_FORMAT.equals("csv")){
-      layouted.writeTo(getDataSink(outpath,OUTPUT_FORMAT,graph.getConfig()),true);
+      layouted.writeTo(getDataSink(outpath,OUTPUT_FORMAT,graph.getConfig(),algorithm));
     }
 
     Double crossedges = -1d;
@@ -269,7 +269,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @param config gradoop config
    * @return DataSink for EPGM Data
    */
-  private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config) {
+  private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config,
+   LayoutingAlgorithm alg ) {
     directory = appendSeparator(directory);
     format = format.toLowerCase();
 
@@ -283,7 +284,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "image":
       int width = Integer.parseInt(CONSTRUCTOR_PARAMS[0]);
       int height = Integer.parseInt(CONSTRUCTOR_PARAMS[1]);
-      return new Plotter(new Plotter.Options().dimensions(width,height).ignoreVertices(true).scaleImage(1000,1000),directory+"image.png");
+      return new Plotter(directory+"image.png",alg.getWidth(),alg.getHeight(),width,height);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
