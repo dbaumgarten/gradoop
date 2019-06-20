@@ -30,7 +30,7 @@ public class Facebook {
         LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
         Plotter p =
-          new Plotter(OUTPUT_PATH, frl.getWidth(), frl.getHeight(),1000,1000).edgeSize(0.1f).ignoreVertices(true);
+          new Plotter(OUTPUT_PATH, frl,1000,1000).edgeSize(0.1f).ignoreVertices(true);
 
         layouted.writeTo(p);
 
