@@ -16,7 +16,6 @@ public class Facebook {
 
     static String OUTPUT_PATH = System.getProperty("user.dir")+"/out/facebook-test.png";
     static String INPUT_PATH = System.getProperty("user.dir")+"/datasets/facebook_gradoop_csv";
-    static final int size = 10000;
     static final int iterations = 25;
 
     public static void main(String[] args) throws Exception {
@@ -34,10 +33,9 @@ public class Facebook {
 
         layouted.writeTo(p);
 
-        env.execute();
+        //env.execute();
 
-        //System.out.println("Crossings: "+new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION)
-        // .executeLocally(layouted));
+        System.out.println("Crossings: "+new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted));
 
         System.out.println("Runtime: " + env.getLastJobExecutionResult().getNetRuntime(TimeUnit.MILLISECONDS) + "ms");
     }

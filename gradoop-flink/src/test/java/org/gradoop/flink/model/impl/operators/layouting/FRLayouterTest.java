@@ -23,6 +23,7 @@ import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdSelector;
+import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplicator;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
@@ -173,6 +174,23 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
     Assert.assertEquals(vec14,new Vector());
     Assert.assertTrue(vec11.magnitude() == 0);
+  }
+
+  @Test
+  public void testForceAppplicator(){
+    FRForceApplicator fa = new FRForceApplicator(1000,1000,10, 25);
+    Assert.assertEquals(707.1,fa.speedForIteration(0),0.1);
+    Assert.assertEquals(537.96,fa.speedForIteration(1),0.1);
+    Assert.assertEquals(1.0,fa.speedForIteration(24),0.1);
+
+    Vector pos = new Vector(950,0);
+    Vector force = new Vector(0,300);
+    fa.applyForce(pos,force,200);
+    Assert.assertEquals(pos,new Vector(950,200));
+
+    Vector force2 = new Vector(1000,1000);
+    fa.applyForce(pos,force2,10000);
+    Assert.assertEquals(pos,new Vector(999,999));
   }
 
 
