@@ -42,10 +42,10 @@ public class Vector implements Serializable {
     f1 = y;
   }
 
-  /** Construct new zero-Vector
-   *
+  /**
+   * Construct new zero-Vector
    */
-  public Vector(){
+  public Vector() {
     f0 = 0d;
     f1 = 0d;
   }
@@ -238,50 +238,55 @@ public class Vector implements Serializable {
     this.f1 = y;
   }
 
-  /** Set x and y at once
+  /**
+   * Set x and y at once
    *
    * @param x X to set
    * @param y y to set
    * @return This object for method-chaining
    */
-  public Vector set(double x, double y){
+  public Vector set(double x, double y) {
     f0 = x;
     f1 = y;
     return this;
   }
 
-  /** Copy the values of the other vector into this one
+  /**
+   * Copy the values of the other vector into this one
    *
    * @param other The other vector
    * @return this
    */
-  public Vector set(Vector other){
+  public Vector set(Vector other) {
     f0 = other.f0;
     f1 = other.f1;
     return this;
   }
 
-  /** Reset this vector to 0
+  /**
+   * Reset this vector to 0
    *
    * @return This object for method-chaining
    */
-  public Vector reset(){
+  public Vector reset() {
     f0 = 0d;
     f1 = 0d;
     return this;
   }
 
-  /** Copy this object
+  /**
+   * Copy this object
    *
    * @return A copy of this object
    */
-  public Vector copy(){
-    return new Vector(f0,f1);
+  public Vector copy() {
+    return new Vector(f0, f1);
   }
 
   //-----------------------------------------------------------------------------------
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Substract another vector from this vector and return the result
    *
    * @param other Vector to substract
@@ -293,7 +298,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Add another vector to this vector and return the result
    *
    * @param other The vector to add
@@ -305,7 +311,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Multiply this vector by a factor and return the result
    *
    * @param factor The factor to multiply this vector with
@@ -317,7 +324,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Divide this vector by a factor and return the result
    *
    * @param factor The factor to divide this vector by
@@ -329,7 +337,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Clamp this vector to a given length.
    * The returned vector will have the same orientation as this one, but will have at most a
    * length of maxLen.
@@ -348,7 +357,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Normalize this vector.
    *
    * @return a vector with the same orientation as this one and a length of 1. If this vector is
@@ -366,7 +376,8 @@ public class Vector implements Serializable {
     return this;
   }
 
-  /** Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
+  /**
+   * Alternative MUTATING variant. Modifies this vector instead of creating a new one. BE CAREFUL!
    * Confine this point to the given bounding-box.
    *
    * @param minX Bounding-box

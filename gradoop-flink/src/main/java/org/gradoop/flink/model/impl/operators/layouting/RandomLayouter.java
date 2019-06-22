@@ -28,15 +28,25 @@ import java.util.Random;
  */
 public class RandomLayouter extends LayoutingAlgorithm implements MapFunction<Vertex, Vertex> {
 
-  /** Minimum value for x coordinates */
+  /**
+   * Minimum value for x coordinates
+   */
   private int minX;
-  /** Maximum value for x coordinates */
+  /**
+   * Maximum value for x coordinates
+   */
   private int maxX;
-  /** Minimum value for y coordinates */
+  /**
+   * Minimum value for y coordinates
+   */
   private int minY;
-  /** Maximum value for y coordinates */
+  /**
+   * Maximum value for y coordinates
+   */
   private int maxY;
-  /** Rng to use for coordinate-generation */
+  /**
+   * Rng to use for coordinate-generation
+   */
   private Random rng;
 
   /**

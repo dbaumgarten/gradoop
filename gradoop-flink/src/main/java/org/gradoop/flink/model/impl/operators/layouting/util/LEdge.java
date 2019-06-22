@@ -4,7 +4,7 @@ import org.apache.flink.api.java.tuple.Tuple5;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 
-public class LEdge extends Tuple5<GradoopId,GradoopId,GradoopId,Vector,Vector> {
+public class LEdge extends Tuple5<GradoopId, GradoopId, GradoopId, Vector, Vector> {
 
   /**
    * Position of the ID-property in the tuple
@@ -29,11 +29,11 @@ public class LEdge extends Tuple5<GradoopId,GradoopId,GradoopId,Vector,Vector> {
     this.f4 = targetPosition;
   }
 
-  public LEdge(Edge e){
-    super(e.getId(),e.getSourceId(),e.getTargetId(), new Vector(0,0), new Vector(0,0));
+  public LEdge(Edge e) {
+    super(e.getId(), e.getSourceId(), e.getTargetId(), new Vector(0, 0), new Vector(0, 0));
   }
 
-  public LEdge(){
+  public LEdge() {
     super();
   }
 

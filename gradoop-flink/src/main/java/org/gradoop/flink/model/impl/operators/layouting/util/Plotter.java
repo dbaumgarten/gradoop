@@ -16,10 +16,10 @@ import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.util.List;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * DataSink to write a layouted graph to an image
@@ -27,19 +27,32 @@ import java.io.Serializable;
 
 public class Plotter implements DataSink, Serializable {
 
+  /** Path to store the output-image */
   protected String path;
+  /** Width of the original layout of the graph */
   protected int layoutWidth;
+  /** Height of the original layout of the graph */
   protected int layoutHeight;
+  /** Requested width of output-image (px) */
   protected int imageWidth;
+  /** Requested height of output-image (px) */
   protected int imageHeight;
 
+  /** Size of the vertex-symbols (px) */
   protected int vertexSize = 10;
+  /** Size (width) of egde-lines (px) */
   protected float edgeSize = 1f;
+  /** Color of vertices */
   protected Color vertexColor = Color.RED;
+  /** Color of edges */
   protected Color edgeColor = Color.WHITE;
+  /** Color of the background */
   protected Color backgroundColor = Color.BLACK;
+  /** If true, do not draw vertices, only edges. Improves perfomance. */
   protected boolean ignoreVertices = false;
+  /** Name of the property that should be drawn as vertex 'heading'. If null, don't draw anything*/
   protected String vertexLabel = null;
+  /** Font-size of the vertex-heading */
   protected int vertexLabelSize = 10;
 
   public Plotter(String path, int layoutWidth, int layoutHeight, int imageWidth, int imageHeight) {
@@ -170,24 +183,25 @@ public class Plotter implements DataSink, Serializable {
           return first;
         }
       });
-   return edges;
+    return edges;
   }
 
-  /** Scale the coordinates of the graph so that the layout-space matches the requested drawing-size
+  /**
+   * Scale the coordinates of the graph so that the layout-space matches the requested drawing-size
    *
    * @param inp original vertices
    * @return vertices with scaled coordinates
    */
-  protected DataSet<Vertex> scaleLayout(DataSet<Vertex> inp){
-    final double widthScale = imageWidth/(double)layoutHeight;
-    final double heightScale = imageHeight/(double)layoutHeight;
-    return inp.map((v)->{
+  protected DataSet<Vertex> scaleLayout(DataSet<Vertex> inp) {
+    final double widthScale = imageWidth / (double) layoutHeight;
+    final double heightScale = imageHeight / (double) layoutHeight;
+    return inp.map((v) -> {
       int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
       int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
       x = (int) (x * widthScale);
       y = (int) (y * heightScale);
-      v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY,x);
-      v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY,y);
+      v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, x);
+      v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, y);
       return v;
     });
   }
@@ -195,12 +209,12 @@ public class Plotter implements DataSink, Serializable {
 
   @Override
   public void write(LogicalGraph logicalGraph) throws IOException {
-    write(logicalGraph,true);
+    write(logicalGraph, true);
   }
 
   @Override
   public void write(GraphCollection graphCollection) throws IOException {
-    write(graphCollection,true);
+    write(graphCollection, true);
   }
 
   @Override
@@ -208,7 +222,7 @@ public class Plotter implements DataSink, Serializable {
 
     ImageOutputFormat pof = new ImageOutputFormat(path);
     FileSystem.WriteMode writeMode =
-      overwrite ? FileSystem.WriteMode.OVERWRITE :  FileSystem.WriteMode.NO_OVERWRITE;
+      overwrite ? FileSystem.WriteMode.OVERWRITE : FileSystem.WriteMode.NO_OVERWRITE;
     pof.setWriteMode(writeMode);
 
     DataSet<Vertex> vertices = scaleLayout(logicalGraph.getVertices());
@@ -216,17 +230,17 @@ public class Plotter implements DataSink, Serializable {
 
     ImageGenerator imgg = new ImageGenerator(this);
     DataSet<BufferedImage> image = edges.combineGroup(imgg::combineEdges).reduce(imgg::mergeImages);
-    if (!ignoreVertices){
+    if (!ignoreVertices) {
       DataSet<BufferedImage> vertexImage =
         vertices.combineGroup(imgg::combineVertices).reduce(imgg::mergeImages);
       image = image.map(new RichMapFunction<BufferedImage, BufferedImage>() {
         @Override
         public BufferedImage map(BufferedImage bufferedImage) throws Exception {
-          List<BufferedImage> vertexImage = this.getRuntimeContext().getBroadcastVariable(
-            "vertexImage");
-          return imgg.mergeImages(bufferedImage,vertexImage.get(0));
+          List<BufferedImage> vertexImage =
+            this.getRuntimeContext().getBroadcastVariable("vertexImage");
+          return imgg.mergeImages(bufferedImage, vertexImage.get(0));
         }
-      }).withBroadcastSet(vertexImage,"vertexImage");
+      }).withBroadcastSet(vertexImage, "vertexImage");
     }
     image = image.map(imgg::addBackgound);
 
@@ -238,54 +252,59 @@ public class Plotter implements DataSink, Serializable {
     throw new UnsupportedOperationException("Plotting is not supported for GraphCollections");
   }
 
-  /** This class contains functionality to create images from graph-parts
-   *
+  /**
+   * This class contains functionality to create images from graph-parts
    */
   protected static class ImageGenerator implements Serializable {
 
-    /** Contains all necessary parameters */
+    /**
+     * Contains all necessary parameters
+     */
     private Plotter plotter;
 
-    /** Create new image-generatir
+    /**
+     * Create new image-generatir
      *
      * @param p Contains all necessary parameters (cannot use non-static class du to flink-madness)
      */
-    public ImageGenerator(Plotter p){
-        this.plotter = p;
+    public ImageGenerator(Plotter p) {
+      this.plotter = p;
     }
 
 
-    /** Combine multiple edges into one Image
+    /**
+     * Combine multiple edges into one Image
      *
-     * @param iterable The edges to combine
+     * @param iterable  The edges to combine
      * @param collector The output-collector
      */
     public void combineEdges(Iterable<Edge> iterable, Collector<BufferedImage> collector) {
-      BufferedImage img = new BufferedImage(plotter.imageWidth, plotter.imageHeight,
-        BufferedImage.TYPE_INT_ARGB);
+      BufferedImage img =
+        new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
       gfx.setColor(plotter.edgeColor);
-      gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+      gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       gfx.setStroke(new BasicStroke(plotter.edgeSize));
-      for(Edge e: iterable){
-        drawEdge(gfx,e);
+      for (Edge e : iterable) {
+        drawEdge(gfx, e);
       }
       collector.collect(img);
       gfx.dispose();
     }
 
-    /** Combine multiple vertices into one Image
+    /**
+     * Combine multiple vertices into one Image
      *
-     * @param iterable The vertices to combine
+     * @param iterable  The vertices to combine
      * @param collector The output-collector
      */
     public void combineVertices(Iterable<Vertex> iterable, Collector<BufferedImage> collector) {
-      BufferedImage img = new BufferedImage(plotter.imageWidth, plotter.imageHeight,
-        BufferedImage.TYPE_INT_ARGB);
+      BufferedImage img =
+        new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
       gfx.setColor(plotter.vertexColor);
-      for(Vertex v: iterable){
-        drawVertex(gfx,v);
+      for (Vertex v : iterable) {
+        drawVertex(gfx, v);
       }
       collector.collect(img);
       gfx.dispose();
@@ -308,7 +327,7 @@ public class Plotter implements DataSink, Serializable {
 
         gfx.drawLine(sourceX + plotter.vertexSize / 2, sourceY + plotter.vertexSize / 2,
           targetX + plotter.vertexSize / 2, targetY + plotter.vertexSize / 2);
-      }catch (NullPointerException ef){
+      } catch (NullPointerException ef) {
 
       }
     }
@@ -317,8 +336,7 @@ public class Plotter implements DataSink, Serializable {
      * Draw a single vertex
      *
      * @param gfx The graphics-object to use for drawing
-     * @param v The vertex to draw
-     *
+     * @param v   The vertex to draw
      */
     private void drawVertex(Graphics2D gfx, Vertex v) {
       int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
@@ -326,45 +344,47 @@ public class Plotter implements DataSink, Serializable {
       gfx.drawRect(x, y, plotter.vertexSize, plotter.vertexSize);
       if (plotter.vertexLabel != null) {
         String label = v.getPropertyValue(plotter.vertexLabel).getString();
-        gfx.drawString(label, x,
-          y + (plotter.vertexSize) + 10 + (plotter.vertexLabelSize/2));
+        gfx.drawString(label, x, y + (plotter.vertexSize) + 10 + (plotter.vertexLabelSize / 2));
       }
     }
 
-    /** Merge two intermediate Images into one
+    /**
+     * Merge two intermediate Images into one
      *
      * @param bufferedImage Image 1
-     * @param t1 Image 2
+     * @param t1            Image 2
      * @return Output-Image
      */
     public BufferedImage mergeImages(BufferedImage bufferedImage, BufferedImage t1) {
       Graphics g = bufferedImage.getGraphics();
-      g.drawImage(t1,0,0,plotter.imageWidth,plotter.imageHeight,null);
+      g.drawImage(t1, 0, 0, plotter.imageWidth, plotter.imageHeight, null);
       g.dispose();
       return bufferedImage;
     }
 
-    /** Draw a black background behind the image
+    /**
+     * Draw a black background behind the image
      *
      * @param bufferedImage Input image
      * @return Input-image + black background
      * @throws Exception
      */
     public BufferedImage addBackgound(BufferedImage bufferedImage) throws Exception {
-      BufferedImage out = new BufferedImage(plotter.imageWidth,plotter.imageHeight,BufferedImage.TYPE_INT_ARGB);
+      BufferedImage out =
+        new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = out.createGraphics();
       gfx.setColor(plotter.backgroundColor);
-      gfx.fillRect(0,0,plotter.imageWidth,plotter.imageHeight);
-      gfx.drawImage(bufferedImage,0,0,plotter.imageWidth,plotter.imageHeight,null);
+      gfx.fillRect(0, 0, plotter.imageWidth, plotter.imageHeight);
+      gfx.drawImage(bufferedImage, 0, 0, plotter.imageWidth, plotter.imageHeight, null);
       gfx.dispose();
       return out;
     }
   }
 
-  /** OutputFormat to save BufferedImages to image files
-   *
+  /**
+   * OutputFormat to save BufferedImages to image files
    */
-  protected static class ImageOutputFormat extends FileOutputFormat<BufferedImage>  {
+  protected static class ImageOutputFormat extends FileOutputFormat<BufferedImage> {
 
     private String path;
 
@@ -377,7 +397,6 @@ public class Plotter implements DataSink, Serializable {
       super(new Path(path));
       this.path = path;
     }
-
 
 
     @Override
@@ -397,8 +416,8 @@ public class Plotter implements DataSink, Serializable {
 
 
     @Override
-    public void writeRecord(BufferedImage img) throws IOException{
-      ImageIO.write(img,getFileExtension(path),this.stream);
+    public void writeRecord(BufferedImage img) throws IOException {
+      ImageIO.write(img, getFileExtension(path), this.stream);
     }
 
   }

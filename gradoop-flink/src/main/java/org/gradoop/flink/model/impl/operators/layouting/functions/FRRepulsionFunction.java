@@ -17,13 +17,8 @@ package org.gradoop.flink.model.impl.operators.layouting.functions;
 
 import org.apache.flink.api.common.functions.CrossFunction;
 import org.apache.flink.api.common.functions.FlatJoinFunction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
-import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
@@ -35,37 +30,51 @@ import java.util.Random;
  * Implements both Join and FlatJoin to compute repulsions for a single vertex or for both
  * vertices at once.
  */
-public class FRRepulsionFunction implements
-  JoinFunction<LVertex, LVertex, Force>,
-  CrossFunction<LVertex, LVertex, Force>,
-  FlatJoinFunction<LVertex,LVertex,Force> {
-  /** Rng. Used to get random directions for vertices at the same position */
+public class FRRepulsionFunction implements JoinFunction<LVertex, LVertex, Force>,
+  CrossFunction<LVertex, LVertex, Force>, FlatJoinFunction<LVertex, LVertex, Force> {
+  /**
+   * Rng. Used to get random directions for vertices at the same position
+   */
   private Random rng;
-  /** Parameter for the FR-Algorithm */
+  /**
+   * Parameter for the FR-Algorithm
+   */
   private double k;
-  /** Maximum distance between two vertices that still produces a repulsion */
+  /**
+   * Maximum distance between two vertices that still produces a repulsion
+   */
   private double maxDistance;
 
-  /** Object reuse for output */
+  /**
+   * Object reuse for output
+   */
   private Force firstForce = new Force();
-  /** Object reuse for output */
+  /**
+   * Object reuse for output
+   */
   private Force secondForce = new Force();
-  /** Object reuse */
+  /**
+   * Object reuse
+   */
   private Vector calculatedForce = new Vector();
-  /** Object reuse */
+  /**
+   * Object reuse
+   */
   private Vector calculatedForce2 = new Vector();
 
-  /** Create new RepulsionFunction
+  /**
+   * Create new RepulsionFunction
    *
    * @param k A parameter of the FR-Algorithm
    */
   public FRRepulsionFunction(double k) {
-    this(k,Float.MAX_VALUE);
+    this(k, Float.MAX_VALUE);
   }
 
-  /** Create new RepulsionFunction
+  /**
+   * Create new RepulsionFunction
    *
-   * @param k A parameter of the FR-Algorithm
+   * @param k           A parameter of the FR-Algorithm
    * @param maxDistance Maximum distance between two vertices that still produces a repulsion
    */
   public FRRepulsionFunction(double k, double maxDistance) {
@@ -74,22 +83,24 @@ public class FRRepulsionFunction implements
     this.maxDistance = maxDistance;
   }
 
-  /** Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
+  /**
+   * Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
    *
-   * @param first First Vertex
+   * @param first  First Vertex
    * @param second Second Certex
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
   @Override
   public Force join(LVertex first, LVertex second) {
-    Vector force = calculateForce(first,second);
-    firstForce.set(first.getId(),force);
+    Vector force = calculateForce(first, second);
+    firstForce.set(first.getId(), force);
     return firstForce;
   }
 
-  /** Alias for join() to fullfill the CrossFunction-Interface.
+  /**
+   * Alias for join() to fullfill the CrossFunction-Interface.
    *
-   * @param vertex First Vertex
+   * @param vertex  First Vertex
    * @param vertex2 Second Certex
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
@@ -99,14 +110,15 @@ public class FRRepulsionFunction implements
   }
 
 
-  /** Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
+  /**
+   * Computes the repulsion force between two vertices ONLY FOR THE FIRST vertex
    * ATTENTION! Subsequent calls will modify previously returned results!
    *
-   * @param first First Vertex
+   * @param first  First Vertex
    * @param second Second Certex
    * @return A force-tuple representing the repulsion-force for the first vertex
    */
-  protected Vector calculateForce(LVertex first, LVertex second){
+  protected Vector calculateForce(LVertex first, LVertex second) {
     Vector pos1 = first.getPosition();
     Vector pos2 = second.getPosition();
     double distance = pos1.distance(pos2);
@@ -117,7 +129,7 @@ public class FRRepulsionFunction implements
       return calculatedForce;
     }
 
-    if (distance > maxDistance){
+    if (distance > maxDistance) {
       calculatedForce.reset();
       return calculatedForce;
     }
@@ -132,28 +144,28 @@ public class FRRepulsionFunction implements
     return calculatedForce;
   }
 
-  /** Implement FlatJoin and produce the force-tuples for both vertices at once.
+  /**
+   * Implement FlatJoin and produce the force-tuples for both vertices at once.
    * (Forces of magnitude 0 will be ignored)
    *
-   * @param first The first vertex
-   * @param second The second vertex
+   * @param first     The first vertex
+   * @param second    The second vertex
    * @param collector Contains up to two force-tuples representing repulsion-forces between both
    *                  vertices.
    */
   @Override
-  public void join(LVertex first, LVertex second,
-    Collector<Force> collector){
+  public void join(LVertex first, LVertex second, Collector<Force> collector) {
 
-    Vector force = calculateForce(first,second);
+    Vector force = calculateForce(first, second);
 
-    if (force.magnitude() == 0){
+    if (force.magnitude() == 0) {
       return;
     }
 
-    firstForce.set(first.getId(),force);
+    firstForce.set(first.getId(), force);
 
     calculatedForce2.set(force).mMul(-1);
-    secondForce.set(second.getId(),calculatedForce2);
+    secondForce.set(second.getId(), calculatedForce2);
 
     collector.collect(firstForce);
     collector.collect(secondForce);

@@ -53,51 +53,50 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
     KeySelector<LVertex, Integer> neighborslector =
       new FRCellIdSelector(FRCellIdSelector.NeighborType.RIGHT);
-    Assert.assertEquals(id(1,0), (long) neighborslector.getKey(getDummyVertex(id(0,0))));
-    Assert.assertEquals(id(6,3), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(10,9), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(1, 0), (long) neighborslector.getKey(getDummyVertex(id(0, 0))));
+    Assert.assertEquals(id(6, 3), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(10, 9), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.LEFT);
-    Assert.assertEquals(id(-1,0), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(4,3), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(8,9), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(-1, 0), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4, 3), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(8, 9), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UP);
-    Assert.assertEquals(id(0,-1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(5,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(9,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(0, -1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(5, 2), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(9, 8), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWN);
-    Assert.assertEquals(id(0,1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(5,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(9,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(0, 1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(5, 4), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(9, 10), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UPRIGHT);
-    Assert.assertEquals(id(1,-1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(6,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(10,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(1, -1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(6, 2), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(10, 8), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.UPLEFT);
-    Assert.assertEquals(id(-1,-1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(4,2), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(8,8), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(-1, -1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4, 2), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(8, 8), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWNLEFT);
-    Assert.assertEquals(id(-1,1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(4,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(8,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(-1, 1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(4, 4), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(8, 10), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
     neighborslector = new FRCellIdSelector(FRCellIdSelector.NeighborType.DOWNRIGHT);
-    Assert.assertEquals(id(1,1), (long) neighborslector.getKey(getDummyVertex(0)));
-    Assert.assertEquals(id(6,4), (long) neighborslector.getKey(getDummyVertex(id(5,3))));
-    Assert.assertEquals(id(10,10), (long) neighborslector.getKey(getDummyVertex(id(9,9))));
+    Assert.assertEquals(id(1, 1), (long) neighborslector.getKey(getDummyVertex(0)));
+    Assert.assertEquals(id(6, 4), (long) neighborslector.getKey(getDummyVertex(id(5, 3))));
+    Assert.assertEquals(id(10, 10), (long) neighborslector.getKey(getDummyVertex(id(9, 9))));
 
   }
 
   @Test
   public void testRepulseJoinFunction() throws Exception {
-    JoinFunction<LVertex, LVertex, Force> jf =
-      new FRRepulsionFunction(1, 20);
+    JoinFunction<LVertex, LVertex, Force> jf = new FRRepulsionFunction(1, 20);
     LVertex v1 = getDummyVertex(1, 1);
     LVertex v2 = getDummyVertex(2, 3);
     LVertex v3 = getDummyVertex(7, 5);
@@ -136,7 +135,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
 
     Assert.assertEquals(vec12join, vec12);
     Assert.assertEquals(vec12, vec21.mul(-1));
-    Assert.assertNotEquals(collectorList.get(0).getId(),collectorList.get(1).getId());
+    Assert.assertNotEquals(collectorList.get(0).getId(), collectorList.get(1).getId());
   }
 
   @Test
@@ -153,7 +152,7 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     af.flatMap(new Tuple2<>(v1, v2), collector);
     Vector vec12 = collectorList.get(0).getValue().copy();
     Vector vec21 = collectorList.get(1).getValue().copy();
-    Assert.assertNotEquals(collectorList.get(0).getId(),collectorList.get(1).getId());
+    Assert.assertNotEquals(collectorList.get(0).getId(), collectorList.get(1).getId());
     collectorList.clear();
 
     af.flatMap(new Tuple2<>(v1, v3), collector);
@@ -172,25 +171,25 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     Assert.assertEquals(vec12, vec21.mul(-1));
     Assert.assertTrue(vec12.getX() > 0 && vec12.getY() > 0);
     Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
-    Assert.assertEquals(vec14,new Vector());
+    Assert.assertEquals(vec14, new Vector());
     Assert.assertTrue(vec11.magnitude() == 0);
   }
 
   @Test
-  public void testForceAppplicator(){
-    FRForceApplicator fa = new FRForceApplicator(1000,1000,10, 25);
-    Assert.assertEquals(707.1,fa.speedForIteration(0),0.1);
-    Assert.assertEquals(537.96,fa.speedForIteration(1),0.1);
-    Assert.assertEquals(1.0,fa.speedForIteration(24),0.1);
+  public void testForceAppplicator() {
+    FRForceApplicator fa = new FRForceApplicator(1000, 1000, 10, 25);
+    Assert.assertEquals(707.1, fa.speedForIteration(0), 0.1);
+    Assert.assertEquals(537.96, fa.speedForIteration(1), 0.1);
+    Assert.assertEquals(1.0, fa.speedForIteration(24), 0.1);
 
-    Vector pos = new Vector(950,0);
-    Vector force = new Vector(0,300);
-    fa.applyForce(pos,force,200);
-    Assert.assertEquals(pos,new Vector(950,200));
+    Vector pos = new Vector(950, 0);
+    Vector force = new Vector(0, 300);
+    fa.applyForce(pos, force, 200);
+    Assert.assertEquals(pos, new Vector(950, 200));
 
-    Vector force2 = new Vector(1000,1000);
-    fa.applyForce(pos,force2,10000);
-    Assert.assertEquals(pos,new Vector(999,999));
+    Vector force2 = new Vector(1000, 1000);
+    fa.applyForce(pos, force2, 10000);
+    Assert.assertEquals(pos, new Vector(999, 999));
   }
 
 
@@ -201,12 +200,12 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
   }
 
   private LVertex getDummyVertex(int x, int y) throws Exception {
-    LVertex v = new LVertex(GradoopId.get(), new Vector(x,y));
+    LVertex v = new LVertex(GradoopId.get(), new Vector(x, y));
     return v;
   }
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FRLayouter(5,12);
+    return new FRLayouter(5, 12);
   }
 }

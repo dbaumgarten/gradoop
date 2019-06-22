@@ -16,8 +16,6 @@
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
 import org.apache.flink.api.java.functions.KeySelector;
-import org.gradoop.common.model.impl.pojo.Vertex;
-import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 
 /**
@@ -25,14 +23,19 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
  */
 public class FRCellIdSelector implements KeySelector<LVertex, Integer> {
 
-  /** Type of neighbor to select if from */
-  public enum NeighborType { UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF }
+  /**
+   * Type of neighbor to select if from
+   */
+  public enum NeighborType {UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF}
 
-  /** Type of neighbor to get cellid from */
+  /**
+   * Type of neighbor to get cellid from
+   */
   private NeighborType type;
 
   /**
    * A KeySelector that extracts the cellid of a Vertex. (Or the cellid of one of it's neighbors)
+   *
    * @param type Selects which id to return. The 'real' one or the id of a specific neighbor.
    */
   public FRCellIdSelector(NeighborType type) {
@@ -48,12 +51,10 @@ public class FRCellIdSelector implements KeySelector<LVertex, Integer> {
       type == NeighborType.DOWNRIGHT) {
       xcell++;
     }
-    if (type == NeighborType.LEFT || type == NeighborType.DOWNLEFT ||
-      type == NeighborType.UPLEFT) {
+    if (type == NeighborType.LEFT || type == NeighborType.DOWNLEFT || type == NeighborType.UPLEFT) {
       xcell--;
     }
-    if (type == NeighborType.UP || type == NeighborType.UPLEFT ||
-      type == NeighborType.UPRIGHT) {
+    if (type == NeighborType.UP || type == NeighborType.UPLEFT || type == NeighborType.UPRIGHT) {
       ycell--;
     }
     if (type == NeighborType.DOWN || type == NeighborType.DOWNLEFT ||
