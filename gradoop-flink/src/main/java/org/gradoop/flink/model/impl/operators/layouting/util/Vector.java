@@ -28,26 +28,28 @@ import java.io.Serializable;
  */
 public class Vector implements Serializable {
 
-  public double f0;
-  public double f1;
+  /** X-coordinate of vector */
+  private double x;
+  /** Y-coordinate of vector */
+  private double y;
 
   /**
-   * Construct a vector from f0 and f1 coordinates
+   * Construct a vector from x and y coordinates
    *
    * @param x X-Coordinate of the new vector
    * @param y Y-Coordinate of the new vector
    */
   public Vector(double x, double y) {
-    f0 = x;
-    f1 = y;
+    this.x = x;
+    this.y = y;
   }
 
   /**
    * Construct new zero-Vector
    */
   public Vector() {
-    f0 = 0d;
-    f1 = 0d;
+    x = 0d;
+    y = 0d;
   }
 
   /**
@@ -68,8 +70,8 @@ public class Vector implements Serializable {
    * @param v The vertex that will receive the values of this vector as coordinates
    */
   public void setVertexPosition(Vertex v) {
-    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) f0);
-    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) f1);
+    v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) x);
+    v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) y);
   }
 
   /**
@@ -79,7 +81,7 @@ public class Vector implements Serializable {
    * @return this-other
    */
   public Vector sub(Vector other) {
-    return new Vector(f0 - other.f0, f1 - other.f1);
+    return new Vector(x - other.x, y - other.y);
   }
 
   /**
@@ -89,7 +91,7 @@ public class Vector implements Serializable {
    * @return this+other
    */
   public Vector add(Vector other) {
-    return new Vector(f0 + other.f0, f1 + other.f1);
+    return new Vector(x + other.x, y + other.y);
   }
 
   /**
@@ -99,7 +101,7 @@ public class Vector implements Serializable {
    * @return this*factor
    */
   public Vector mul(double factor) {
-    return new Vector(f0 * factor, f1 * factor);
+    return new Vector(x * factor, y * factor);
   }
 
   /**
@@ -109,17 +111,17 @@ public class Vector implements Serializable {
    * @return this/factor
    */
   public Vector div(double factor) {
-    return new Vector(f0 / factor, f1 / factor);
+    return new Vector(x / factor, y / factor);
   }
 
   /**
    * Calculate the euclidean distance between this vector and another vector
    *
    * @param other The other vector
-   * @return Math.sqrt(Math.pow ( f0 - other.f0, 2) + Math.pow(f1 - other.f1, 2))
+   * @return Math.sqrt(Math.pow ( x - other.x, 2) + Math.pow(y - other.y, 2))
    */
   public double distance(Vector other) {
-    return Math.sqrt(Math.pow(f0 - other.f0, 2) + Math.pow(f1 - other.f1, 2));
+    return Math.sqrt(Math.pow(x - other.x, 2) + Math.pow(y - other.y, 2));
   }
 
   /**
@@ -129,7 +131,7 @@ public class Vector implements Serializable {
    * @return Skalar-product of this and other
    */
   public double scalar(Vector other) {
-    return f0 * other.f0 + f1 * other.f1;
+    return x * other.x + y * other.y;
   }
 
   /**
@@ -146,8 +148,8 @@ public class Vector implements Serializable {
     if (len == 0) {
       return new Vector(0, 0);
     }
-    double newx = (f0 / len) * Math.min(len, maxLen);
-    double newy = (f1 / len) * Math.min(len, maxLen);
+    double newx = (x / len) * Math.min(len, maxLen);
+    double newy = (y / len) * Math.min(len, maxLen);
     return new Vector(newx, newy);
   }
 
@@ -162,8 +164,8 @@ public class Vector implements Serializable {
     if (len == 0) {
       return new Vector(0, 0);
     }
-    double newx = f0 / len;
-    double newy = f1 / len;
+    double newx = x / len;
+    double newy = y / len;
     return new Vector(newx, newy);
   }
 
@@ -173,7 +175,7 @@ public class Vector implements Serializable {
    * @return euclidean length of this vector
    */
   public double magnitude() {
-    return Math.sqrt(Math.pow(f0, 2) + Math.pow(f1, 2));
+    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
   }
 
   /**
@@ -186,8 +188,8 @@ public class Vector implements Serializable {
    * @return A vector that does not violate the given bounding box.
    */
   public Vector confined(double minX, double maxX, double minY, double maxY) {
-    double newx = Math.min(Math.max(f0, minX), maxX);
-    double newy = Math.min(Math.max(f1, minY), maxY);
+    double newx = Math.min(Math.max(x, minX), maxX);
+    double newy = Math.min(Math.max(y, minY), maxY);
     return new Vector(newx, newy);
   }
 
@@ -195,47 +197,47 @@ public class Vector implements Serializable {
   public boolean equals(Object other) {
     if (other != null && other instanceof Vector) {
       Vector otherv = (Vector) other;
-      return f0 == otherv.f0 && f1 == otherv.f1;
+      return this.distance(otherv) < 0.000000001;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return ((int) f0 << 16) + (int) f1;
+    return ((int) x << 16) + (int) y;
   }
 
   @Override
   public String toString() {
-    return "Vector{" + "x=" + f0 + ", y=" + f1 + '}';
+    return "Vector{" + "x=" + x + ", y=" + y + '}';
   }
 
-  /**
+  /** X-coordinate of vector */ /**
    * @return X coordinate of the vector
    */
   public double getX() {
-    return f0;
+    return x;
   }
 
   /**
    * @param x Set X coordinate of the vector
    **/
   public void setX(double x) {
-    this.f0 = x;
+    this.x = x;
   }
 
-  /**
+  /** Y-Coordinate of vector */ /**
    * @return Y coordinate of the vector
    */
   public double getY() {
-    return f1;
+    return y;
   }
 
   /**
    * @param y Set Y coordinate of the vector
    **/
   public void setY(double y) {
-    this.f1 = y;
+    this.y = y;
   }
 
   /**
@@ -246,8 +248,8 @@ public class Vector implements Serializable {
    * @return This object for method-chaining
    */
   public Vector set(double x, double y) {
-    f0 = x;
-    f1 = y;
+    this.x = x;
+    this.y = y;
     return this;
   }
 
@@ -258,8 +260,8 @@ public class Vector implements Serializable {
    * @return this
    */
   public Vector set(Vector other) {
-    f0 = other.f0;
-    f1 = other.f1;
+    x = other.x;
+    y = other.y;
     return this;
   }
 
@@ -269,8 +271,8 @@ public class Vector implements Serializable {
    * @return This object for method-chaining
    */
   public Vector reset() {
-    f0 = 0d;
-    f1 = 0d;
+    x = 0d;
+    y = 0d;
     return this;
   }
 
@@ -280,7 +282,7 @@ public class Vector implements Serializable {
    * @return A copy of this object
    */
   public Vector copy() {
-    return new Vector(f0, f1);
+    return new Vector(x, y);
   }
 
   //-----------------------------------------------------------------------------------
@@ -293,8 +295,8 @@ public class Vector implements Serializable {
    * @return this-other
    */
   public Vector mSub(Vector other) {
-    f0 -= other.f0;
-    f1 -= other.f1;
+    x -= other.x;
+    y -= other.y;
     return this;
   }
 
@@ -306,8 +308,8 @@ public class Vector implements Serializable {
    * @return this+other
    */
   public Vector mAdd(Vector other) {
-    f0 += other.f0;
-    f1 += other.f1;
+    x += other.x;
+    y += other.y;
     return this;
   }
 
@@ -319,8 +321,8 @@ public class Vector implements Serializable {
    * @return this*factor
    */
   public Vector mMul(double factor) {
-    f0 *= factor;
-    f1 *= factor;
+    x *= factor;
+    y *= factor;
     return this;
   }
 
@@ -332,8 +334,8 @@ public class Vector implements Serializable {
    * @return this/factor
    */
   public Vector mDiv(double factor) {
-    f0 /= factor;
-    f1 /= factor;
+    x /= factor;
+    y /= factor;
     return this;
   }
 
@@ -352,8 +354,8 @@ public class Vector implements Serializable {
     if (len == 0) {
       return new Vector(0, 0);
     }
-    f0 = (f0 / len) * Math.min(len, maxLen);
-    f1 = (f1 / len) * Math.min(len, maxLen);
+    x = (x / len) * Math.min(len, maxLen);
+    y = (y / len) * Math.min(len, maxLen);
     return this;
   }
 
@@ -367,12 +369,12 @@ public class Vector implements Serializable {
   public Vector mNormalized() {
     double len = magnitude();
     if (len == 0) {
-      f0 = 0.0;
-      f1 = 0.0;
+      x = 0.0;
+      y = 0.0;
       return this;
     }
-    f0 /= len;
-    f1 /= len;
+    x /= len;
+    y /= len;
     return this;
   }
 
@@ -387,8 +389,8 @@ public class Vector implements Serializable {
    * @return A vector that does not violate the given bounding box.
    */
   public Vector mConfined(double minX, double maxX, double minY, double maxY) {
-    f0 = Math.min(Math.max(f0, minX), maxX);
-    f1 = Math.min(Math.max(f1, minY), maxY);
+    x = Math.min(Math.max(x, minX), maxX);
+    y = Math.min(Math.max(y, minY), maxY);
     return this;
   }
 

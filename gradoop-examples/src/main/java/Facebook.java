@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2014 - 2019 Leipzig University (Database Research Group)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
@@ -15,17 +30,26 @@ import java.util.concurrent.TimeUnit;
  */
 public class Facebook {
 
-  static String OUTPUT_PATH = System.getProperty("user.dir") + "/out/facebook-test.png";
-  static String INPUT_PATH = System.getProperty("user.dir") + "/datasets/facebook_gradoop_csv";
-  static final int iterations = 25;
+  /** foo */
+  private static String OUTPUT_PATH = System.getProperty("user.dir") + "/out/facebook-test.png";
+  /** foo */
+  private static String INPUT_PATH = System.getProperty("user.dir") + "/datasets" +
+    "/facebook_gradoop_csv";
+  /** foo */
+  private static int ITERATIONS = 25;
 
+  /** foo
+   *
+   * @param args bar
+   * @throws Exception baz
+   */
   public static void main(String[] args) throws Exception {
 
     ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
     GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
     LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-    LayoutingAlgorithm frl = new FRLayouter(iterations, 4100);
+    LayoutingAlgorithm frl = new FRLayouter(ITERATIONS, 4100);
     System.out.println(frl);
     LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 

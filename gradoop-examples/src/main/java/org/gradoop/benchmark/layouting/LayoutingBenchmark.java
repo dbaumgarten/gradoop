@@ -199,6 +199,12 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     }
   }
 
+  /** Helper function to get element from array (if present) or "0" as default
+   *
+   * @param arr Get element from here
+   * @param idx Index of element
+   * @return add[idx] or "0"
+   */
   private static String get(String[] arr, int idx) {
     if (arr.length <= idx) {
       return "0";
@@ -271,6 +277,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @param directory output path
    * @param format    output format (csv, indexed, json)
    * @param config    gradoop config
+   * @param alg used algorithm
    * @return DataSink for EPGM Data
    */
   private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config,

@@ -26,7 +26,7 @@ public class FRCellIdSelector implements KeySelector<LVertex, Integer> {
   /**
    * Type of neighbor to select if from
    */
-  public enum NeighborType {UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF}
+  public enum NeighborType { UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNRIGHT, UPLEFT, DOWNLEFT, SELF }
 
   /**
    * Type of neighbor to get cellid from
@@ -62,6 +62,6 @@ public class FRCellIdSelector implements KeySelector<LVertex, Integer> {
       ycell++;
     }
 
-    return (xcell << 16 | ycell);
+    return xcell << 16 | ycell;
   }
 }

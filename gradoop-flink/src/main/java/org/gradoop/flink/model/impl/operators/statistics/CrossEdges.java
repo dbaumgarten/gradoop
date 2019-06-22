@@ -135,7 +135,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
         public Integer call() {
           for (int i = start; i < end; i++) {
             Line line1 = lines.get(i);
-            for (int j = i+1; j < lines.size(); j++) {
+            for (int j = i + 1; j < lines.size(); j++) {
               Line line2 = lines.get(j);
               if (line1.intersects(line2)) {
                 crosscount++;
