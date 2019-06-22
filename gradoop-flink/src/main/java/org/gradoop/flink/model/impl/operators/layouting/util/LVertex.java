@@ -4,47 +4,50 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 
-/** Leightweight/Layouting-Vertex. Has all properties of a Vertex that are important for
+/**
+ * Leightweight/Layouting-Vertex. Has all properties of a Vertex that are important for
  * the layouting. This way we do not need to drag around a full Vertex through every operation.
- *
  */
-public class LVertex extends Tuple3<GradoopId,Vector,Integer> {
+public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
 
   /**
    * Position of the ID-property in the tuple
    */
   public static final int ID = 0;
 
-  /** Create new LVertex
+  /**
+   * Create new LVertex
    *
-   * @param id Id of the original vertex
+   * @param id       Id of the original vertex
    * @param position Position of the original vertex
    */
   public LVertex(GradoopId id, Vector position) {
-    super(id,position,-1);
+    super(id, position, -1);
   }
 
-  /** Create new LVertex
+  /**
+   * Create new LVertex
    *
-   * @param id Id of the original vertex
+   * @param id       Id of the original vertex
    * @param position Cellid of the original vertex
    */
   public LVertex(GradoopId id, Vector position, int cellid) {
-    super(id,position,cellid);
+    super(id, position, cellid);
   }
 
-  /** Create new LVertex
+  /**
+   * Create new LVertex
    *
    * @param v The original vertex to copy all information from
    */
-  public LVertex(Vertex v){
-    super(v.getId(),Vector.fromVertexPosition(v),-1);
+  public LVertex(Vertex v) {
+    super(v.getId(), Vector.fromVertexPosition(v), -1);
   }
 
-  /** Default-Constructor to comply with Pojo-Rules
-   *
+  /**
+   * Default-Constructor to comply with Pojo-Rules
    */
-  public LVertex(){
+  public LVertex() {
     super();
   }
 

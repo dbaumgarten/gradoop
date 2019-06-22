@@ -23,22 +23,24 @@ import org.gradoop.flink.model.impl.epgm.LogicalGraph;
  */
 public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
 
-  /** The name of the property where the X-Coordinate of a vertex is stored
+  /**
+   * The name of the property where the X-Coordinate of a vertex is stored
    */
   public static final String X_COORDINATE_PROPERTY = "X";
 
 
-  /** The name of the property where the Y-Coordinate of a vertex is stored
+  /**
+   * The name of the property where the Y-Coordinate of a vertex is stored
    */
   public static final String Y_COORDINATE_PROPERTY = "Y";
 
-  /** The name of the property where the layout-width is stored in the graph-head
-   *
+  /**
+   * The name of the property where the layout-width is stored in the graph-head
    */
   public static final String LAYOUT_WIDTH = "WIDTH";
 
-  /** The name of the property where the layout-height is stored in the graph-head
-   *
+  /**
+   * The name of the property where the layout-height is stored in the graph-head
    */
   public static final String LAYOUT_HEIGHT = "HEIGHT";
 
@@ -52,15 +54,17 @@ public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
    */
   public abstract LogicalGraph execute(LogicalGraph g);
 
-  /** The width of the layout-area for this layouter
+  /**
+   * The width of the layout-area for this layouter
    *
-   * @return  The width
+   * @return The width
    */
   public abstract int getWidth();
 
-  /** The height of the layout-area for this layouter
+  /**
+   * The height of the layout-area for this layouter
    *
-   * @return  The height
+   * @return The height
    */
   public abstract int getHeight();
 }

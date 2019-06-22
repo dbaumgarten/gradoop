@@ -16,8 +16,6 @@
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.gradoop.common.model.impl.pojo.Vertex;
-import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
@@ -27,10 +25,14 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
  * The cellid is stored as a property in FRLayouter.CELLID_PROPERTY
  */
 public class FRCellIdMapper implements MapFunction<LVertex, LVertex> {
-  /** Size of subcells (width and height) */
+  /**
+   * Size of subcells (width and height)
+   */
   private int cellSize;
 
-  /** Create new CellIdMapper
+  /**
+   * Create new CellIdMapper
+   *
    * @param cellSize Size of subcells (width and height)
    */
   public FRCellIdMapper(int cellSize) {

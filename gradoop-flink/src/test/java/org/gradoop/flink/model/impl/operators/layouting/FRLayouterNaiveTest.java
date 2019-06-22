@@ -19,7 +19,7 @@ public class FRLayouterNaiveTest extends LayoutingAlgorithmTest {
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FRLayouterNaive(5,10);
+    return new FRLayouterNaive(5, 10);
   }
 
 }

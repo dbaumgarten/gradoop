@@ -27,14 +27,15 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
  */
 public class FRLayouterNaive extends FRLayouter {
 
-  /** Create new Instance of FRLayouterNaive
+  /**
+   * Create new Instance of FRLayouterNaive
    *
-   * @param iterations Number of iterations to perform
+   * @param iterations  Number of iterations to perform
    * @param vertexCount (Estimated) number of vertices in the graph. Needed to calculate default
    *                    parammeters
    */
-  public FRLayouterNaive (int iterations, int vertexCount) {
-    super(iterations,vertexCount);
+  public FRLayouterNaive(int iterations, int vertexCount) {
+    super(iterations, vertexCount);
   }
 
   @Override

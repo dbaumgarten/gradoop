@@ -39,8 +39,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 
-/** Benchmark for the graph-layouting
- *
+/**
+ * Benchmark for the graph-layouting
  */
 public class LayoutingBenchmark extends AbstractRunner implements ProgramDescription {
 
@@ -122,8 +122,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * If true dynamically generate output path
    */
   private static boolean ENABLE_DYNAMIC_OUTPUT_PATH;
-  /** Output-format choosen by user
-   *
+  /**
+   * Output-format choosen by user
    */
   private static String OUTPUT_FORMAT;
   /**
@@ -150,16 +150,19 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         "statistics are written to. (Defaults to " + OUTPUT_PATH_DEFAULT + ")");
     OPTIONS.addOption(OPTION_INPUT_FORMAT, "format", true,
       "Format of the input data. Defaults to 'csv'");
-    OPTIONS.addOption(OPTION_OUTPUT_FORMAT,"outformat", true,"Select output format");
-    OPTIONS.addOption(OPTION_DYNAMIC_OUT,"dyn",false,"If true include args in output foldername");
-    OPTIONS.addOption(OPTION_BENCHMARK_PATH,"benchmarkfile",true,"Path where the " +
-      "benchmark-file is written to");
-    OPTIONS.addOption(OPTION_NO_STATISTICS,"nostat",false,"Disable calculation of statistics. E.g" +
-      ". CrossEdges");
-    OPTIONS.addOption(OPTION_MULTIJOB,"multijob",false,"Split layouting and statistic in two jobs");
+    OPTIONS.addOption(OPTION_OUTPUT_FORMAT, "outformat", true, "Select output format");
+    OPTIONS
+      .addOption(OPTION_DYNAMIC_OUT, "dyn", false, "If true include args in output foldername");
+    OPTIONS.addOption(OPTION_BENCHMARK_PATH, "benchmarkfile", true,
+      "Path where the " + "benchmark-file is written to");
+    OPTIONS.addOption(OPTION_NO_STATISTICS, "nostat", false,
+      "Disable calculation of statistics. E.g" + ". CrossEdges");
+    OPTIONS
+      .addOption(OPTION_MULTIJOB, "multijob", false, "Split layouting and statistic in two jobs");
   }
 
-  /** Build the selected LayoutingAlgorithm with the given constuctor parameters
+  /**
+   * Build the selected LayoutingAlgorithm with the given constuctor parameters
    *
    * @param algo Algorithm to build
    * @param opts A list of options
@@ -167,36 +170,37 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static LayoutingAlgorithm buildLayoutingAlgorithm(int algo, String[] opts) {
     try {
-      int vertexCount = Integer.parseInt(get(opts,0));
-      int width = Integer.parseInt(get(opts,1));
-      int height = Integer.parseInt(get(opts,2));
+      int vertexCount = Integer.parseInt(get(opts, 0));
+      int width = Integer.parseInt(get(opts, 1));
+      int height = Integer.parseInt(get(opts, 2));
       switch (algo) {
       case 0:
         return new RandomLayouter(0, width, 0, height);
       case 1:
-        int iterations = Integer.parseInt(get(opts,3));
-        double k = Double.parseDouble(get(opts,4));
-        return new FRLayouterNaive(iterations,vertexCount).area(width,height).k(k);
+        int iterations = Integer.parseInt(get(opts, 3));
+        double k = Double.parseDouble(get(opts, 4));
+        return new FRLayouterNaive(iterations, vertexCount).area(width, height).k(k);
       case 2:
-        iterations = Integer.parseInt(get(opts,3));
-        k = Double.parseDouble(get(opts,4));
-        int grid = Integer.parseInt(get(opts,5));
-        return new FRLayouter(iterations,vertexCount).k(k).maxRepulsionDistance(grid).area(width,
-          height);
+        iterations = Integer.parseInt(get(opts, 3));
+        k = Double.parseDouble(get(opts, 4));
+        int grid = Integer.parseInt(get(opts, 5));
+        return new FRLayouter(iterations, vertexCount).k(k).maxRepulsionDistance(grid)
+          .area(width, height);
       default:
         throw new IllegalArgumentException("Unknown layouting-algorithm: " + algo);
       }
     } catch (IndexOutOfBoundsException e) {
-      throw new IllegalArgumentException("Not enogh parameters provided for given algorithm. " +
-        "Found: ["+String.join(",",CONSTRUCTOR_PARAMS)+"] and algorithm: "+algo);
+      throw new IllegalArgumentException(
+        "Not enogh parameters provided for given algorithm. " + "Found: [" +
+          String.join(",", CONSTRUCTOR_PARAMS) + "] and algorithm: " + algo);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
         "Expected a number as parameter but found: " + e.getMessage());
     }
   }
 
-  private static String get(String[] arr, int idx){
-    if (arr.length <= idx){
+  private static String get(String[] arr, int idx) {
+    if (arr.length <= idx) {
       return "0";
     }
     return arr[idx];
@@ -229,48 +233,48 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     // write graph sample and benchmark data
     String outpath = OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX;
-    if (ENABLE_DYNAMIC_OUTPUT_PATH){
+    if (ENABLE_DYNAMIC_OUTPUT_PATH) {
       outpath += getDynamicOutputFolderName() + "/";
     }
 
 
     JobExecutionResult jerlayout = null;
-    if(MULTIJOB){
-      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(),algorithm));
+    if (MULTIJOB) {
+      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm));
       jerlayout = getExecutionEnvironment().execute("Layouting");
       layouted = readLogicalGraph(outpath, "csv");
     }
 
-    if (!MULTIJOB  || !OUTPUT_FORMAT.equals("csv")){
-      layouted.writeTo(getDataSink(outpath,OUTPUT_FORMAT,graph.getConfig(),algorithm));
+    if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
+      layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm));
     }
 
     Double crossedges = -1d;
-    if (!DISABLE_STATISTICS){
+    if (!DISABLE_STATISTICS) {
       //This also executes the flink programm as a side-effect
       crossedges = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
-    }else if(!MULTIJOB  || !OUTPUT_FORMAT.equals("csv")){
+    } else if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
       getExecutionEnvironment().execute("Output-Conversion");
     }
 
-    if (jerlayout == null){
+    if (jerlayout == null) {
       jerlayout = layouted.getConfig().getExecutionEnvironment().getLastJobExecutionResult();
     }
 
-    writeBenchmark(jerlayout,layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm,
-      crossedges);
+    writeBenchmark(jerlayout, layouted.getConfig().getExecutionEnvironment().getParallelism(),
+      algorithm, crossedges);
   }
 
   /**
    * Returns an EPGM DataSink for a given directory and format.
    *
    * @param directory output path
-   * @param format output format (csv, indexed, json)
-   * @param config gradoop config
+   * @param format    output format (csv, indexed, json)
+   * @param config    gradoop config
    * @return DataSink for EPGM Data
    */
   private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config,
-   LayoutingAlgorithm alg ) {
+    LayoutingAlgorithm alg) {
     directory = appendSeparator(directory);
     format = format.toLowerCase();
 
@@ -284,7 +288,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "image":
       int width = Integer.parseInt(CONSTRUCTOR_PARAMS[0]);
       int height = Integer.parseInt(CONSTRUCTOR_PARAMS[1]);
-      return new Plotter(directory+"image.png",alg.getWidth(),alg.getHeight(),width,height);
+      return new Plotter(directory + "image.png", alg.getWidth(), alg.getHeight(), width, height);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
@@ -308,43 +312,41 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     MULTIJOB = cmd.hasOption(OPTION_MULTIJOB);
   }
 
-  /** Generates a folder name from the input arguments
+  /**
+   * Generates a folder name from the input arguments
    *
    * @return A foldername
    */
-  private static String getDynamicOutputFolderName(){
-    return SELECTED_ALGORITHM+"-"+String.join("-",CONSTRUCTOR_PARAMS);
+  private static String getDynamicOutputFolderName() {
+    return SELECTED_ALGORITHM + "-" + String.join("-", CONSTRUCTOR_PARAMS);
   }
 
   /**
    * Method to crate and add lines to a benchmark file.
    *
-   * @param result  The JoExecutionResult for the layouting
+   * @param result      The JoExecutionResult for the layouting
    * @param parallelism Parallelism level used for the layouting
-   * @param layouting layouting algorithm under test
-   * @param crossedges number of detected edge-crossings
+   * @param layouting   layouting algorithm under test
+   * @param crossedges  number of detected edge-crossings
    * @throws IOException exception during file writing
    */
-  private static void writeBenchmark(JobExecutionResult result,
-    int parallelism, LayoutingAlgorithm layouting,
-    double crossedges) throws
-    IOException {
+  private static void writeBenchmark(JobExecutionResult result, int parallelism,
+    LayoutingAlgorithm layouting, double crossedges) throws IOException {
     String head = String
-      .format("%s|%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params", "Runtime " +
-        "[s]","Crossedges");
+      .format("%s|%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params",
+        "Runtime " + "[s]", "Crossedges");
 
     // build log
     String layoutingName = layouting.getClass().getSimpleName();
     String tail = String.format("%s|%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
-      String.join(", ", layouting.toString()),
-      result.getNetRuntime(TimeUnit.SECONDS),crossedges);
+      String.join(", ", layouting.toString()), result.getNetRuntime(TimeUnit.SECONDS), crossedges);
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
       FileUtils.writeStringToFile(f, tail, true);
     } else {
-      PrintWriter writer = new PrintWriter( OUTPUT_PATH_BENCHMARK, "UTF-8");
+      PrintWriter writer = new PrintWriter(OUTPUT_PATH_BENCHMARK, "UTF-8");
       writer.print(head);
       writer.print(tail);
       writer.close();
