@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2014 - 2019 Leipzig University (Database Research Group)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.apache.flink.api.common.functions.JoinFunction;
@@ -15,7 +30,11 @@ import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.BasicStroke;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.Serializable;
@@ -48,13 +67,21 @@ public class Plotter implements DataSink, Serializable {
   protected Color edgeColor = Color.WHITE;
   /** Color of the background */
   protected Color backgroundColor = Color.BLACK;
-  /** If true, do not draw vertices, only edges. Improves perfomance. */
+  /** If true, do not draw vertices, only edges. Improves performance. */
   protected boolean ignoreVertices = false;
   /** Name of the property that should be drawn as vertex 'heading'. If null, don't draw anything*/
   protected String vertexLabel = null;
   /** Font-size of the vertex-heading */
   protected int vertexLabelSize = 10;
 
+  /** Create new plotter.
+   *
+   * @param path Target-path for image
+   * @param layoutWidth Width of the graph-layout
+   * @param layoutHeight Height of the graph-layout
+   * @param imageWidth Wanted width of the output image
+   * @param imageHeight Wanted height of the output image
+   */
   public Plotter(String path, int layoutWidth, int layoutHeight, int imageWidth, int imageHeight) {
     this.path = path;
     this.layoutWidth = layoutWidth;
@@ -63,12 +90,16 @@ public class Plotter implements DataSink, Serializable {
     this.imageHeight = imageHeight;
   }
 
+  /** Create new plotter.
+   *
+   * @param path Target-path for image
+   * @param algo Layouting algorithm used to create the layout. IS used to determine layout width
+   *            and height.
+   * @param imageWidth Wanted width of the output image
+   * @param imageHeight Wanted height of the output image
+   */
   public Plotter(String path, LayoutingAlgorithm algo, int imageWidth, int imageHeight) {
-    this.path = path;
-    this.layoutWidth = algo.getWidth();
-    this.layoutHeight = algo.getHeight();
-    this.imageWidth = imageWidth;
-    this.imageHeight = imageHeight;
+    this(path, algo.getWidth(), algo.getHeight(), imageWidth, imageHeight);
   }
 
   /**
@@ -386,6 +417,7 @@ public class Plotter implements DataSink, Serializable {
    */
   protected static class ImageOutputFormat extends FileOutputFormat<BufferedImage> {
 
+    /** Where to store the output-image */
     private String path;
 
     /**

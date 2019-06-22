@@ -39,6 +39,9 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
  */
 public class FRLayouter extends LayoutingAlgorithm {
 
+  /**
+   * Default value for parameter k. All other default-values are derived from that.
+   */
   protected static final double DEFAULT_K = 100;
 
   /**
@@ -49,19 +52,19 @@ public class FRLayouter extends LayoutingAlgorithm {
    * User supplied k. Main-parameter of the FR-Algorithm. Optimum distance between connected
    * vertices.
    */
-  protected double custom_k = 0;
+  protected double k = 0;
   /**
    * User supplied width of the layouting-space
    */
-  protected int custom_width = 0;
+  protected int width = 0;
   /**
    * User supplied height of the layouting-space
    */
-  protected int custom_height = 0;
+  protected int height = 0;
   /**
    * User supplied maximum distance for computing repulsion-forces between vertices
    */
-  protected int custom_maxRepulsionDistance = 0;
+  protected int maxRepulsionDistance = 0;
   /**
    * (Estimated) number of vertices in the graph. Needed to calculate default
    * parameters
@@ -90,7 +93,7 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return this (for method-chaining)
    */
   public FRLayouter k(double k) {
-    this.custom_k = k;
+    this.k = k;
     return this;
   }
 
@@ -103,8 +106,8 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return this (for method-chaining)
    */
   public FRLayouter area(int width, int height) {
-    this.custom_width = width;
-    this.custom_height = height;
+    this.width = width;
+    this.height = height;
     return this;
   }
 
@@ -119,7 +122,7 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return this (for method-chaining)
    */
   public FRLayouter maxRepulsionDistance(int maxRepulsionDistance) {
-    this.custom_maxRepulsionDistance = maxRepulsionDistance;
+    this.maxRepulsionDistance = maxRepulsionDistance;
     return this;
   }
 
@@ -129,19 +132,19 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return value of k
    */
   public double getK() {
-    return (custom_k != 0) ? custom_k : DEFAULT_K;
+    return (k != 0) ? k : DEFAULT_K;
   }
 
 
   @Override
   public int getWidth() {
-    return (custom_width != 0) ? custom_width :
+    return (width != 0) ? width :
       (int) (Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
   }
 
   @Override
   public int getHeight() {
-    return (custom_height != 0) ? custom_height :
+    return (height != 0) ? height :
       (int) (Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
   }
 
@@ -151,7 +154,7 @@ public class FRLayouter extends LayoutingAlgorithm {
    * @return value of maxRepulsionDistance
    */
   public int getMaxRepulsionDistance() {
-    return (custom_maxRepulsionDistance != 0) ? custom_maxRepulsionDistance : (int) (2 * getK());
+    return (maxRepulsionDistance != 0) ? maxRepulsionDistance : (int) (2 * getK());
   }
 
   @Override
