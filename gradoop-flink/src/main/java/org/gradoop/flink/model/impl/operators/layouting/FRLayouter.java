@@ -37,7 +37,7 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 /**
  * Layouts a graph using the Fruchtermann-Reingold algorithm
  */
-public class FRLayouter extends LayoutingAlgorithm {
+public class FRLayouter implements LayoutingAlgorithm {
 
   /**
    * Default value for parameter k. All other default-values are derived from that.
