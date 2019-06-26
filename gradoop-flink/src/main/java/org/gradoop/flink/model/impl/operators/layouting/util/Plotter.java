@@ -31,11 +31,12 @@ import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.BasicStroke;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
@@ -46,41 +47,73 @@ import java.util.List;
 
 public class Plotter implements DataSink, Serializable {
 
-  /** Path to store the output-image */
+  /**
+   * ImageIO-format used for intermediate image-encodings
+   */
+  protected static final String INTERMEDIATE_ENCODING = "png";
+
+  /**
+   * Path to store the output-image
+   */
   protected String path;
-  /** Width of the original layout of the graph */
+  /**
+   * Width of the original layout of the graph
+   */
   protected int layoutWidth;
-  /** Height of the original layout of the graph */
+  /**
+   * Height of the original layout of the graph
+   */
   protected int layoutHeight;
-  /** Requested width of output-image (px) */
+  /**
+   * Requested width of output-image (px)
+   */
   protected int imageWidth;
-  /** Requested height of output-image (px) */
+  /**
+   * Requested height of output-image (px)
+   */
   protected int imageHeight;
 
-  /** Size of the vertex-symbols (px) */
+  /**
+   * Size of the vertex-symbols (px)
+   */
   protected int vertexSize = 10;
-  /** Size (width) of egde-lines (px) */
+  /**
+   * Size (width) of egde-lines (px)
+   */
   protected float edgeSize = 1f;
-  /** Color of vertices */
+  /**
+   * Color of vertices
+   */
   protected Color vertexColor = Color.RED;
-  /** Color of edges */
+  /**
+   * Color of edges
+   */
   protected Color edgeColor = Color.WHITE;
-  /** Color of the background */
+  /**
+   * Color of the background
+   */
   protected Color backgroundColor = Color.BLACK;
-  /** If true, do not draw vertices, only edges. Improves performance. */
+  /**
+   * If true, do not draw vertices, only edges. Improves performance.
+   */
   protected boolean ignoreVertices = false;
-  /** Name of the property that should be drawn as vertex 'heading'. If null, don't draw anything*/
+  /**
+   * Name of the property that should be drawn as vertex 'heading'. If null, don't draw anything
+   */
   protected String vertexLabel = null;
-  /** Font-size of the vertex-heading */
+  /**
+   * Font-size of the vertex-heading
+   */
   protected int vertexLabelSize = 10;
 
-  /** Create new plotter.
+  /**
+   * Create new plotter.
    *
-   * @param path Target-path for image
-   * @param layoutWidth Width of the graph-layout
+   * @param path         Target-path for image
+   * @param layoutWidth  Width of the graph-layout
    * @param layoutHeight Height of the graph-layout
-   * @param imageWidth Wanted width of the output image
-   * @param imageHeight Wanted height of the output image
+   * @param imageWidth   Wanted width of the output image
+   * @param imageHeight  Wanted height of the output image
    */
   public Plotter(String path, int layoutWidth, int layoutHeight, int imageWidth, int imageHeight) {
     this.path = path;
@@ -90,12 +123,14 @@ public class Plotter implements DataSink, Serializable {
     this.imageHeight = imageHeight;
   }
 
-  /** Create new plotter.
+  /**
+   * Create new plotter.
    *
-   * @param path Target-path for image
-   * @param algo Layouting algorithm used to create the layout. IS used to determine layout width
-   *            and height.
-   * @param imageWidth Wanted width of the output image
+   * @param path        Target-path for image
+   * @param algo        Layouting algorithm used to create the layout. IS used to determine
+   *                    layout width
+   *                    and height.
+   * @param imageWidth  Wanted width of the output image
    * @param imageHeight Wanted height of the output image
    */
   public Plotter(String path, LayoutingAlgorithm algo, int imageWidth, int imageHeight) {
@@ -237,6 +272,41 @@ public class Plotter implements DataSink, Serializable {
     });
   }
 
+  /**
+   * Convert a BufferedImage to byte[]
+   *
+   * @param img The image to convert
+   * @return byte[] representation of the image
+   */
+  protected static byte[] imgToArr(BufferedImage img) {
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      ImageIO.write(img, INTERMEDIATE_ENCODING, baos);
+      return baos.toByteArray();
+    } catch (IOException e) {
+      //can not happen
+      e.printStackTrace();
+    }
+    return null;
+  }
+
+  /**
+   * Convert byte[] to BufferedImage
+   *
+   * @param arr The array to convert
+   * @return The buffered-image representation
+   */
+  protected static BufferedImage arrToImg(byte[] arr) {
+    try {
+      ByteArrayInputStream bais = new ByteArrayInputStream(arr);
+      return ImageIO.read(bais);
+    } catch (IOException e) {
+      //can not happen
+      e.printStackTrace();
+    }
+    return null;
+  }
+
 
   @Override
   public void write(LogicalGraph logicalGraph) throws IOException {
@@ -260,15 +330,14 @@ public class Plotter implements DataSink, Serializable {
     DataSet<Edge> edges = prepareEdges(vertices, logicalGraph.getEdges());
 
     ImageGenerator imgg = new ImageGenerator(this);
-    DataSet<BufferedImage> image = edges.combineGroup(imgg::combineEdges).reduce(imgg::mergeImages);
+    DataSet<byte[]> image = edges.combineGroup(imgg::combineEdges).reduce(imgg::mergeImages);
     if (!ignoreVertices) {
-      DataSet<BufferedImage> vertexImage =
+      DataSet<byte[]> vertexImage =
         vertices.combineGroup(imgg::combineVertices).reduce(imgg::mergeImages);
-      image = image.map(new RichMapFunction<BufferedImage, BufferedImage>() {
+      image = image.map(new RichMapFunction<byte[], byte[]>() {
         @Override
-        public BufferedImage map(BufferedImage bufferedImage) throws Exception {
-          List<BufferedImage> vertexImage =
-            this.getRuntimeContext().getBroadcastVariable("vertexImage");
+        public byte[] map(byte[] bufferedImage) throws Exception {
+          List<byte[]> vertexImage = this.getRuntimeContext().getBroadcastVariable("vertexImage");
           return imgg.mergeImages(bufferedImage, vertexImage.get(0));
         }
       }).withBroadcastSet(vertexImage, "vertexImage");
@@ -284,7 +353,9 @@ public class Plotter implements DataSink, Serializable {
   }
 
   /**
-   * This class contains functionality to create images from graph-parts
+   * This class contains functionality to create images from graph-parts.
+   * For some strange reasons BufferedImage can not be used as DataSet-Type without crashing the
+   * JVM. Therefore byte[] is used as intermediate-representation.
    */
   protected static class ImageGenerator implements Serializable {
 
@@ -309,7 +380,7 @@ public class Plotter implements DataSink, Serializable {
      * @param iterable  The edges to combine
      * @param collector The output-collector
      */
-    public void combineEdges(Iterable<Edge> iterable, Collector<BufferedImage> collector) {
+    public void combineEdges(Iterable<Edge> iterable, Collector<byte[]> collector) {
       BufferedImage img =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
@@ -319,7 +390,7 @@ public class Plotter implements DataSink, Serializable {
       for (Edge e : iterable) {
         drawEdge(gfx, e);
       }
-      collector.collect(img);
+      collector.collect(imgToArr(img));
       gfx.dispose();
     }
 
@@ -329,7 +400,7 @@ public class Plotter implements DataSink, Serializable {
      * @param iterable  The vertices to combine
      * @param collector The output-collector
      */
-    public void combineVertices(Iterable<Vertex> iterable, Collector<BufferedImage> collector) {
+    public void combineVertices(Iterable<Vertex> iterable, Collector<byte[]> collector) {
       BufferedImage img =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
@@ -337,7 +408,7 @@ public class Plotter implements DataSink, Serializable {
       for (Vertex v : iterable) {
         drawVertex(gfx, v);
       }
-      collector.collect(img);
+      collector.collect(imgToArr(img));
       gfx.dispose();
     }
 
@@ -382,25 +453,28 @@ public class Plotter implements DataSink, Serializable {
     /**
      * Merge two intermediate Images into one
      *
-     * @param bufferedImage Image 1
-     * @param t1            Image 2
+     * @param arr1 Image 1
+     * @param arr2 Image 2
      * @return Output-Image
      */
-    public BufferedImage mergeImages(BufferedImage bufferedImage, BufferedImage t1) {
-      Graphics g = bufferedImage.getGraphics();
+    public byte[] mergeImages(byte[] arr1, byte[] arr2) {
+      BufferedImage bufferedImage = arrToImg(arr1);
+      BufferedImage t1 = arrToImg(arr2);
+      Graphics2D g = bufferedImage.createGraphics();
       g.drawImage(t1, 0, 0, plotter.imageWidth, plotter.imageHeight, null);
       g.dispose();
-      return bufferedImage;
+      return imgToArr(bufferedImage);
     }
 
     /**
      * Draw a black background behind the image
      *
-     * @param bufferedImage Input image
+     * @param arr Input image
      * @return Input-image + black background
      * @throws Exception
      */
-    public BufferedImage addBackgound(BufferedImage bufferedImage) throws Exception {
+    public byte[] addBackgound(byte[] arr) throws Exception {
+      BufferedImage bufferedImage = arrToImg(arr);
       BufferedImage out =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = out.createGraphics();
@@ -408,16 +482,18 @@ public class Plotter implements DataSink, Serializable {
       gfx.fillRect(0, 0, plotter.imageWidth, plotter.imageHeight);
       gfx.drawImage(bufferedImage, 0, 0, plotter.imageWidth, plotter.imageHeight, null);
       gfx.dispose();
-      return out;
+      return imgToArr(out);
     }
   }
 
   /**
    * OutputFormat to save BufferedImages to image files
    */
-  protected static class ImageOutputFormat extends FileOutputFormat<BufferedImage> {
+  protected static class ImageOutputFormat extends FileOutputFormat<byte[]> {
 
-    /** Where to store the output-image */
+    /**
+     * Where to store the output-image
+     */
     private String path;
 
     /**
@@ -448,8 +524,15 @@ public class Plotter implements DataSink, Serializable {
 
 
     @Override
-    public void writeRecord(BufferedImage img) throws IOException {
-      ImageIO.write(img, getFileExtension(path), this.stream);
+    public void writeRecord(byte[] img) throws IOException {
+      String outputFormat = getFileExtension(path);
+      if (outputFormat != INTERMEDIATE_ENCODING) {
+        BufferedImage bimg = arrToImg(img);
+        ImageIO.write(bimg, outputFormat, this.stream);
+      } else {
+        this.stream.write(img);
+      }
+
     }
 
   }
