@@ -21,28 +21,28 @@ import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 /**
  * Base-class for all Layouters
  */
-public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
+public interface LayoutingAlgorithm extends UnaryGraphToGraphOperator {
 
   /**
    * The name of the property where the X-Coordinate of a vertex is stored
    */
-  public static final String X_COORDINATE_PROPERTY = "X";
+  String X_COORDINATE_PROPERTY = "X";
 
 
   /**
    * The name of the property where the Y-Coordinate of a vertex is stored
    */
-  public static final String Y_COORDINATE_PROPERTY = "Y";
+  String Y_COORDINATE_PROPERTY = "Y";
 
   /**
    * The name of the property where the layout-width is stored in the graph-head
    */
-  public static final String LAYOUT_WIDTH = "WIDTH";
+  String LAYOUT_WIDTH = "WIDTH";
 
   /**
    * The name of the property where the layout-height is stored in the graph-head
    */
-  public static final String LAYOUT_HEIGHT = "HEIGHT";
+  String LAYOUT_HEIGHT = "HEIGHT";
 
   /**
    * Layouts the given graph. After layouting all vertices will have two new properties:
@@ -52,19 +52,19 @@ public abstract class LayoutingAlgorithm implements UnaryGraphToGraphOperator {
    * @param g The graph to layout
    * @return The input-graph, but every vertex now has X and Y coordinates as properties
    */
-  public abstract LogicalGraph execute(LogicalGraph g);
+  LogicalGraph execute(LogicalGraph g);
 
   /**
    * The width of the layout-area for this layouter
    *
    * @return The width
    */
-  public abstract int getWidth();
+  int getWidth();
 
   /**
    * The height of the layout-area for this layouter
    *
    * @return The height
    */
-  public abstract int getHeight();
+  int getHeight();
 }

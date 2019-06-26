@@ -16,6 +16,7 @@
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.util.Collector;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
@@ -28,7 +29,8 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
  * Output: two force-tuples (one for each vertex) representing the attraction-forces between the
  * vertices.
  */
-public class FRAttractionFunction implements FlatMapFunction<Tuple2<LVertex, LVertex>, Force> {
+public class FRAttractionFunction implements FlatMapFunction<Tuple2<LVertex, LVertex>, Force>,
+  MapFunction<Tuple2<LVertex, LVertex>, Force> {
   /**
    * Parameter for the FR-Algorithm
    */
@@ -63,8 +65,15 @@ public class FRAttractionFunction implements FlatMapFunction<Tuple2<LVertex, LVe
 
 
   @Override
-  public void flatMap(Tuple2<LVertex, LVertex> vertices, Collector<Force> collector) throws
-    Exception {
+  public void flatMap(Tuple2<LVertex, LVertex> vertices, Collector<Force> collector) {
+    Force f = map(vertices);
+    secondForce.set(vertices.f1.getId(), f.getValue().mul(-1));
+    collector.collect(f);
+    collector.collect(secondForce);
+  }
+
+  @Override
+  public Force map(Tuple2<LVertex, LVertex> vertices) {
     Vector pos1 = vertices.f0.getPosition();
     Vector pos2 = vertices.f1.getPosition();
     double distance = pos1.distance(pos2);
@@ -73,9 +82,7 @@ public class FRAttractionFunction implements FlatMapFunction<Tuple2<LVertex, LVe
     force2.set(force).mMul(-1);
 
     firstForce.set(vertices.f0.getId(), force);
-    secondForce.set(vertices.f1.getId(), force2);
 
-    collector.collect(firstForce);
-    collector.collect(secondForce);
+    return firstForce;
   }
 }

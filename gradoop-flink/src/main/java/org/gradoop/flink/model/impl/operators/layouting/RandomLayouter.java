@@ -26,7 +26,7 @@ import java.util.Random;
 /**
  * LayoutingAlgorithm that positions all vertices randomly
  */
-public class RandomLayouter extends LayoutingAlgorithm implements MapFunction<Vertex, Vertex> {
+public class RandomLayouter implements LayoutingAlgorithm, MapFunction<Vertex, Vertex> {
 
   /**
    * Minimum value for x coordinates
