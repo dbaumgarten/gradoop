@@ -97,8 +97,7 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * @param speedLimit The speed limit for the movement
    */
   public void applyForce(Vector position, Vector movement, double speedLimit) {
-    movement.mClamped(speedLimit);
-    position.mAdd(movement);
+    position.mAdd(movement.clamped(speedLimit));
     position.mConfined(0, layoutWidth - 1, 0, layoutHeight - 1);
   }
 
@@ -109,6 +108,7 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
     Vector movement = second.getValue();
     Vector position = first.getPosition();
     applyForce(position, movement, speedLimit);
+    first.setForce(movement);
     first.setPosition(position);
     return first;
   }

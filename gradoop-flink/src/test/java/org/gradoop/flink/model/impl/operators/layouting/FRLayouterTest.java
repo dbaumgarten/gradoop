@@ -19,6 +19,7 @@ import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.util.ListCollector;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
@@ -149,21 +150,21 @@ public class FRLayouterTest extends LayoutingAlgorithmTest {
     List<Force> collectorList = new ArrayList<>();
     ListCollector<Force> collector = new ListCollector<>(collectorList);
 
-    af.flatMap(new Tuple2<>(v1, v2), collector);
+    af.flatMap(new Tuple3<>(v1, v2,1), collector);
     Vector vec12 = collectorList.get(0).getValue().copy();
     Vector vec21 = collectorList.get(1).getValue().copy();
     Assert.assertNotEquals(collectorList.get(0).getId(), collectorList.get(1).getId());
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v3), collector);
+    af.flatMap(new Tuple3<>(v1, v3,1), collector);
     Vector vec13 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v4), collector);
+    af.flatMap(new Tuple3<>(v1, v4,1), collector);
     Vector vec14 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
-    af.flatMap(new Tuple2<>(v1, v1), collector);
+    af.flatMap(new Tuple3<>(v1, v1,1), collector);
     Vector vec11 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
