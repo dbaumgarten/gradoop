@@ -28,6 +28,7 @@ import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.operators.UnaryGraphToValueOperator;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -41,15 +42,6 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Count number of crossing edges in a graph-layout
  */
 public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Integer, Double>>> {
-
-  /**
-   * Default property for the x-coordinate of a vertex
-   */
-  public static final String DEFAULT_X_COORDINATE_PROPERTY = "X";
-  /**
-   * Default property for the y-coordinate of a vertex
-   */
-  public static final String DEFAULT_Y_COORDINATE_PROPERTY = "Y";
 
   /**
    * Pass this value as cellSize to the Constructor to disable the anti-cross-product optimization.
@@ -74,14 +66,16 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
   private int cellSize;
 
   /**
-   * Create new CrossEdges-counter
+   * Create new CrossEdges-counter. Coordinate-property-names are exected to match the ones
+   * defined in LayoutingAlgorithm
    *
    * @param cellSize Size of sub-cells for crossing-detection-speedup. About 1/100th of the
    *                 *                    layouting-width is normally a good value. To disable
    *                 the optimization pass CrossEdges.DISABLE_OPTIMIZATION
    */
   public CrossEdges(int cellSize) {
-    this(cellSize, DEFAULT_X_COORDINATE_PROPERTY, DEFAULT_Y_COORDINATE_PROPERTY);
+    this(cellSize, LayoutingAlgorithm.X_COORDINATE_PROPERTY,
+      LayoutingAlgorithm.Y_COORDINATE_PROPERTY);
   }
 
   /**
