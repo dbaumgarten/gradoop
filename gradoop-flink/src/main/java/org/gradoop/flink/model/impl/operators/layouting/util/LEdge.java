@@ -15,14 +15,14 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.apache.flink.api.java.tuple.Tuple5;
+import org.apache.flink.api.java.tuple.Tuple6;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 
 /**
  * Lightweight verison of Edge. Contains only data necessary for layouting.
  */
-public class LEdge extends Tuple5<GradoopId, GradoopId, GradoopId, Vector, Vector> {
+public class LEdge extends Tuple6<GradoopId, GradoopId, GradoopId, Vector, Vector, Integer> implements GraphElement {
 
   /**
    * Position of the ID-property in the tuple
@@ -53,6 +53,7 @@ public class LEdge extends Tuple5<GradoopId, GradoopId, GradoopId, Vector, Vecto
     this.f2 = targetId;
     this.f3 = sourcePosition;
     this.f4 = targetPosition;
+    this.f5 = 1;
   }
 
   /** Construct LEdge from rgular edge
@@ -60,7 +61,7 @@ public class LEdge extends Tuple5<GradoopId, GradoopId, GradoopId, Vector, Vecto
    * @param e The original edge to copy values from
    */
   public LEdge(Edge e) {
-    super(e.getId(), e.getSourceId(), e.getTargetId(), new Vector(0, 0), new Vector(0, 0));
+    super(e.getId(), e.getSourceId(), e.getTargetId(), new Vector(0, 0), new Vector(0, 0),1);
   }
 
   /**
@@ -158,5 +159,13 @@ public class LEdge extends Tuple5<GradoopId, GradoopId, GradoopId, Vector, Vecto
    */
   public void setTargetPosition(Vector targetPosition) {
     this.f4 = targetPosition;
+  }
+
+  public int getCount(){
+    return f5;
+  }
+
+  public void setCount(int c){
+    f5 = c;
   }
 }

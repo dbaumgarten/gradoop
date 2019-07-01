@@ -105,7 +105,14 @@ public class Plotter implements DataSink, Serializable {
    * Font-size of the vertex-heading
    */
   protected int vertexLabelSize = 10;
-
+  /**
+   * If true, use SIZE-Property to dynamically choose vertex-size.
+   */
+  protected boolean dynamicVertexSize = false;
+  /**
+   * If true, use SIZE-Property to dynamically choose vertex-size.
+   */
+  protected boolean dynamicEdgeSize = false;
   /**
    * Create new plotter.
    *
@@ -222,6 +229,28 @@ public class Plotter implements DataSink, Serializable {
    */
   public Plotter edgeSize(float edgeSize) {
     this.edgeSize = edgeSize;
+    return this;
+  }
+
+  /**
+   * Sets optional value dynamicVertexSize
+   *
+   * @param dynamicVertexSize the new value
+   * @return this (for method-chaining)
+   */
+  public Plotter dynamicVertexSize(boolean dynamicVertexSize) {
+    this.dynamicVertexSize = dynamicVertexSize;
+    return this;
+  }
+
+  /**
+   * Sets optional value dynamicEdgeSize
+   *
+   * @param dynamicEdgeSize the new value
+   * @return this (for method-chaining)
+   */
+  public Plotter dynamicEdgeSize(boolean dynamicEdgeSize) {
+    this.dynamicEdgeSize = dynamicEdgeSize;
     return this;
   }
 
@@ -420,6 +449,11 @@ public class Plotter implements DataSink, Serializable {
      */
     private void drawEdge(Graphics2D gfx, Edge e) {
       gfx.setColor(plotter.edgeColor);
+      float edgeSize = plotter.edgeSize;
+      if (plotter.dynamicEdgeSize){
+        edgeSize *= Math.sqrt((float) e.getPropertyValue("SIZE").getInt());
+      }
+      gfx.setStroke(new BasicStroke(edgeSize));
       try {
         int sourceX = e.getPropertyValue("source_x").getInt();
         int sourceY = e.getPropertyValue("source_y").getInt();
@@ -427,8 +461,7 @@ public class Plotter implements DataSink, Serializable {
         int targetX = e.getPropertyValue("target_x").getInt();
         int targetY = e.getPropertyValue("target_y").getInt();
 
-        gfx.drawLine(sourceX + plotter.vertexSize / 2, sourceY + plotter.vertexSize / 2,
-          targetX + plotter.vertexSize / 2, targetY + plotter.vertexSize / 2);
+        gfx.drawLine(sourceX , sourceY , targetX , targetY);
       } catch (NullPointerException ef) {
 
       }
@@ -443,7 +476,11 @@ public class Plotter implements DataSink, Serializable {
     private void drawVertex(Graphics2D gfx, Vertex v) {
       int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
       int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
-      gfx.drawRect(x, y, plotter.vertexSize, plotter.vertexSize);
+      int size = plotter.vertexSize;
+      if (plotter.dynamicVertexSize){
+        size *= Math.sqrt((double)v.getPropertyValue("SIZE").getInt());
+      }
+      gfx.fillOval(x-size/2, y-size/2, size, size);
       if (plotter.vertexLabel != null) {
         String label = v.getPropertyValue(plotter.vertexLabel).getString();
         gfx.drawString(label, x, y + (plotter.vertexSize) + 10 + (plotter.vertexLabelSize / 2));

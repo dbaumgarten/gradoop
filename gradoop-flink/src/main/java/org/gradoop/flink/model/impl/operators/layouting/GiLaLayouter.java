@@ -221,7 +221,7 @@ public class GiLaLayouter extends
     /**
      * For object-reuse
      */
-    protected Tuple2<LVertex, LVertex> vertexTuple = new Tuple2<>();
+    protected Tuple3<LVertex, LVertex,Integer> vertexTuple = new Tuple3<>();
 
     /**
      * Create new MsgFunc
@@ -311,6 +311,7 @@ public class GiLaLayouter extends
       lVertex2.setPosition(pos2.copy());
       vertexTuple.f0 = lvertex1;
       vertexTuple.f1 = lVertex2;
+      vertexTuple.f2 = 1;
       return attraction.map(vertexTuple).getValue().copy();
     }
 

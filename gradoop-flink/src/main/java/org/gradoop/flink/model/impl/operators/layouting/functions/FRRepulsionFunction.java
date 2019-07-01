@@ -140,7 +140,7 @@ public class FRRepulsionFunction implements JoinFunction<LVertex, LVertex, Force
       direction.setY(rng.nextInt());
     }
 
-    calculatedForce.set(direction.mNormalized().mMul(-Math.pow(k, 2) / distance));
+    calculatedForce.set(direction.mNormalized().mMul(-Math.pow(k, 2) / distance).mMul(first.getCount()+second.getCount()));
     return calculatedForce;
   }
 

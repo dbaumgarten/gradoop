@@ -15,7 +15,7 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Vertex;
 
@@ -23,7 +23,7 @@ import org.gradoop.common.model.impl.pojo.Vertex;
  * Leightweight/Layouting-Vertex. Has all properties of a Vertex that are important for
  * the layouting. This way we do not need to drag around a full Vertex through every operation.
  */
-public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
+public class LVertex extends Tuple5<GradoopId, Vector, Integer,Integer,Vector> implements GraphElement {
 
   /**
    * Position of the ID-property in the tuple
@@ -37,7 +37,7 @@ public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
    * @param position Position of the original vertex
    */
   public LVertex(GradoopId id, Vector position) {
-    super(id, position, -1);
+    super(id, position, -1,1, new Vector());
   }
 
   /**
@@ -48,7 +48,19 @@ public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
    * @param cellid Id of grid-cell this vertex should be assigned to
    */
   public LVertex(GradoopId id, Vector position, int cellid) {
-    super(id, position, cellid);
+    super(id, position, cellid,1,new Vector());
+  }
+
+  /**
+   * Create new LVertex
+   *
+   * @param id       Id of the original vertex
+   * @param position Position of the original vertex
+   * @param cellid Id of grid-cell this vertex should be assigned to
+   * @param count Number of vertices this super-vertex combines
+   */
+  public LVertex(GradoopId id, Vector position, int cellid, int count) {
+    super(id, position, cellid,count,new Vector());
   }
 
   /**
@@ -57,14 +69,14 @@ public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
    * @param v The original vertex to copy all information from
    */
   public LVertex(Vertex v) {
-    super(v.getId(), Vector.fromVertexPosition(v), -1);
+    super(v.getId(), Vector.fromVertexPosition(v), -1,1,new Vector());
   }
 
   /**
    * Default-Constructor to comply with Pojo-Rules
    */
   public LVertex() {
-    super();
+    super(null,new Vector(),-1,1,new Vector());
   }
 
   /**
@@ -120,4 +132,21 @@ public class LVertex extends Tuple3<GradoopId, Vector, Integer> {
   public void setCellid(int cellid) {
     this.f2 = cellid;
   }
+
+  public int getCount(){
+    return f3;
+  }
+
+  public void setCount(int count){
+    f3 = count;
+  }
+
+  public Vector getForce(){
+    return f4;
+  }
+
+  public void setForce(Vector v){
+    f4 = v;
+  }
+
 }

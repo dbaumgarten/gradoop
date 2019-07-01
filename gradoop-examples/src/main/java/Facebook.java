@@ -17,9 +17,11 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
+import org.gradoop.flink.model.impl.operators.statistics.EdgeLengthDerivation;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 
 import java.util.concurrent.TimeUnit;
@@ -36,7 +38,7 @@ public class Facebook {
   private static String INPUT_PATH = System.getProperty("user.dir") + "/datasets" +
     "/facebook_gradoop_csv";
   /** foo */
-  private static int ITERATIONS = 25;
+  private static int ITERATIONS = 50;
 
   /** foo
    *
@@ -49,18 +51,21 @@ public class Facebook {
     GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
     LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-    LayoutingAlgorithm frl = new FRLayouter(ITERATIONS, 4100);
+    LayoutingAlgorithm frl = new FusingFRLayouter(ITERATIONS, 4100,0.9);
     System.out.println(frl);
     LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
-    Plotter p = new Plotter(OUTPUT_PATH, frl, 1000, 1000).edgeSize(0.1f).ignoreVertices(true);
+    Plotter p =
+      new Plotter(OUTPUT_PATH, frl, 1000, 1000).edgeSize(0.1f).vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
 
     layouted.writeTo(p);
 
     //env.execute();
 
-    System.out.println(
-      "Crossings: " + new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted));
+    System.out.println(layouted.getVertices().count());
+
+    //System.out.println(
+      //"Crossings: " + new EdgeLengthDerivation().execute(layouted).collect());
 
     System.out.println(
       "Runtime: " + env.getLastJobExecutionResult().getNetRuntime(TimeUnit.MILLISECONDS) + "ms");
