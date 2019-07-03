@@ -15,11 +15,11 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting;
 
-public class FRLayouterTest extends LayoutingAlgorithmTest {
+public class FusingFRLayouterTest extends LayoutingAlgorithmTest {
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FRLayouter(5, 12);
+    return new FusingFRLayouter(5, 12, 0.9);
   }
 
 }

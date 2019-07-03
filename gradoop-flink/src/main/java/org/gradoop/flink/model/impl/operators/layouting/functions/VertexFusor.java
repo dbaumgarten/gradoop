@@ -27,7 +27,6 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
-import java.io.Serializable;
 import java.util.Random;
 
 public class VertexFusor {
@@ -188,7 +187,4 @@ public class VertexFusor {
     }
   }
 
-  public interface VertexCompareFunction extends Serializable {
-    double compare(LVertex v1, LVertex v2);
-  }
 }
