@@ -7,19 +7,20 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
+import org.gradoop.flink.model.impl.operators.layouting.functions.VertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexFusor;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.GraphElement;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
-import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 public class FusingFRLayouter extends FRLayouter {
 
   public static final String VERTEX_SIZE_PROPERTY = "SIZE";
 
   protected double threshold;
-  protected VertexFusor.VertexCompareFunction compareFunction = null;
+  protected VertexCompareFunction compareFunction = null;
 
   public FusingFRLayouter(int iterations, int vertexCount, double threshold) {
     super(iterations, vertexCount);
@@ -32,7 +33,7 @@ public class FusingFRLayouter extends FRLayouter {
    * @param compareFunction the new value
    * @return this (for method-chaining)
    */
-  public FusingFRLayouter compareFunction(VertexFusor.VertexCompareFunction compareFunction) {
+  public FusingFRLayouter compareFunction(VertexCompareFunction compareFunction) {
     this.compareFunction = compareFunction;
     return this;
   }
@@ -42,8 +43,8 @@ public class FusingFRLayouter extends FRLayouter {
    *
    * @return value of compareFunction
    */
-  public VertexFusor.VertexCompareFunction getCompareFunction() {
-    return (compareFunction!=null)?compareFunction:new DefaultCompareFunction(getK());
+  public VertexCompareFunction getCompareFunction() {
+    return (compareFunction!=null)?compareFunction:new DefaultVertexCompareFunction(getK());
   }
 
   @Override
@@ -112,29 +113,6 @@ public class FusingFRLayouter extends FRLayouter {
     });
 
     return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
-  }
-
-  protected static class DefaultCompareFunction implements VertexFusor.VertexCompareFunction{
-    protected double k;
-
-    public DefaultCompareFunction(double k) {
-      this.k = k;
-    }
-
-    @Override
-    public double compare(LVertex v1, LVertex v2) {
-      double positionSimilarity =
-        Math.min(1,
-          Math.max(0,
-            1-((v1.getPosition().distance(v2.getPosition())-k)/k)));
-
-      Vector force1 = v1.getForce().mDiv(v1.getCount());
-      Vector force2 = v2.getForce().mDiv(v2.getCount());
-      double forceSimilarity =
-          1-(force1.distance(force2)/(force1.magnitude()+force2.magnitude()));
-
-      return positionSimilarity*forceSimilarity;
-    }
   }
 
 }

@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gradoop.flink.model.impl.operators.layouting;
+package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithmTest;
+import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
 import org.gradoop.flink.util.GradoopFlinkConfig;

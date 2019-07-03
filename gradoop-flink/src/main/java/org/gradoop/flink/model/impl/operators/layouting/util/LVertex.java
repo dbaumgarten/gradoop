@@ -23,7 +23,7 @@ import org.gradoop.common.model.impl.pojo.Vertex;
  * Leightweight/Layouting-Vertex. Has all properties of a Vertex that are important for
  * the layouting. This way we do not need to drag around a full Vertex through every operation.
  */
-public class LVertex extends Tuple5<GradoopId, Vector, Integer,Integer,Vector> implements GraphElement {
+public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector> implements GraphElement {
 
   /**
    * Position of the ID-property in the tuple

@@ -15,20 +15,19 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.apache.flink.api.java.tuple.Tuple6;
+import org.apache.flink.api.java.tuple.Tuple4;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 
 /**
  * Lightweight verison of Edge. Contains only data necessary for layouting.
  */
-public class LEdge extends Tuple6<GradoopId, GradoopId, GradoopId, Vector, Vector, Integer> implements GraphElement {
+public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> implements GraphElement {
 
   /**
    * Position of the ID-property in the tuple
    */
   public static final int ID = 0;
-
   /**
    * Position of the sourceId-property in the tuple
    */
@@ -43,17 +42,13 @@ public class LEdge extends Tuple6<GradoopId, GradoopId, GradoopId, Vector, Vecto
    * @param id Edge-id
    * @param sourceId id of source vertex
    * @param targetId id of target vertex
-   * @param sourcePosition position of source vertex
-   * @param targetPosition position of target vertex
+   * @param count number of sub-edges contained in this edge
    */
-  public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, Vector sourcePosition,
-    Vector targetPosition) {
+  public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, int count) {
     this.f0 = id;
     this.f1 = sourceId;
     this.f2 = targetId;
-    this.f3 = sourcePosition;
-    this.f4 = targetPosition;
-    this.f5 = 1;
+    this.f3 = count;
   }
 
   /** Construct LEdge from rgular edge
@@ -61,7 +56,7 @@ public class LEdge extends Tuple6<GradoopId, GradoopId, GradoopId, Vector, Vecto
    * @param e The original edge to copy values from
    */
   public LEdge(Edge e) {
-    super(e.getId(), e.getSourceId(), e.getTargetId(), new Vector(0, 0), new Vector(0, 0),1);
+    super(e.getId(), e.getSourceId(), e.getTargetId(),1);
   }
 
   /**
@@ -125,47 +120,11 @@ public class LEdge extends Tuple6<GradoopId, GradoopId, GradoopId, Vector, Vecto
     this.f2 = targetId;
   }
 
-  /**
-   * Gets sourcePosition
-   *
-   * @return value of sourcePosition
-   */
-  public Vector getSourcePosition() {
+  public int getCount(){
     return f3;
   }
 
-  /**
-   * Sets sourcePosition
-   *
-   * @param sourcePosition the new value
-   */
-  public void setSourcePosition(Vector sourcePosition) {
-    this.f3 = sourcePosition;
-  }
-
-  /**
-   * Gets targetPosition
-   *
-   * @return value of targetPosition
-   */
-  public Vector getTargetPosition() {
-    return f4;
-  }
-
-  /**
-   * Sets targetPosition
-   *
-   * @param targetPosition the new value
-   */
-  public void setTargetPosition(Vector targetPosition) {
-    this.f4 = targetPosition;
-  }
-
-  public int getCount(){
-    return f5;
-  }
-
   public void setCount(int c){
-    f5 = c;
+    f3 = c;
   }
 }

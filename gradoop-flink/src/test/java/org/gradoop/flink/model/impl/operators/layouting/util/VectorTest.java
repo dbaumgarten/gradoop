@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gradoop.flink.model.impl.operators.layouting;
+package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import org.junit.Assert;
