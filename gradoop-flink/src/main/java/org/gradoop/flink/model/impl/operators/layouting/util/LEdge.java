@@ -22,7 +22,8 @@ import org.gradoop.common.model.impl.pojo.Edge;
 /**
  * Lightweight verison of Edge. Contains only data necessary for layouting.
  */
-public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> implements GraphElement {
+public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> implements
+  GraphElement {
 
   /**
    * Position of the ID-property in the tuple
@@ -37,12 +38,13 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
    */
   public static final int TARGET_ID = 2;
 
-  /** Create LEdge from raw data
+  /**
+   * Create LEdge from raw data
    *
-   * @param id Edge-id
+   * @param id       Edge-id
    * @param sourceId id of source vertex
    * @param targetId id of target vertex
-   * @param count number of sub-edges contained in this edge
+   * @param count    number of sub-edges contained in this edge
    */
   public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, int count) {
     this.f0 = id;
@@ -51,12 +53,13 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
     this.f3 = count;
   }
 
-  /** Construct LEdge from rgular edge
+  /**
+   * Construct LEdge from rgular edge
    *
    * @param e The original edge to copy values from
    */
   public LEdge(Edge e) {
-    super(e.getId(), e.getSourceId(), e.getTargetId(),1);
+    super(e.getId(), e.getSourceId(), e.getTargetId(), 1);
   }
 
   /**
@@ -121,11 +124,11 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
     this.f2 = targetId;
   }
 
-  public int getCount(){
+  public int getCount() {
     return f3;
   }
 
-  public void setCount(int c){
+  public void setCount(int c) {
     f3 = c;
   }
 }

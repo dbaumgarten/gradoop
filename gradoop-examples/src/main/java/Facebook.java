@@ -16,12 +16,9 @@
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
-import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
-import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
-import org.gradoop.flink.model.impl.operators.statistics.EdgeLengthDerivation;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 
 import java.util.concurrent.TimeUnit;
@@ -51,12 +48,13 @@ public class Facebook {
     GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
     LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-    LayoutingAlgorithm frl = new FusingFRLayouter(ITERATIONS, 4100,0.9);
+    LayoutingAlgorithm frl = new FusingFRLayouter(ITERATIONS, 4100, 0.7);
     System.out.println(frl);
     LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 
     Plotter p =
-      new Plotter(OUTPUT_PATH, frl, 1000, 1000).edgeSize(0.1f).vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
+      new Plotter(OUTPUT_PATH, frl, 1000, 1000).edgeSize(0.1f)
+        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
 
     layouted.writeTo(p);
 

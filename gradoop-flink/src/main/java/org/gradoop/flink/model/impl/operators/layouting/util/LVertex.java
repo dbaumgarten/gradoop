@@ -23,7 +23,8 @@ import org.gradoop.common.model.impl.pojo.Vertex;
  * Leightweight/Layouting-Vertex. Has all properties of a Vertex that are important for
  * the layouting. This way we do not need to drag around a full Vertex through every operation.
  */
-public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector> implements GraphElement {
+public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector> implements
+  GraphElement {
 
   /**
    * Position of the ID-property in the tuple
@@ -37,7 +38,7 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
    * @param position Position of the original vertex
    */
   public LVertex(GradoopId id, Vector position) {
-    super(id, position, -1,1, new Vector());
+    super(id, position, -1, 1, new Vector());
   }
 
   /**
@@ -45,10 +46,10 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
    *
    * @param id       Id of the original vertex
    * @param position Position of the original vertex
-   * @param cellid Id of grid-cell this vertex should be assigned to
+   * @param cellid   Id of grid-cell this vertex should be assigned to
    */
   public LVertex(GradoopId id, Vector position, int cellid) {
-    super(id, position, cellid,1,new Vector());
+    super(id, position, cellid, 1, new Vector());
   }
 
   /**
@@ -56,11 +57,11 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
    *
    * @param id       Id of the original vertex
    * @param position Position of the original vertex
-   * @param cellid Id of grid-cell this vertex should be assigned to
-   * @param count Number of vertices this super-vertex combines
+   * @param cellid   Id of grid-cell this vertex should be assigned to
+   * @param count    Number of vertices this super-vertex combines
    */
   public LVertex(GradoopId id, Vector position, int cellid, int count) {
-    super(id, position, cellid,count,new Vector());
+    super(id, position, cellid, count, new Vector());
   }
 
   /**
@@ -68,12 +69,12 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
    *
    * @param id       Id of the original vertex
    * @param position Position of the original vertex
-   * @param cellid Id of grid-cell this vertex should be assigned to
-   * @param count Number of vertices this super-vertex combines
-   * @param force Last force calculated for this vertex
+   * @param cellid   Id of grid-cell this vertex should be assigned to
+   * @param count    Number of vertices this super-vertex combines
+   * @param force    Last force calculated for this vertex
    */
   public LVertex(GradoopId id, Vector position, int cellid, int count, Vector force) {
-    super(id, position, cellid,count,force);
+    super(id, position, cellid, count, force);
   }
 
   /**
@@ -82,14 +83,14 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
    * @param v The original vertex to copy all information from
    */
   public LVertex(Vertex v) {
-    super(v.getId(), Vector.fromVertexPosition(v), -1,1,new Vector());
+    super(v.getId(), Vector.fromVertexPosition(v), -1, 1, new Vector());
   }
 
   /**
    * Default-Constructor to comply with Pojo-Rules
    */
   public LVertex() {
-    super(null,new Vector(),-1,1,new Vector());
+    super(null, new Vector(), -1, 1, new Vector());
   }
 
   /**
@@ -146,19 +147,19 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
     this.f2 = cellid;
   }
 
-  public int getCount(){
+  public int getCount() {
     return f3;
   }
 
-  public void setCount(int count){
+  public void setCount(int count) {
     f3 = count;
   }
 
-  public Vector getForce(){
+  public Vector getForce() {
     return f4;
   }
 
-  public void setForce(Vector v){
+  public void setForce(Vector v) {
     f4 = v;
   }
 

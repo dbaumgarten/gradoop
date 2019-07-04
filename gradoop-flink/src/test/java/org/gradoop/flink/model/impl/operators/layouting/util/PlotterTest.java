@@ -20,7 +20,6 @@ import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithmTest;
 import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.junit.Assert;
