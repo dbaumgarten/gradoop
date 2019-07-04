@@ -75,7 +75,7 @@ public class FRAttractionFunction implements
   }
 
   @Override
-  public Force map(Tuple3<LVertex, LVertex,Integer>  vertices) {
+  public Force map(Tuple3<LVertex, LVertex, Integer>  vertices) {
     Vector pos1 = vertices.f0.getPosition();
     Vector pos2 = vertices.f1.getPosition();
     double distance = pos1.distance(pos2);

@@ -64,6 +64,7 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
    */
   public LEdge() {
     super();
+    f3 = 1;
   }
 
   /**

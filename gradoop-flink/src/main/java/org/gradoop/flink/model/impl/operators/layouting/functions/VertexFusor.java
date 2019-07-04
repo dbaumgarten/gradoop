@@ -33,41 +33,63 @@ public class VertexFusor {
   protected VertexCompareFunction compareFunction;
   protected double threshold;
 
-  public VertexFusor(VertexCompareFunction compareFunction, double treschold) {
+  public VertexFusor(VertexCompareFunction compareFunction, double threshold) {
     this.compareFunction = compareFunction;
-    this.threshold = treschold;
+    this.threshold = threshold;
   }
 
   public Tuple2<DataSet<LVertex>,DataSet<LEdge>> execute(DataSet<LVertex> vertices,
     DataSet<LEdge> edges){
 
-    final Random rng = new Random();
-    DataSet<Tuple2<LVertex, Boolean>> classifiedVertices = vertices.map(v->new Tuple2<>(v,
-      rng.nextBoolean())).returns(new TypeHint<Tuple2<LVertex, Boolean>>() {
+    DataSet<Tuple2<LVertex, Boolean>> classifiedVertices = chooseDonorsAndAcceptors(vertices);
+
+    DataSet<Tuple2<LVertex, LVertex>> fusions = generateFusionCandidates(classifiedVertices,edges);
+
+    DataSet<LVertex> superVertices = fusions.groupBy(1).reduceGroup(new SuperVertexGenerator());
+
+    DataSet<LVertex> remainingVertices = findRemainingVertices(fusions,vertices,superVertices);
+
+    vertices = remainingVertices.union(superVertices);
+
+    edges = fixEdgeReferences(edges,fusions);
+
+    edges = edges.groupBy(LEdge.SOURCE_ID,LEdge.TARGET_ID).reduce((a,b)->{
+      a.setCount(a.getCount()+b.getCount());
+      return a;
     });
 
+    return new Tuple2<>(vertices,edges);
+  }
 
-    DataSet<Tuple2<LVertex, LVertex>> fusions =
-      edges.join(classifiedVertices).where(LEdge.SOURCE_ID).equalTo("0."+LVertex.ID)
+  protected DataSet<Tuple2<LVertex,Boolean>> chooseDonorsAndAcceptors(DataSet<LVertex> vertices){
+    final Random rng = new Random();
+    return vertices.map(v->new Tuple2<>(v,
+      rng.nextBoolean())).returns(new TypeHint<Tuple2<LVertex, Boolean>>() {
+    });
+  }
+
+  protected DataSet<Tuple2<LVertex, LVertex>> generateFusionCandidates(DataSet<Tuple2<LVertex,
+    Boolean>> classifiedVertices, DataSet<LEdge> edges){
+    return  edges.join(classifiedVertices).where(LEdge.SOURCE_ID).equalTo("0."+LVertex.ID)
       .join(classifiedVertices)
       .where("0."+LEdge.TARGET_ID).equalTo("0."+LVertex.ID)
       .with(new CandidateGenerator(compareFunction,threshold))
       .groupBy(0).reduce((a,b)->(a.f2 > b.f2)?a:b)
       .map(c->new Tuple2<>(c.f0,c.f1)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
       });
+  }
 
-
-    DataSet<LVertex> superVertices = fusions.groupBy(1).reduceGroup(new SuperVertexGenerator());
-
+  protected DataSet<LVertex> findRemainingVertices(DataSet<Tuple2<LVertex, LVertex>> fusions,
+    DataSet<LVertex> vertices, DataSet<LVertex> superVertices ){
     DataSet<LVertex> remainingVertices =
       vertices.leftOuterJoin(superVertices).where(LVertex.ID).equalTo(LVertex.ID).with(new FlatJoinFunction<LVertex, LVertex, LVertex>() {
-      @Override
-      public void join(LVertex lVertex, LVertex lVertex2, Collector<LVertex> collector) {
-        if (lVertex2 == null){
-          collector.collect(lVertex);
+        @Override
+        public void join(LVertex lVertex, LVertex lVertex2, Collector<LVertex> collector) {
+          if (lVertex2 == null){
+            collector.collect(lVertex);
+          }
         }
-      }
-    });
+      });
 
     remainingVertices =
       remainingVertices.leftOuterJoin(fusions).where(LVertex.ID).equalTo("0."+LVertex.ID).with(new FlatJoinFunction<LVertex, Tuple2<LVertex, LVertex>, LVertex>() {
@@ -80,42 +102,37 @@ public class VertexFusor {
           }
         }
       });
+    return remainingVertices;
+  }
 
-    vertices = remainingVertices.union(superVertices);
-
-
+  protected DataSet<LEdge> fixEdgeReferences(DataSet<LEdge> edges, DataSet<Tuple2<LVertex,
+    LVertex>> fusions){
     edges =
       edges.leftOuterJoin(fusions).where(LEdge.SOURCE_ID).equalTo("0."+LVertex.ID).with(new JoinFunction<LEdge,
         Tuple2<LVertex, LVertex>, LEdge>() {
-      @Override
-      public LEdge join(LEdge lEdge,
-        Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
-        if (lVertexLVertexDoubleTuple3 != null) {
-          lEdge.setSourceId(lVertexLVertexDoubleTuple3.f1.getId());
+        @Override
+        public LEdge join(LEdge lEdge,
+          Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
+          if (lVertexLVertexDoubleTuple3 != null) {
+            lEdge.setSourceId(lVertexLVertexDoubleTuple3.f1.getId());
+          }
+          return lEdge;
         }
-        return lEdge;
-      }
-    });
+      });
 
     edges =
       edges.leftOuterJoin(fusions).where(LEdge.TARGET_ID).equalTo("0."+LVertex.ID).with(new JoinFunction<LEdge,
         Tuple2<LVertex, LVertex>, LEdge>() {
-      @Override
-      public LEdge join(LEdge lEdge,
-        Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
-        if (lVertexLVertexDoubleTuple3 != null) {
-          lEdge.setTargetId(lVertexLVertexDoubleTuple3.f1.getId());
+        @Override
+        public LEdge join(LEdge lEdge,
+          Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
+          if (lVertexLVertexDoubleTuple3 != null) {
+            lEdge.setTargetId(lVertexLVertexDoubleTuple3.f1.getId());
+          }
+          return lEdge;
         }
-        return lEdge;
-      }
-    });
-
-    edges = edges.groupBy(LEdge.SOURCE_ID,LEdge.TARGET_ID).reduce((a,b)->{
-      a.setCount(a.getCount()+b.getCount());
-      return a;
-    });
-
-    return new Tuple2<>(vertices,edges);
+      });
+    return edges;
   }
 
   protected static class CandidateGenerator implements FlatJoinFunction<Tuple2<LEdge,
@@ -172,15 +189,13 @@ public class VertexFusor {
         if (count == 0){
           self = t.f1;
           count = t.f1.getCount();
-          positionSum.mAdd(t.f1.getPosition());
-          positionSum.mMul(t.f1.getCount());
-
+          positionSum.mAdd(t.f1.getPosition().mul(t.f1.getCount()));
         }
         count+=t.f0.getCount();
-        positionSum.mAdd(t.f0.getPosition().mMul(t.f0.getCount()));
+        positionSum.mAdd(t.f0.getPosition().mul(t.f0.getCount()));
       }
 
-      self.setPosition(positionSum.mDiv(count));
+      self.setPosition(positionSum.div(count));
       self.setCount(count);
 
       collector.collect(self);
