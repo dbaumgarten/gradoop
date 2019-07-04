@@ -43,11 +43,18 @@ public class FRAttractionFunctionTest {
     Vector vec11 = collectorList.get(0).getValue().copy();
     collectorList.clear();
 
+    v1 = getDummyVertex(1, 1);
+    v3 = getDummyVertex(7, 5);
+    af.flatMap(new Tuple3<>(v1, v3, 5), collector);
+    Vector vec13f5 = collectorList.get(0).getValue().copy();
+    collectorList.clear();
+
 
     Assert.assertEquals(vec12, vec21.mul(-1));
     Assert.assertTrue(vec12.getX() > 0 && vec12.getY() > 0);
     Assert.assertTrue(vec12.magnitude() < vec13.magnitude());
     Assert.assertEquals(vec14, new Vector());
     Assert.assertTrue(vec11.magnitude() == 0);
+    Assert.assertEquals(vec13.mul(5),vec13f5);
   }
 }

@@ -276,7 +276,7 @@ public class GiLaLayouter extends
 
       if (iteration % kNeighborhood == 0 && iteration != 0) {
         applicator
-          .applyForce(value.position, value.forces, applicator.speedForIteration(iteration));
+          .apply(value.position, value.forces, applicator.speedForIteration(iteration));
 
         value.messages.clear();
         value.forces.reset();

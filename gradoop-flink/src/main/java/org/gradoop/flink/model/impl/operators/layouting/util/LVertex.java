@@ -66,6 +66,19 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, Integer, Vector>
   /**
    * Create new LVertex
    *
+   * @param id       Id of the original vertex
+   * @param position Position of the original vertex
+   * @param cellid Id of grid-cell this vertex should be assigned to
+   * @param count Number of vertices this super-vertex combines
+   * @param force Last force calculated for this vertex
+   */
+  public LVertex(GradoopId id, Vector position, int cellid, int count, Vector force) {
+    super(id, position, cellid,count,force);
+  }
+
+  /**
+   * Create new LVertex
+   *
    * @param v The original vertex to copy all information from
    */
   public LVertex(Vertex v) {

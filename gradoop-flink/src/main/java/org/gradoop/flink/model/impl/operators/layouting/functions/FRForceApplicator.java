@@ -55,7 +55,7 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   /**
    * cache the last computed temperature and re-use if possible to reduce needed computing-power
    */
-  private double lastTemperature = 0;
+  private double lastSpeedLimit = 0;
 
   /**
    * Create new FRForceApplicator
@@ -82,34 +82,43 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   public double speedForIteration(int iteration) {
     // cache last result to avoid costly pow
     if (iteration != lastIteration) {
-      lastTemperature = startSpeed * Math.pow(base, iteration);
+      lastSpeedLimit = startSpeed * Math.pow(base, iteration);
       lastIteration = iteration;
     }
-    return lastTemperature;
+    return lastSpeedLimit;
   }
 
-  /**
-   * Apply force to position. Honoring speed limit anmd layouting-area.
-   * MODIFIES given vectors!
+
+  /** Apply force to vertex.
+   * Honors speedLimit and vertex-mass. Confines position to layout-area.
    *
-   * @param position   The position to modify
-   * @param movement   The desired movement
-   * @param speedLimit The speed limit for the movement
+   * @param vertex Vertex to move
+   * @param force Force acting on the vertex
+   * @param speedLimit Current speedLimit
    */
-  public void applyForce(Vector position, Vector movement, double speedLimit) {
+  public void apply(LVertex vertex, Force force, double speedLimit){
+    Vector position = vertex.getPosition();
+    Vector movement = force.getValue();
+    apply(position,movement.div(vertex.getCount()),speedLimit);
+    vertex.setForce(movement);
+    vertex.setPosition(position);
+  }
+
+
+  /** Raw version of apply() using just vectors.
+   *
+   * @param position Position to modify
+   * @param movement Movement to apply
+   * @param speedLimit Current speedLimit
+   */
+  public void apply(Vector position, Vector movement, double speedLimit){
     position.mAdd(movement.clamped(speedLimit));
     position.mConfined(0, layoutWidth - 1, 0, layoutHeight - 1);
   }
 
   @Override
   public LVertex join(LVertex first, Force second) throws Exception {
-
-    double speedLimit = speedForIteration(getIterationRuntimeContext().getSuperstepNumber());
-    Vector movement = second.getValue();
-    Vector position = first.getPosition();
-    applyForce(position, movement, speedLimit);
-    first.setForce(movement);
-    first.setPosition(position);
+    apply(first,second,speedForIteration(getIterationRuntimeContext().getSuperstepNumber()));
     return first;
   }
 

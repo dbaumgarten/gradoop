@@ -17,8 +17,8 @@ public class DefaultVertexCompareFunction implements VertexCompareFunction {
         Math.max(0,
           1-((v1.getPosition().distance(v2.getPosition())-k)/k)));
 
-    Vector force1 = v1.getForce().mDiv(v1.getCount());
-    Vector force2 = v2.getForce().mDiv(v2.getCount());
+    Vector force1 = v1.getForce().div(v1.getCount());
+    Vector force2 = v2.getForce().div(v2.getCount());
     double forceSimilarity =
         1-(force1.distance(force2)/(force1.magnitude()+force2.magnitude()));
 
