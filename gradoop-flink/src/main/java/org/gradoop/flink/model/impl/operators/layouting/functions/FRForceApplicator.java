@@ -89,36 +89,38 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   }
 
 
-  /** Apply force to vertex.
+  /**
+   * Apply force to vertex.
    * Honors speedLimit and vertex-mass. Confines position to layout-area.
    *
-   * @param vertex Vertex to move
-   * @param force Force acting on the vertex
+   * @param vertex     Vertex to move
+   * @param force      Force acting on the vertex
    * @param speedLimit Current speedLimit
    */
-  public void apply(LVertex vertex, Force force, double speedLimit){
+  public void apply(LVertex vertex, Force force, double speedLimit) {
     Vector position = vertex.getPosition();
     Vector movement = force.getValue();
-    apply(position,movement.div(vertex.getCount()),speedLimit);
+    apply(position, movement.div(vertex.getCount()), speedLimit);
     vertex.setForce(movement);
     vertex.setPosition(position);
   }
 
 
-  /** Raw version of apply() using just vectors.
+  /**
+   * Raw version of apply() using just vectors.
    *
-   * @param position Position to modify
-   * @param movement Movement to apply
+   * @param position   Position to modify
+   * @param movement   Movement to apply
    * @param speedLimit Current speedLimit
    */
-  public void apply(Vector position, Vector movement, double speedLimit){
+  public void apply(Vector position, Vector movement, double speedLimit) {
     position.mAdd(movement.clamped(speedLimit));
     position.mConfined(0, layoutWidth - 1, 0, layoutHeight - 1);
   }
 
   @Override
   public LVertex join(LVertex first, Force second) throws Exception {
-    apply(first,second,speedForIteration(getIterationRuntimeContext().getSuperstepNumber()));
+    apply(first, second, speedForIteration(getIterationRuntimeContext().getSuperstepNumber()));
     return first;
   }
 

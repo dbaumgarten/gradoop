@@ -28,9 +28,13 @@ import java.io.Serializable;
  */
 public class Vector implements Serializable {
 
-  /** X-coordinate of vector */
+  /**
+   * X-coordinate of vector
+   */
   private double x;
-  /** Y-coordinate of vector */
+  /**
+   * Y-coordinate of vector
+   */
   private double y;
 
   /**
@@ -212,7 +216,8 @@ public class Vector implements Serializable {
     return "Vector{" + "x=" + x + ", y=" + y + '}';
   }
 
-  /** X-coordinate of vector */ /**
+  /** X-coordinate of vector */
+  /**
    * @return X coordinate of the vector
    */
   public double getX() {
@@ -226,7 +231,8 @@ public class Vector implements Serializable {
     this.x = x;
   }
 
-  /** Y-Coordinate of vector */ /**
+  /** Y-Coordinate of vector */
+  /**
    * @return Y coordinate of the vector
    */
   public double getY() {

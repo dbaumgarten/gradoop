@@ -21,7 +21,6 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.operators.IterativeDataSet;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
@@ -265,10 +264,11 @@ public class FRLayouter implements LayoutingAlgorithm {
    */
   protected DataSet<Force> attractionForces(DataSet<LVertex> vertices, DataSet<LEdge> edges) {
     return edges.join(vertices).where(LEdge.SOURCE_ID).equalTo(LVertex.ID).join(vertices)
-      .where("f0." + LEdge.TARGET_ID).equalTo(LVertex.ID)
-      .with((first, second) -> new Tuple3<LVertex, LVertex,Integer>(first.f1, second, first.f0.getCount()))
-      .returns(new TypeHint<Tuple3<LVertex, LVertex,Integer>>() {
-      }).flatMap(new FRAttractionFunction(getK()));
+      .where("f0." + LEdge.TARGET_ID).equalTo(LVertex.ID).with(
+        (first, second) -> new Tuple3<LVertex, LVertex, Integer>(first.f1, second,
+          first.f0.getCount()))
+      .returns(new TypeHint<Tuple3<LVertex, LVertex, Integer>>() { })
+      .flatMap(new FRAttractionFunction(getK()));
   }
 
 

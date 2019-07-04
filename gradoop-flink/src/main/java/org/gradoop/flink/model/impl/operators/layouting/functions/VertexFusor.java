@@ -29,90 +29,146 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 import java.util.Random;
 
+/**
+ * Simplifies the graph by combining similar vertices to super-vertices using a
+ * Comparison-Function and a threshold.
+ */
 public class VertexFusor {
+  /**
+   * The VertexCompareFunction to use to find similar vertices
+   */
   protected VertexCompareFunction compareFunction;
+  /**
+   * Only consider vertices as similar if their similarity is larger then this value
+   */
   protected double threshold;
 
+  /**
+   * Construct new VertexFusor
+   *
+   * @param compareFunction The VertexCompareFunction to use to find similar vertices
+   * @param threshold       Only consider vertices as similar if their similarity is larger then
+   *                        this
+   *                        value
+   */
   public VertexFusor(VertexCompareFunction compareFunction, double threshold) {
     this.compareFunction = compareFunction;
     this.threshold = threshold;
   }
 
-  public Tuple2<DataSet<LVertex>,DataSet<LEdge>> execute(DataSet<LVertex> vertices,
-    DataSet<LEdge> edges){
+  /**
+   * Execute the operation. Should be called iteratively. A single call is usually not enough for
+   * practical results.
+   *
+   * @param vertices vertices of the graph
+   * @param edges    edges of the graph
+   * @return A tuple containing the vertices and edges of the simplified graph
+   */
+  public Tuple2<DataSet<LVertex>, DataSet<LEdge>> execute(DataSet<LVertex> vertices,
+    DataSet<LEdge> edges) {
 
     DataSet<Tuple2<LVertex, Boolean>> classifiedVertices = chooseDonorsAndAcceptors(vertices);
 
-    DataSet<Tuple2<LVertex, LVertex>> fusions = generateFusionCandidates(classifiedVertices,edges);
+    DataSet<Tuple2<LVertex, LVertex>> fusions = generateFusionCandidates(classifiedVertices, edges);
 
     DataSet<LVertex> superVertices = fusions.groupBy(1).reduceGroup(new SuperVertexGenerator());
 
-    DataSet<LVertex> remainingVertices = findRemainingVertices(fusions,vertices,superVertices);
+    DataSet<LVertex> remainingVertices = findRemainingVertices(fusions, vertices, superVertices);
 
     vertices = remainingVertices.union(superVertices);
 
-    edges = fixEdgeReferences(edges,fusions);
+    edges = fixEdgeReferences(edges, fusions);
 
-    edges = edges.groupBy(LEdge.SOURCE_ID,LEdge.TARGET_ID).reduce((a,b)->{
-      a.setCount(a.getCount()+b.getCount());
+    edges = edges.groupBy(LEdge.SOURCE_ID, LEdge.TARGET_ID).reduce((a, b) -> {
+      a.setCount(a.getCount() + b.getCount());
       return a;
     });
 
-    return new Tuple2<>(vertices,edges);
+    return new Tuple2<>(vertices, edges);
   }
 
-  protected DataSet<Tuple2<LVertex,Boolean>> chooseDonorsAndAcceptors(DataSet<LVertex> vertices){
+  /**
+   * Splits the vertices randomly into donor and acceptor-vertices (~50/50).
+   *
+   * @param vertices vertices to classify
+   * @return Tuple2<LVertex, Boolean>. If the boolean is true, the vertex is an acceptor
+   */
+  protected DataSet<Tuple2<LVertex, Boolean>> chooseDonorsAndAcceptors(DataSet<LVertex> vertices) {
     final Random rng = new Random();
-    return vertices.map(v->new Tuple2<>(v,
-      rng.nextBoolean())).returns(new TypeHint<Tuple2<LVertex, Boolean>>() {
-    });
-  }
-
-  protected DataSet<Tuple2<LVertex, LVertex>> generateFusionCandidates(DataSet<Tuple2<LVertex,
-    Boolean>> classifiedVertices, DataSet<LEdge> edges){
-    return  edges.join(classifiedVertices).where(LEdge.SOURCE_ID).equalTo("0."+LVertex.ID)
-      .join(classifiedVertices)
-      .where("0."+LEdge.TARGET_ID).equalTo("0."+LVertex.ID)
-      .with(new CandidateGenerator(compareFunction,threshold))
-      .groupBy(0).reduce((a,b)->(a.f2 > b.f2)?a:b)
-      .map(c->new Tuple2<>(c.f0,c.f1)).returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
+    return vertices.map(v -> new Tuple2<>(v, rng.nextBoolean()))
+      .returns(new TypeHint<Tuple2<LVertex, Boolean>>() {
       });
   }
 
+  /**
+   * Finds connected vertices by joining with the edges. Finds out if the two vertices should be
+   * merged together and if so outputs a tuple for each merge.
+   *
+   * @param classifiedVertices The vertices (split into donors and acceptors)
+   * @param edges              The edges
+   * @return Tuple2<LVertex, LVertex> for each merge. f0 is the donor and f1 the acceptor for the
+   * merge.
+   */
+  protected DataSet<Tuple2<LVertex, LVertex>> generateFusionCandidates(
+    DataSet<Tuple2<LVertex, Boolean>> classifiedVertices, DataSet<LEdge> edges) {
+    return edges.join(classifiedVertices).where(LEdge.SOURCE_ID).equalTo("0." + LVertex.ID)
+      .join(classifiedVertices).where("0." + LEdge.TARGET_ID).equalTo("0." + LVertex.ID)
+      .with(new CandidateGenerator(compareFunction, threshold)).groupBy(0)
+      .reduce((a, b) -> (a.f2 > b.f2) ? a : b).map(c -> new Tuple2<>(c.f0, c.f1))
+      .returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
+      });
+  }
+
+  /**
+   * There are some vertices that have neither become super-vertices nor have been merged with a
+   * super vertex. Find them so they can be copied to the simplified graph.
+   *
+   * @param fusions       The merges that are to be performed in this iteration
+   * @param vertices      The original vertices of the input graph
+   * @param superVertices The newly created super-vertices
+   * @return All vertices that have to be copied to the output-graph
+   */
   protected DataSet<LVertex> findRemainingVertices(DataSet<Tuple2<LVertex, LVertex>> fusions,
-    DataSet<LVertex> vertices, DataSet<LVertex> superVertices ){
+    DataSet<LVertex> vertices, DataSet<LVertex> superVertices) {
     DataSet<LVertex> remainingVertices =
-      vertices.leftOuterJoin(superVertices).where(LVertex.ID).equalTo(LVertex.ID).with(new FlatJoinFunction<LVertex, LVertex, LVertex>() {
-        @Override
-        public void join(LVertex lVertex, LVertex lVertex2, Collector<LVertex> collector) {
-          if (lVertex2 == null){
-            collector.collect(lVertex);
+      vertices.leftOuterJoin(superVertices).where(LVertex.ID).equalTo(LVertex.ID)
+        .with(new FlatJoinFunction<LVertex, LVertex, LVertex>() {
+          @Override
+          public void join(LVertex lVertex, LVertex lVertex2, Collector<LVertex> collector) {
+            if (lVertex2 == null) {
+              collector.collect(lVertex);
+            }
           }
-        }
-      });
+        });
 
     remainingVertices =
-      remainingVertices.leftOuterJoin(fusions).where(LVertex.ID).equalTo("0."+LVertex.ID).with(new FlatJoinFunction<LVertex, Tuple2<LVertex, LVertex>, LVertex>() {
-        @Override
-        public void join(LVertex lVertex,
-          Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3,
-          Collector<LVertex> collector){
-          if (lVertexLVertexDoubleTuple3 == null){
-            collector.collect(lVertex);
+      remainingVertices.leftOuterJoin(fusions).where(LVertex.ID).equalTo("0." + LVertex.ID)
+        .with(new FlatJoinFunction<LVertex, Tuple2<LVertex, LVertex>, LVertex>() {
+          @Override
+          public void join(LVertex lVertex, Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3,
+            Collector<LVertex> collector) {
+            if (lVertexLVertexDoubleTuple3 == null) {
+              collector.collect(lVertex);
+            }
           }
-        }
-      });
+        });
     return remainingVertices;
   }
 
-  protected DataSet<LEdge> fixEdgeReferences(DataSet<LEdge> edges, DataSet<Tuple2<LVertex,
-    LVertex>> fusions){
-    edges =
-      edges.leftOuterJoin(fusions).where(LEdge.SOURCE_ID).equalTo("0."+LVertex.ID).with(new JoinFunction<LEdge,
-        Tuple2<LVertex, LVertex>, LEdge>() {
+  /**
+   * When combining two vertices into one the edges of the old vertices have to be modified to
+   * point to the new vertex.
+   *
+   * @param edges   The edges of the input-graph
+   * @param fusions The merges performed in the current iteration
+   * @return The "fixed" edges for the output-graph
+   */
+  protected DataSet<LEdge> fixEdgeReferences(DataSet<LEdge> edges,
+    DataSet<Tuple2<LVertex, LVertex>> fusions) {
+    edges = edges.leftOuterJoin(fusions).where(LEdge.SOURCE_ID).equalTo("0." + LVertex.ID)
+      .with(new JoinFunction<LEdge, Tuple2<LVertex, LVertex>, LEdge>() {
         @Override
-        public LEdge join(LEdge lEdge,
-          Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
+        public LEdge join(LEdge lEdge, Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
           if (lVertexLVertexDoubleTuple3 != null) {
             lEdge.setSourceId(lVertexLVertexDoubleTuple3.f1.getId());
           }
@@ -120,12 +176,10 @@ public class VertexFusor {
         }
       });
 
-    edges =
-      edges.leftOuterJoin(fusions).where(LEdge.TARGET_ID).equalTo("0."+LVertex.ID).with(new JoinFunction<LEdge,
-        Tuple2<LVertex, LVertex>, LEdge>() {
+    edges = edges.leftOuterJoin(fusions).where(LEdge.TARGET_ID).equalTo("0." + LVertex.ID)
+      .with(new JoinFunction<LEdge, Tuple2<LVertex, LVertex>, LEdge>() {
         @Override
-        public LEdge join(LEdge lEdge,
-          Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
+        public LEdge join(LEdge lEdge, Tuple2<LVertex, LVertex> lVertexLVertexDoubleTuple3) {
           if (lVertexLVertexDoubleTuple3 != null) {
             lEdge.setTargetId(lVertexLVertexDoubleTuple3.f1.getId());
           }
@@ -135,21 +189,39 @@ public class VertexFusor {
     return edges;
   }
 
-  protected static class CandidateGenerator implements FlatJoinFunction<Tuple2<LEdge,
-    Tuple2<LVertex, Boolean>>, Tuple2<LVertex, Boolean>, Tuple3<LVertex,LVertex,Double>>{
+  /**
+   * Finds out if two given vertices could be merged into one and how "good" this merge would be.
+   * The strange signature of the join function is needed to be able to directly use it in the
+   * join of generateFusionCandidates().
+   */
+  protected static class CandidateGenerator implements
+    FlatJoinFunction<Tuple2<LEdge, Tuple2<LVertex, Boolean>>, Tuple2<LVertex, Boolean>,
+      Tuple3<LVertex, LVertex, Double>> {
 
-    VertexCompareFunction cf;
-    Double treshold;
+    /**
+     * ComparisonFunction to use to compute similarity of vertices
+     */
+    protected VertexCompareFunction cf;
+    /**
+     * Minimum similarity to allow merge
+     */
+    protected Double threshold;
 
-    public CandidateGenerator(VertexCompareFunction cf, Double treshold) {
+    /**
+     * Construct new instance
+     *
+     * @param cf        ComparisonFunction to use to compute similarity of vertices
+     * @param threshold Minimum similarity to allow merge
+     */
+    public CandidateGenerator(VertexCompareFunction cf, Double threshold) {
       this.cf = cf;
-      this.treshold = treshold;
+      this.threshold = threshold;
     }
 
     @Override
     public void join(Tuple2<LEdge, Tuple2<LVertex, Boolean>> source,
-      Tuple2<LVertex, Boolean> target,
-      Collector<Tuple3<LVertex, LVertex, Double>> collector) throws Exception {
+      Tuple2<LVertex, Boolean> target, Collector<Tuple3<LVertex, LVertex, Double>> collector) throws
+      Exception {
 
       LVertex sourceVertex = source.f1.f0;
       boolean sourceType = source.f1.f1;
@@ -157,27 +229,44 @@ public class VertexFusor {
       LVertex targetVertex = target.f0;
       boolean targetType = target.f1;
 
-      if ( sourceType == targetType){
+      // Can not merge two vertices of the same type (donor/acceptor)
+      if (sourceType == targetType) {
         return;
       }
 
-      Double similarity = cf.compare(sourceVertex,targetVertex);
+      Double similarity = cf.compare(sourceVertex, targetVertex);
 
-      if (similarity < treshold){
+      // Can not merge vertices that are not similar enough
+      if (similarity < threshold) {
         return;
       }
 
-      if (targetType){
-        collector.collect(new Tuple3<>(sourceVertex,targetVertex,similarity));
-      }else{
-        collector.collect(new Tuple3<>(targetVertex,sourceVertex,similarity));
+      // The acceptor-vertex (tyrgetType==true) MUST be the second element of the tuple
+      if (targetType) {
+        collector.collect(new Tuple3<>(sourceVertex, targetVertex, similarity));
+      } else {
+        collector.collect(new Tuple3<>(targetVertex, sourceVertex, similarity));
       }
 
     }
   }
 
-  protected static class SuperVertexGenerator implements GroupReduceFunction<Tuple2<LVertex,
-    LVertex>, LVertex>{
+  /**
+   * Combines multiple vertices into a single super-vertex. The created super-vertex inherits the
+   * id of the acceptor. The position of the super-vertex is a weighted average of all
+   * participating vertices.
+   */
+  protected static class SuperVertexGenerator implements
+    GroupReduceFunction<Tuple2<LVertex, LVertex>, LVertex> {
+
+    /**
+     * Combine vertices
+     *
+     * @param iterable  The vertices to combine. f0 contains donor-vertices and f1 contains
+     *                  (always the same) acceptor vertex.
+     * @param collector
+     * @throws Exception
+     */
     @Override
     public void reduce(Iterable<Tuple2<LVertex, LVertex>> iterable,
       Collector<LVertex> collector) throws Exception {
@@ -186,12 +275,12 @@ public class VertexFusor {
       LVertex self = null;
 
       for (Tuple2<LVertex, LVertex> t : iterable) {
-        if (count == 0){
+        if (count == 0) {
           self = t.f1;
           count = t.f1.getCount();
           positionSum.mAdd(t.f1.getPosition().mul(t.f1.getCount()));
         }
-        count+=t.f0.getCount();
+        count += t.f0.getCount();
         positionSum.mAdd(t.f0.getPosition().mul(t.f0.getCount()));
       }
 

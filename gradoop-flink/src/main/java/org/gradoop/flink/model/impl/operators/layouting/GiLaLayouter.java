@@ -17,7 +17,6 @@ package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.graph.Graph;
@@ -221,16 +220,16 @@ public class GiLaLayouter extends
     /**
      * For object-reuse
      */
-    protected Tuple3<LVertex, LVertex,Integer> vertexTuple = new Tuple3<>();
+    protected Tuple3<LVertex, LVertex, Integer> vertexTuple = new Tuple3<>();
 
     /**
      * Create new MsgFunc
      *
-     * @param iterations total number of iterations to perform
-     * @param width width of the layouting-area
-     * @param height height of the layouting-area
+     * @param iterations      total number of iterations to perform
+     * @param width           width of the layouting-area
+     * @param height          height of the layouting-area
      * @param optimumDistance k of FRLayouter
-     * @param kNeighborhood kNeighborhood for repulsion-calculations
+     * @param kNeighborhood   kNeighborhood for repulsion-calculations
      */
     public MsgFunc(int iterations, int width, int height, double optimumDistance,
       int kNeighborhood) {
@@ -238,8 +237,7 @@ public class GiLaLayouter extends
 
       this.repulsion = new FRRepulsionFunction(optimumDistance);
       this.attraction = new FRAttractionFunction(optimumDistance);
-      this.applicator =
-        new FRForceApplicator(width, height, optimumDistance, iterations);
+      this.applicator = new FRForceApplicator(width, height, optimumDistance, iterations);
     }
 
     @Override
@@ -275,8 +273,7 @@ public class GiLaLayouter extends
       }
 
       if (iteration % kNeighborhood == 0 && iteration != 0) {
-        applicator
-          .apply(value.position, value.forces, applicator.speedForIteration(iteration));
+        applicator.apply(value.position, value.forces, applicator.speedForIteration(iteration));
 
         value.messages.clear();
         value.forces.reset();
