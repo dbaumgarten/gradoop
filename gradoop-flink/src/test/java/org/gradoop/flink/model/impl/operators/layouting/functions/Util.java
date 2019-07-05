@@ -19,7 +19,19 @@ import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Util {
+
+  static List<GradoopId> generateSubVertices(int count){
+    List<GradoopId> result = new ArrayList<>();
+    for (int i = 0; i < count; i++){
+      result.add(GradoopId.get());
+    }
+    return result;
+  }
+
   static LVertex getDummyVertex(int cellid) {
     LVertex v = new LVertex();
     v.setCellid(cellid);

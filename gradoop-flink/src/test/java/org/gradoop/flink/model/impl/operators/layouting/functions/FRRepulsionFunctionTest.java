@@ -26,6 +26,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.gradoop.flink.model.impl.operators.layouting.functions.Util.generateSubVertices;
 import static org.gradoop.flink.model.impl.operators.layouting.functions.Util.getDummyVertex;
 
 public class FRRepulsionFunctionTest {
@@ -70,8 +71,8 @@ public class FRRepulsionFunctionTest {
 
     v1 = getDummyVertex(1, 1);
     v2 = getDummyVertex(2, 3);
-    v1.setCount(2);
-    v2.setCount(3);
+    v1.setSubVertices(generateSubVertices(1));
+    v2.setSubVertices(generateSubVertices(2));
     Vector vec12joinf6 = jf.join(v1, v2).getValue().copy();
 
     Assert.assertEquals(vec12join, vec12);

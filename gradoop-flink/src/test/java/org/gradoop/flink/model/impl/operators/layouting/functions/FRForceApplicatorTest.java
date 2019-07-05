@@ -15,11 +15,14 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
+import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 public class FRForceApplicatorTest {
   @Test
@@ -42,7 +45,7 @@ public class FRForceApplicatorTest {
     fa.apply(v, force2, 10000);
     Assert.assertEquals(pos, new Vector(999, 999));
 
-    v.setCount(2);
+    v.addSubVertex(GradoopId.get());
     v.setPosition(new Vector(100, 100));
     Force force3 = new Force(null, new Vector(50, 50));
     fa.apply(v, force3, 10000);

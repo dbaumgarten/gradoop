@@ -19,10 +19,13 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Lightweight verison of Edge. Contains only data necessary for layouting.
  */
-public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> implements
+public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, List<GradoopId>> implements
   GraphElement {
 
   /**
@@ -44,13 +47,13 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
    * @param id       Edge-id
    * @param sourceId id of source vertex
    * @param targetId id of target vertex
-   * @param count    number of sub-edges contained in this edge
+   * @param subEdges IDs of subedges contained in this edge
    */
-  public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, int count) {
+  public LEdge(GradoopId id, GradoopId sourceId, GradoopId targetId, List<GradoopId> subEdges) {
     this.f0 = id;
     this.f1 = sourceId;
     this.f2 = targetId;
-    this.f3 = count;
+    this.f3 = subEdges;
   }
 
   /**
@@ -59,7 +62,7 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
    * @param e The original edge to copy values from
    */
   public LEdge(Edge e) {
-    super(e.getId(), e.getSourceId(), e.getTargetId(), 1);
+    super(e.getId(), e.getSourceId(), e.getTargetId(), new ArrayList<>());
   }
 
   /**
@@ -67,7 +70,7 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
    */
   public LEdge() {
     super();
-    f3 = 1;
+    f3 = new ArrayList<>();
   }
 
   /**
@@ -125,10 +128,24 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, Integer> impl
   }
 
   public int getCount() {
+    return (f3 != null)?f3.size()+1:1;
+  }
+
+  public List<GradoopId> getSubEdges(){
     return f3;
   }
 
-  public void setCount(int c) {
-    f3 = c;
+  public void setSubEdges(List<GradoopId> edges){
+    f3 = edges;
+  }
+
+  public void addSubEdge(GradoopId edge){
+    f3.add(edge);
+  }
+
+  public void addSubEdges(List<GradoopId> edges){
+    if (edges != null) {
+      f3.addAll(edges);
+    }
   }
 }
