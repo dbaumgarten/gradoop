@@ -18,9 +18,10 @@ package org.gradoop.flink.model.impl.operators.layouting;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.operators.IterativeDataSet;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexCompareFunction;
@@ -28,7 +29,11 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.VertexFusor;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.GraphElement;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
+import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A special variant of the FRLayouter that combines similar vertices during the layouting,
@@ -42,6 +47,12 @@ public class FusingFRLayouter extends FRLayouter {
    * edge
    */
   public static final String VERTEX_SIZE_PROPERTY = "SIZE";
+  /**
+   * The name of the property where the ids of the sub-vertices (or sub-edges) of a
+   * supervertex/superedge
+   * are stored.
+   */
+  public static final String SUB_ELEMENTS_PROPERTY = "SUBELEMENTS";
   /**
    * Only vertices with a similarity of at least threshold are combined
    */
@@ -98,7 +109,8 @@ public class FusingFRLayouter extends FRLayouter {
     DataSet<Edge> gradoopEdges = g.getEdges();
 
     // Flink can only iterate over a single dataset. Therefore vertices and edges have to be
-    // temporarily combined into a single dataset
+    // temporarily combined into a single dataset.
+    // Also the Grapdoop datatypes are converted to internal datatypes
     DataSet<GraphElement> tmpvertices = gradoopVertices.map((v) -> new LVertex(v));
     DataSet<GraphElement> tmpedges = gradoopEdges.map((e) -> new LEdge(e));
     DataSet<GraphElement> graphElements = tmpvertices.union(tmpedges);
@@ -106,12 +118,53 @@ public class FusingFRLayouter extends FRLayouter {
     IterativeDataSet<GraphElement> loop = graphElements.iterate(iterations);
 
     // split the combined dataset to work with the edges and vertices
-    DataSet<LVertex> vertices = loop.filter(e -> e instanceof LVertex).map(e -> (LVertex) e);
-    DataSet<LEdge> edges = loop.filter(e -> e instanceof LEdge).map(e -> (LEdge) e);
+    LGraph graph = new LGraph(loop);
 
-    //Perform the layouting as usual
-    DataSet<Force> repulsions = repulsionForces(vertices);
-    DataSet<Force> attractions = attractionForces(vertices, edges);
+    // perform the layouting
+    graph.setVertices(layout(graph));
+
+    // Use the VertexFusor to create a simplified version of the graph
+    VertexFusor vf = new VertexFusor(getCompareFunction(), threshold);
+    graph = vf.execute(graph);
+
+    // again, combine vertices and edges into a single dataset to perform iterations
+    graphElements = graph.getGraphElements();
+    graphElements = loop.closeWith(graphElements);
+
+    // again, split the combined dataset  (after all iterations have been completed)
+    graph = new LGraph(graphElements);
+
+    // Create Gradoop vertices and edges from the internal representation.
+    // TODO: using a join with the original graph for this is a dirty workaround. Do it properly.
+    gradoopVertices = graph.getVertices().join(gradoopVertices).where(LVertex.ID).equalTo("id")
+      .with(new JoinFunction<LVertex, Vertex, Vertex>() {
+        @Override
+        public Vertex join(LVertex lVertex, Vertex vertex) {
+          lVertex.getPosition().setVertexPosition(vertex);
+          vertex.setProperty(VERTEX_SIZE_PROPERTY, lVertex.getCount());
+          vertex.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lVertex.getSubVertices()));
+          return vertex;
+        }
+      });
+
+    gradoopEdges = graph.getEdges().join(gradoopEdges).where(LEdge.ID).equalTo("id")
+      .with(new JoinFunction<LEdge, Edge, Edge>() {
+        @Override
+        public Edge join(LEdge lEdge, Edge edge) {
+          edge.setSourceId(lEdge.getSourceId());
+          edge.setTargetId(lEdge.getTargetId());
+          edge.setProperty(VERTEX_SIZE_PROPERTY, lEdge.getCount());
+          edge.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lEdge.getSubEdges()));
+          return edge;
+        }
+      });
+
+    return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
+  }
+
+  protected DataSet<LVertex> layout(LGraph g){
+    DataSet<Force> repulsions = repulsionForces(g.getVertices());
+    DataSet<Force> attractions = attractionForces(g.getVertices(), g.getEdges());
 
     DataSet<Force> forces =
       repulsions.union(attractions).groupBy(Force.ID).reduce((first, second) -> {
@@ -119,47 +172,15 @@ public class FusingFRLayouter extends FRLayouter {
         return first;
       });
 
-    vertices = applyForces(vertices, forces, iterations);
+    return applyForces(g.getVertices(), forces, iterations);
+  }
 
-    // Use the VertexFusor to create a simplified version of the graph
-    VertexFusor vf = new VertexFusor(getCompareFunction(), threshold);
-    Tuple2<DataSet<LVertex>, DataSet<LEdge>> fusionResult = vf.execute(vertices, edges);
-    vertices = fusionResult.f0;
-    edges = fusionResult.f1;
-
-    // again, combine vertices and edges into a single dataset to perform iterations
-    graphElements = vertices.map(x -> (GraphElement) x).union(edges.map(x -> (GraphElement) x));
-    graphElements = loop.closeWith(graphElements);
-
-    // again, split the combined dataset  (after all iterations have been completed)
-    DataSet<LVertex> finalVertices =
-      graphElements.filter(e -> e instanceof LVertex).map(e -> (LVertex) e);
-    DataSet<LEdge> finalEdges = graphElements.filter(e -> e instanceof LEdge).map(e -> (LEdge) e);
-
-    // Create Gradoop vertices and edges from the internal representation.
-    // TODO: using a join with the original graph for this is a dirty workaround. Do it properly.
-    gradoopVertices = finalVertices.join(gradoopVertices).where(LVertex.ID).equalTo("id")
-      .with(new JoinFunction<LVertex, Vertex, Vertex>() {
-        @Override
-        public Vertex join(LVertex lVertex, Vertex vertex) throws Exception {
-          lVertex.getPosition().setVertexPosition(vertex);
-          vertex.setProperty(VERTEX_SIZE_PROPERTY, lVertex.getCount());
-          return vertex;
-        }
-      });
-
-    gradoopEdges = finalEdges.join(gradoopEdges).where(LEdge.ID).equalTo("id")
-      .with(new JoinFunction<LEdge, Edge, Edge>() {
-        @Override
-        public Edge join(LEdge lEdge, Edge edge) {
-          edge.setSourceId(lEdge.getSourceId());
-          edge.setTargetId(lEdge.getTargetId());
-          edge.setProperty(VERTEX_SIZE_PROPERTY, lEdge.getCount());
-          return edge;
-        }
-      });
-
-    return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
+  protected static PropertyValue getSubelementListValue(List<GradoopId> ids){
+    List<PropertyValue> result = new ArrayList<>();
+    for (GradoopId id : ids){
+      result.add(PropertyValue.create(id));
+    }
+    return PropertyValue.create(result);
   }
 
 }

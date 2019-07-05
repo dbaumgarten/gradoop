@@ -24,6 +24,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
+import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
@@ -60,18 +61,18 @@ public class VertexFusor {
    * Execute the operation. Should be called iteratively. A single call is usually not enough for
    * practical results.
    *
-   * @param vertices vertices of the graph
-   * @param edges    edges of the graph
+   * @param graph The graph to simplify
    * @return A tuple containing the vertices and edges of the simplified graph
    */
-  public Tuple2<DataSet<LVertex>, DataSet<LEdge>> execute(DataSet<LVertex> vertices,
-    DataSet<LEdge> edges) {
+  public LGraph execute(LGraph graph) {
+    DataSet<LVertex> vertices = graph.getVertices();
+    DataSet<LEdge> edges = graph.getEdges();
 
     DataSet<Tuple2<LVertex, Boolean>> classifiedVertices = chooseDonorsAndAcceptors(vertices);
 
     DataSet<Tuple2<LVertex, LVertex>> fusions = generateFusionCandidates(classifiedVertices, edges);
 
-    DataSet<LVertex> superVertices = fusions.groupBy(1).reduceGroup(new SuperVertexGenerator());
+    DataSet<LVertex> superVertices = fusions.groupBy("1.0").reduceGroup(new SuperVertexGenerator());
 
     DataSet<LVertex> remainingVertices = findRemainingVertices(fusions, vertices, superVertices);
 
@@ -80,11 +81,12 @@ public class VertexFusor {
     edges = fixEdgeReferences(edges, fusions);
 
     edges = edges.groupBy(LEdge.SOURCE_ID, LEdge.TARGET_ID).reduce((a, b) -> {
-      a.setCount(a.getCount() + b.getCount());
+      a.addSubEdge(b.getId());
+      a.addSubEdges(b.getSubEdges());
       return a;
     });
 
-    return new Tuple2<>(vertices, edges);
+    return new LGraph(vertices, edges);
   }
 
   /**
@@ -113,7 +115,7 @@ public class VertexFusor {
     DataSet<Tuple2<LVertex, Boolean>> classifiedVertices, DataSet<LEdge> edges) {
     return edges.join(classifiedVertices).where(LEdge.SOURCE_ID).equalTo("0." + LVertex.ID)
       .join(classifiedVertices).where("0." + LEdge.TARGET_ID).equalTo("0." + LVertex.ID)
-      .with(new CandidateGenerator(compareFunction, threshold)).groupBy(0)
+      .with(new CandidateGenerator(compareFunction, threshold)).groupBy("0.0")
       .reduce((a, b) -> (a.f2 > b.f2) ? a : b).map(c -> new Tuple2<>(c.f0, c.f1))
       .returns(new TypeHint<Tuple2<LVertex, LVertex>>() {
       });
@@ -241,7 +243,7 @@ public class VertexFusor {
         return;
       }
 
-      // The acceptor-vertex (tyrgetType==true) MUST be the second element of the tuple
+      // The acceptor-vertex (targetType==true) MUST be the second element of the tuple
       if (targetType) {
         collector.collect(new Tuple3<>(sourceVertex, targetVertex, similarity));
       } else {
@@ -282,10 +284,11 @@ public class VertexFusor {
         }
         count += t.f0.getCount();
         positionSum.mAdd(t.f0.getPosition().mul(t.f0.getCount()));
+        self.addSubVertex(t.f0.getId());
+        self.addSubVertices(t.f0.getSubVertices());
       }
 
       self.setPosition(positionSum.div(count));
-      self.setCount(count);
 
       collector.collect(self);
     }
