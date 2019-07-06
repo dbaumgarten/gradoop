@@ -32,6 +32,7 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplica
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
+import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 
 /**
@@ -172,20 +173,9 @@ public class FRLayouter implements LayoutingAlgorithm {
     DataSet<LEdge> edges = gradoopEdges.map((e) -> new LEdge(e));
 
     IterativeDataSet<LVertex> loop = vertices.iterate(iterations);
-
-    DataSet<Force> repulsions = repulsionForces(loop);
-
-    DataSet<Force> attractions = attractionForces(loop, edges);
-
-    DataSet<Force> forces =
-      repulsions.union(attractions).groupBy(Force.ID).reduce((first, second) -> {
-        first.setValue(first.getValue().add(second.getValue()));
-        return first;
-      });
-
-    DataSet<LVertex> moved = applyForces(loop, forces, iterations);
-
-    vertices = loop.closeWith(moved);
+    LGraph graph = new LGraph(loop,edges);
+    layout(graph);
+    vertices = loop.closeWith(graph.getVertices());
 
     gradoopVertices = vertices.join(gradoopVertices).where(LVertex.ID).equalTo("id")
       .with(new JoinFunction<LVertex, Vertex, Vertex>() {
@@ -197,6 +187,23 @@ public class FRLayouter implements LayoutingAlgorithm {
       });
 
     return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
+  }
+
+  /**
+   * Perform the actual layouting (calculate and apply forces)
+   * @param g The Graph to layout. Is modified by the method.
+   */
+  protected void layout(LGraph g){
+    DataSet<Force> repulsions = repulsionForces(g.getVertices());
+    DataSet<Force> attractions = attractionForces(g.getVertices(), g.getEdges());
+
+    DataSet<Force> forces =
+      repulsions.union(attractions).groupBy(Force.ID).reduce((first, second) -> {
+        first.setValue(first.getValue().add(second.getValue()));
+        return first;
+      });
+
+    g.setVertices(applyForces(g.getVertices(), forces, iterations));
   }
 
   /**

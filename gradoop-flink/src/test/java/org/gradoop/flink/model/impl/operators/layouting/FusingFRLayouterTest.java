@@ -19,7 +19,7 @@ public class FusingFRLayouterTest extends LayoutingAlgorithmTest {
 
   @Override
   public LayoutingAlgorithm getLayouter(int w, int h) {
-    return new FusingFRLayouter(5, 12, 0.9);
+    return new FusingFRLayouter(5, 12, 0.9, FusingFRLayouter.OutputFormat.SIMPLIFIED);
   }
 
 }

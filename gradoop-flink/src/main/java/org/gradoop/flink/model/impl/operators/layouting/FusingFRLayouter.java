@@ -15,22 +15,24 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting;
 
-import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexFusor;
-import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.GraphElement;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
 import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
+import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +40,26 @@ import java.util.List;
 /**
  * A special variant of the FRLayouter that combines similar vertices during the layouting,
  * creating a simplified version of the graph.
- * ATTENTION! Edge- and Vertex properties are NOT retained in the output-graph.
  */
 public class FusingFRLayouter extends FRLayouter {
+
+  public enum OutputFormat {
+    /** Output the simplified graph. The output-graph will loose all information except for the
+     * GradoopIds. Vertices/Edges will have "SUBELEMENTS"-Property listing all elements that were
+     * combined into the super-element. Edges and Vertices will have a "SIZE"-Property containing
+     * the number of sub-elements contained in this super-element.
+     */
+    SIMPLIFIED,
+    /**
+     * Grouped vertices will be resolved into the original vertices and will be placed randomly
+     * close to another.
+     */
+    EXTRACTED,
+    /**
+     * Like EXTRACTED, but vertices of a supernode will be placed at exactly the same position.
+     */
+    RAWEXTRACTED
+  }
 
   /**
    * Name of the property that will contain the number of sub-vertices or sub-edges for a vertex or
@@ -61,6 +80,10 @@ public class FusingFRLayouter extends FRLayouter {
    * Compare function to use. Null means use default.
    */
   protected VertexCompareFunction compareFunction = null;
+  /**
+   * The output format chosen by the user
+   */
+  protected OutputFormat outputFormat;
 
   /**
    * Create new FusingFRLayouter
@@ -70,10 +93,12 @@ public class FusingFRLayouter extends FRLayouter {
    * @param threshold   nly vertices with a similarity of at least threshold are combined. Lower
    *                    values will lead to a more simplified output-graph. Valid values are >= 0
    *                    and <= 1
+   * @param of Chosen OutputFormat. See {@link OutputFormat}
    */
-  public FusingFRLayouter(int iterations, int vertexCount, double threshold) {
+  public FusingFRLayouter(int iterations, int vertexCount, double threshold, OutputFormat of) {
     super(iterations, vertexCount);
     this.threshold = threshold;
+    this.outputFormat = of;
   }
 
   /**
@@ -121,7 +146,7 @@ public class FusingFRLayouter extends FRLayouter {
     LGraph graph = new LGraph(loop);
 
     // perform the layouting
-    graph.setVertices(layout(graph));
+    layout(graph);
 
     // Use the VertexFusor to create a simplified version of the graph
     VertexFusor vf = new VertexFusor(getCompareFunction(), threshold);
@@ -134,47 +159,95 @@ public class FusingFRLayouter extends FRLayouter {
     // again, split the combined dataset  (after all iterations have been completed)
     graph = new LGraph(graphElements);
 
-    // Create Gradoop vertices and edges from the internal representation.
-    // TODO: using a join with the original graph for this is a dirty workaround. Do it properly.
-    gradoopVertices = graph.getVertices().join(gradoopVertices).where(LVertex.ID).equalTo("id")
-      .with(new JoinFunction<LVertex, Vertex, Vertex>() {
-        @Override
-        public Vertex join(LVertex lVertex, Vertex vertex) {
-          lVertex.getPosition().setVertexPosition(vertex);
-          vertex.setProperty(VERTEX_SIZE_PROPERTY, lVertex.getCount());
-          vertex.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lVertex.getSubVertices()));
-          return vertex;
-        }
-      });
 
-    gradoopEdges = graph.getEdges().join(gradoopEdges).where(LEdge.ID).equalTo("id")
-      .with(new JoinFunction<LEdge, Edge, Edge>() {
-        @Override
-        public Edge join(LEdge lEdge, Edge edge) {
-          edge.setSourceId(lEdge.getSourceId());
-          edge.setTargetId(lEdge.getTargetId());
-          edge.setProperty(VERTEX_SIZE_PROPERTY, lEdge.getCount());
-          edge.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lEdge.getSubEdges()));
-          return edge;
-        }
-      });
+    switch (outputFormat){
+    case SIMPLIFIED:
+      return buildSimplifiedGraph(g,graph);
+    case EXTRACTED:
+      return buildExtractedGraph(g,graph,2*getK());
+    case RAWEXTRACTED:
+      return buildExtractedGraph(g,graph,0);
+    }
 
-    return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
+    // This should never happen
+    return null;
   }
 
-  protected DataSet<LVertex> layout(LGraph g){
-    DataSet<Force> repulsions = repulsionForces(g.getVertices());
-    DataSet<Force> attractions = attractionForces(g.getVertices(), g.getEdges());
+  /**
+   * Simply translate the internal representations into GRadoop-types
+   * @param input Original input graph
+   * @param layouted Result of the layouting
+   * @return The layouted graph in the Gradoop-format
+   */
+  protected LogicalGraph buildSimplifiedGraph(LogicalGraph input, LGraph layouted){
+    DataSet<Vertex> vertices = layouted.getVertices().map((lv)->{
+      Vertex v = new Vertex(lv.getId(),"vertex",new Properties(),null);
+      lv.getPosition().setVertexPosition(v);
+      v.setProperty(VERTEX_SIZE_PROPERTY, lv.getCount());
+      v.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lv.getSubVertices()));
+      return v;
+    });
 
-    DataSet<Force> forces =
-      repulsions.union(attractions).groupBy(Force.ID).reduce((first, second) -> {
-        first.setValue(first.getValue().add(second.getValue()));
-        return first;
-      });
-
-    return applyForces(g.getVertices(), forces, iterations);
+    DataSet<Edge> edges = layouted.getEdges().map((le)->{
+      Edge e = new Edge(le.getId(),"edge",le.getSourceId(),le.getTargetId(),new Properties(),null);
+      e.setProperty(VERTEX_SIZE_PROPERTY, le.getCount());
+      e.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(le.getSubEdges()));
+      return e;
+    });
+    return input.getFactory().fromDataSets(vertices,edges);
   }
 
+  /**
+   * Extract all subverties/subedges from the super-vertices/super-edges and place them at the
+   * location of the super-vertex (and add some random jitter to the positions)
+   * @param input Original input graph
+   * @param layouted Result of the layouting
+   * @param jitter Maximum distance between super-node position and node-position
+   * @return The final graph, containing all vertices and edges from the original graph.
+   */
+  protected LogicalGraph buildExtractedGraph(LogicalGraph input, LGraph layouted, final double jitter){
+    DataSet<Vertex> vertices =
+      layouted.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
+      for (GradoopId id: superv.getSubVertices()){
+        LVertex v = new LVertex();
+        v.setId(id);
+        v.setPosition(jitterPosition(superv.getPosition(),jitter));
+        collector.collect(v);
+      }
+      superv.setSubVertices(null);
+      collector.collect(superv);
+    }).returns(new TypeHint<LVertex>() {}).join(input.getVertices()).where(LVertex.ID).equalTo(
+      "id").with((lv,v)->{
+      lv.getPosition().setVertexPosition(v);
+      return v;
+    });
+    return input.getFactory().fromDataSets(vertices,input.getEdges());
+  }
+
+  /**
+   * Add random jitter to position
+   * @param center Position
+   * @param jitter Maximum distance
+   * @return Randomly modified position
+   */
+  protected static Vector jitterPosition(Vector center, double jitter){
+    Vector offset = new Vector();
+    while (true){
+      double x = (Math.random()*jitter)-(jitter/2.0);
+      double y = (Math.random()*jitter)-(jitter/2.0);
+      offset.set(x,y);
+      if (offset.magnitude() <= jitter){
+        break;
+      }
+    }
+    return offset.mAdd(center);
+  }
+
+  /**
+   * Helper function to convert the List of sub-elements into a List of PropertyValues
+   * @param ids List of GradoopIds
+   * @return A Property value of type List<PropertyValue<GradoopId>>
+   */
   protected static PropertyValue getSubelementListValue(List<GradoopId> ids){
     List<PropertyValue> result = new ArrayList<>();
     for (GradoopId id : ids){
