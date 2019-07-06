@@ -48,7 +48,8 @@ public class Facebook {
     GradoopFlinkConfig cfg = GradoopFlinkConfig.createConfig(env);
 
     LogicalGraphCSVDataSource source = new LogicalGraphCSVDataSource(INPUT_PATH, cfg);
-    LayoutingAlgorithm frl = new FusingFRLayouter(ITERATIONS, 4100, 0.7);
+    LayoutingAlgorithm frl = new FusingFRLayouter(ITERATIONS, 4100, 0.7,
+      FusingFRLayouter.OutputFormat.EXTRACTED);
     System.out.println(frl);
     LogicalGraph layouted = frl.execute(source.getLogicalGraph());
 

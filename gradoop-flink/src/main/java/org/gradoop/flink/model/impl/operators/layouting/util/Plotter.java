@@ -451,7 +451,7 @@ public class Plotter implements DataSink, Serializable {
     private void drawEdge(Graphics2D gfx, Edge e) {
       gfx.setColor(plotter.edgeColor);
       float edgeSize = plotter.edgeSize;
-      if (plotter.dynamicEdgeSize) {
+      if (plotter.dynamicEdgeSize && e.getPropertyValue("SIZE") != null) {
         edgeSize *= Math.sqrt((float) e.getPropertyValue("SIZE").getInt());
       }
       gfx.setStroke(new BasicStroke(edgeSize));
@@ -478,7 +478,7 @@ public class Plotter implements DataSink, Serializable {
       int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
       int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
       int size = plotter.vertexSize;
-      if (plotter.dynamicVertexSize) {
+      if (plotter.dynamicVertexSize && v.getPropertyValue("SIZE") != null) {
         size *= Math.sqrt((double) v.getPropertyValue("SIZE").getInt());
       }
       gfx.fillOval(x - size / 2, y - size / 2, size, size);
