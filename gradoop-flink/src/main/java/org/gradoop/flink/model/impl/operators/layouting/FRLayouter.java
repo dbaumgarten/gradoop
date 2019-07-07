@@ -71,6 +71,11 @@ public class FRLayouter implements LayoutingAlgorithm {
    * parameters
    */
   protected int numberOfVertices;
+  /**
+   * If true, do not create a random initial layout but use the existing layout of the graph
+   * instead.
+   */
+  boolean useExistingLayout = false;
 
 
   /**
@@ -128,6 +133,15 @@ public class FRLayouter implements LayoutingAlgorithm {
   }
 
   /**
+   * Use the existing layout as starting point instead of creating a random one.
+   * If used, EVERY vertex in the input-graph MUST have an X and Y property!
+   */
+  public FRLayouter useExistingLayout(boolean uel) {
+    this.useExistingLayout = uel;
+    return this;
+  }
+
+  /**
    * Gets k
    *
    * @return value of k
@@ -161,10 +175,7 @@ public class FRLayouter implements LayoutingAlgorithm {
   @Override
   public LogicalGraph execute(LogicalGraph g) {
 
-    RandomLayouter rl =
-      new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
-        getHeight() - (getHeight() / 10));
-    g = rl.execute(g);
+    g = createInitialLayout(g);
 
     DataSet<Vertex> gradoopVertices = g.getVertices();
     DataSet<Edge> gradoopEdges = g.getEdges();
@@ -187,6 +198,21 @@ public class FRLayouter implements LayoutingAlgorithm {
       });
 
     return g.getFactory().fromDataSets(gradoopVertices, gradoopEdges);
+  }
+
+  /**
+   * Creates a random layout as the starting-point for the algorithm
+   * @param g
+   * @return
+   */
+  protected LogicalGraph createInitialLayout(LogicalGraph g){
+    if (useExistingLayout) {
+      return g;
+    }
+    RandomLayouter rl =
+      new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
+        getHeight() - (getHeight() / 10));
+    return rl.execute(g);
   }
 
   /**
