@@ -141,10 +141,7 @@ public class FusingFRLayouter extends FRLayouter {
 
     applicator = new FRForceApplicator(getWidth(), getHeight(), getK(), (outputFormat!=OutputFormat.POSTLAYOUT)?iterations:iterations-POST_ITERATIONS);
 
-    RandomLayouter rl =
-      new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
-        getHeight() - (getHeight() / 10));
-    g = rl.execute(g);
+    g = createInitialLayout(g);
 
     DataSet<Vertex> gradoopVertices = g.getVertices();
     DataSet<Edge> gradoopEdges = g.getEdges();

@@ -135,9 +135,16 @@ public class FRRepulsionFunction implements JoinFunction<LVertex, LVertex, Force
     }
 
     if (distance == 0) {
+      // generate a pseudo-random (but deterministic) direction
+      int hash = first.getId().hashCode()+second.getId().hashCode();
+      int x = hash >> 16;
+      int y = hash & 0xFFFF;
       distance = 0.1;
-      direction.setX(rng.nextInt());
-      direction.setY(rng.nextInt());
+      direction.setX(x);
+      direction.setY(y);
+      if (first.getId().compareTo(second.getId()) > 0){
+        direction.mMul(-1);
+      }
     }
 
     calculatedForce.set(direction.mNormalized().mMul(-Math.pow(k, 2) / distance)
