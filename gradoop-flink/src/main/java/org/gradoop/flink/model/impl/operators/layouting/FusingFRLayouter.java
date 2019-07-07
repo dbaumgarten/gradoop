@@ -26,8 +26,10 @@ import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
+import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplicator;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.VertexFusor;
+import org.gradoop.flink.model.impl.operators.layouting.util.Force;
 import org.gradoop.flink.model.impl.operators.layouting.util.GraphElement;
 import org.gradoop.flink.model.impl.operators.layouting.util.LEdge;
 import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
@@ -58,7 +60,11 @@ public class FusingFRLayouter extends FRLayouter {
     /**
      * Like EXTRACTED, but vertices of a supernode will be placed at exactly the same position.
      */
-    RAWEXTRACTED
+    RAWEXTRACTED,
+    /**
+     * Like EXTRACTED, but performs some more layouting-iterations after the extraction.
+     */
+    POSTLAYOUT
   }
 
   /**
@@ -73,6 +79,10 @@ public class FusingFRLayouter extends FRLayouter {
    */
   public static final String SUB_ELEMENTS_PROPERTY = "SUBELEMENTS";
   /**
+   * Iterations used for the after-fusing layouting. (If OutputFormat.POSTLAYOUT is used.)
+   */
+  private static final int POST_ITERATIONS = 10;
+  /**
    * Only vertices with a similarity of at least threshold are combined
    */
   protected double threshold;
@@ -84,6 +94,10 @@ public class FusingFRLayouter extends FRLayouter {
    * The output format chosen by the user
    */
   protected OutputFormat outputFormat;
+  /**
+   * The force-applicator used by layout(). Can be modified to change the layout behavior.
+   */
+  protected FRForceApplicator applicator;
 
   /**
    * Create new FusingFRLayouter
@@ -125,6 +139,8 @@ public class FusingFRLayouter extends FRLayouter {
   @Override
   public LogicalGraph execute(LogicalGraph g) {
 
+    applicator = new FRForceApplicator(getWidth(), getHeight(), getK(), (outputFormat!=OutputFormat.POSTLAYOUT)?iterations:iterations-POST_ITERATIONS);
+
     RandomLayouter rl =
       new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
         getHeight() - (getHeight() / 10));
@@ -140,7 +156,8 @@ public class FusingFRLayouter extends FRLayouter {
     DataSet<GraphElement> tmpedges = gradoopEdges.map((e) -> new LEdge(e));
     DataSet<GraphElement> graphElements = tmpvertices.union(tmpedges);
 
-    IterativeDataSet<GraphElement> loop = graphElements.iterate(iterations);
+    IterativeDataSet<GraphElement> loop =
+      graphElements.iterate((outputFormat!=OutputFormat.POSTLAYOUT)?iterations:iterations-POST_ITERATIONS);
 
     // split the combined dataset to work with the edges and vertices
     LGraph graph = new LGraph(loop);
@@ -162,15 +179,59 @@ public class FusingFRLayouter extends FRLayouter {
 
     switch (outputFormat){
     case SIMPLIFIED:
-      return buildSimplifiedGraph(g,graph);
+      return buildSimplifiedGraph(g, graph);
     case EXTRACTED:
-      return buildExtractedGraph(g,graph,2*getK());
+      return buildExtractedGraph(g, graph, 2*getK());
     case RAWEXTRACTED:
-      return buildExtractedGraph(g,graph,0);
+      return buildExtractedGraph(g, graph, 0);
+    case POSTLAYOUT:
+      return buildPostLayoutGraph(g, graph);
     }
 
     // This should never happen
     return null;
+  }
+
+  /**
+   * Extract all subverties/subedges from the super-vertices/super-edges and place them at the
+   * location of the super-vertex (and add some random jitter to the positions).
+   * Then some more layouting-iteraions are performed.
+   * @param input Original input graph
+   * @param graph Result of the layouting
+   * @return The final graph, containing all vertices and edges from the original graph.
+   */
+  protected LogicalGraph buildPostLayoutGraph(LogicalGraph input, LGraph graph){
+    final double kf = getK();
+    DataSet<LVertex> vertices =
+      graph.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
+        for (GradoopId id: superv.getSubVertices()){
+          LVertex v = new LVertex();
+          v.setId(id);
+          v.setPosition(jitterPosition(superv.getPosition(),kf));
+          collector.collect(v);
+        }
+        superv.setSubVertices(null);
+        collector.collect(superv);
+      }).returns(new TypeHint<LVertex>() {});
+
+    DataSet<LEdge> edges = input.getEdges().map(e->new LEdge(e));
+    graph.setEdges(edges);
+
+    applicator.setStartSpeed(5*kf);
+    applicator.setMaxIterations(POST_ITERATIONS);
+    IterativeDataSet<LVertex> loop = vertices.iterate(POST_ITERATIONS);
+    graph.setVertices(loop);
+    layout(graph);
+    vertices = loop.closeWith(graph.getVertices());
+
+
+    DataSet<Vertex> gradoopVertices = vertices.join(input.getVertices()).where(LVertex.ID).equalTo(
+             "id").with((lv,v)->{
+             lv.getPosition().setVertexPosition(v);
+             return v;
+           });
+
+    return input.getFactory().fromDataSets(gradoopVertices,input.getEdges());
   }
 
   /**
@@ -241,6 +302,13 @@ public class FusingFRLayouter extends FRLayouter {
       }
     }
     return offset.mAdd(center);
+  }
+
+  @Override
+  protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices, DataSet<Force> forces,
+    int iterations) {
+    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
+      .with(applicator);
   }
 
   /**

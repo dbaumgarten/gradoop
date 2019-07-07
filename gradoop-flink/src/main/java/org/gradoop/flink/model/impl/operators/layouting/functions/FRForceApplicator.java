@@ -31,7 +31,6 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * Width of the layouting-space
    */
   private int layoutWidth;
-
   /**
    * Height of the layouting space
    */
@@ -41,21 +40,26 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * Speed at which the cooling-schedule starts
    */
   private double startSpeed;
-
+  /**
+   * Speed at which the cooling-schedule ends
+   */
+  private double endSpeed;
   /**
    * Base of the exponentially-decreasing function for the speed
    */
   private double base;
-
   /**
    * cache the last computed temperature and re-use if possible to reduce needed computing-power
    */
   private int lastIteration = -1;
-
   /**
    * cache the last computed temperature and re-use if possible to reduce needed computing-power
    */
   private double lastSpeedLimit = 0;
+  /**
+   * Maximum number of iterations
+   */
+  private int maxIterations;
 
   /**
    * Create new FRForceApplicator
@@ -69,7 +73,68 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
     this.layoutWidth = width;
     this.layoutHeight = height;
     this.startSpeed = Math.sqrt(width * width + height * height) / 2.0;
-    double endSpeed = k / 10.0;
+    this.endSpeed = k / 10.0;
+    this.maxIterations = maxIterations;
+    calculateBase();
+  }
+
+  /**
+   * Gets startSpeed
+   *
+   * @return value of startSpeed
+   */
+  public double getStartSpeed() {
+    return startSpeed;
+  }
+
+  /**
+   * Sets startSpeed (overrides default)
+   *
+   * @param startSpeed the new value
+   */
+  public void setStartSpeed(double startSpeed) {
+    this.startSpeed = startSpeed;
+    calculateBase();
+  }
+
+  /**
+   * Gets endSpeed
+   *
+   * @return value of endSpeed
+   */
+  public double getEndSpeed() {
+    return endSpeed;
+  }
+
+  /**
+   * Sets endSpeed (overrides default)
+   *
+   * @param endSpeed the new value
+   */
+  public void setEndSpeed(double endSpeed) {
+    this.endSpeed = endSpeed;
+    calculateBase();
+  }
+
+  /**
+   * Gets maxIterations
+   *
+   * @return value of maxIterations
+   */
+  public int getMaxIterations() {
+    return maxIterations;
+  }
+
+  /**
+   * Sets maxIterations
+   *
+   * @param maxIterations the new value
+   */
+  public void setMaxIterations(int maxIterations) {
+    this.maxIterations = maxIterations;
+  }
+
+  private void calculateBase(){
     this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations - 1));
   }
 
