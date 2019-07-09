@@ -110,4 +110,12 @@ public class SamplingFRLayouter extends FRLayouter {
         return f;
       });
   }
+
+  @Override
+  public String toString() {
+    return "SamplingFRLayouter{" + "samplingRate=" + samplingRate + ", iterations=" + iterations +
+      ", k=" + getK() + ", width=" + getWidth() + ", height=" + getHeight() + ", maxRepulsionDistance=" +
+      getMaxRepulsionDistance() + ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" +
+      useExistingLayout + '}';
+  }
 }

@@ -304,11 +304,10 @@ public class FRLayouter implements LayoutingAlgorithm {
       .flatMap(new FRAttractionFunction(getK()));
   }
 
-
   @Override
   public String toString() {
-    return "FRLayouter{" + "iterations=" + iterations + ", k=" + getK() + ", width=" + getWidth() +
-      ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
-      ", numberOfVertices=" + numberOfVertices + '}';
+    return "FRLayouter{" + "iterations=" + iterations + ", k=" + k + ", width=" + width +
+      ", height=" + height + ", maxRepulsionDistance=" + maxRepulsionDistance +
+      ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
   }
 }

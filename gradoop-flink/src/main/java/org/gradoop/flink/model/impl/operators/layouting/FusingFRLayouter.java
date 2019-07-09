@@ -321,4 +321,11 @@ public class FusingFRLayouter extends FRLayouter {
     return PropertyValue.create(result);
   }
 
+  @Override
+  public String toString() {
+    return "FusingFRLayouter{" + "threshold=" + threshold +
+      ", outputFormat=" + outputFormat + ", iterations=" + iterations + ", k=" + getK() + ", width=" +
+      getWidth() + ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
+      ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
+  }
 }

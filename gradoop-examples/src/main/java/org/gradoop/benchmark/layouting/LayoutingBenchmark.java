@@ -28,15 +28,21 @@ import org.gradoop.flink.io.impl.deprecated.json.JSONDataSink;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
+import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.GiLaLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.SamplingFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
+import org.gradoop.flink.model.impl.operators.statistics.EdgeLengthDerivation;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -57,16 +63,6 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_OUTPUT_PATH = "o";
   /**
-   * Option to define the to-be-evaluated layouting algorithm.
-   * <p>
-   * Available mappings:
-   * 0 ---> Random
-   * 1 ---> FRNaive
-   * 2 ---> FR
-   */
-  private static final String OPTION_SELECTED_ALGORITHM = "a";
-
-  /**
    * Option to ENABLE_PLOTTING the layouted graph
    */
   private static final String OPTION_OUTPUT_FORMAT = "x";
@@ -79,25 +75,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_BENCHMARK_PATH = "b";
   /**
-   * Option to disable Statistics
+   * Option to specify a statistic to compute
    */
-  private static final String OPTION_NO_STATISTICS = "n";
+  private static final String OPTION_STATISTIC = "s";
   /**
    * Option to enable splitting into multiple jobs
    */
   private static final String OPTION_MULTIJOB = "m";
-  /**
-   * Used input path.
-   */
-  private static String INPUT_PATH;
-  /**
-   * Used output path.
-   */
-  private static String OUTPUT_PATH;
-  /**
-   * Format of used input data.
-   */
-  private static String INPUT_FORMAT;
   /**
    * Default format of input data.
    */
@@ -111,9 +95,17 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX = "graph_layout/";
   /**
-   * Integer defining the layouting algorithm that is to be evaluated.
+   * Used input path.
    */
-  private static int SELECTED_ALGORITHM;
+  private static String INPUT_PATH;
+  /**
+   * Used output path.
+   */
+  private static String OUTPUT_PATH;
+  /**
+   * Format of used input data.
+   */
+  private static String INPUT_FORMAT;
   /**
    * List of parameters that are used to instantiate the selected layouting algorithm.
    */
@@ -131,9 +123,9 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static String OUTPUT_PATH_BENCHMARK = "./benchmark.txt";
   /**
-   * If true, do not compute statistics. Only layout and output.
+   * The statistic that shall be computed
    */
-  private static boolean DISABLE_STATISTICS = false;
+  private static String STATISTIC = "";
   /**
    * If true split layouting and statistics(+plotting) in two jobs
    */
@@ -143,8 +135,6 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   static {
     OPTIONS.addRequiredOption(OPTION_INPUT_PATH, "input", true,
       "Path to directory containing csv files to be processed");
-    OPTIONS.addRequiredOption(OPTION_SELECTED_ALGORITHM, "algorithm", true,
-      "Positive integer selecting a layouting algorithm");
     OPTIONS.addOption(OPTION_OUTPUT_PATH, "output", true,
       "Path to directory where resulting graph sample, benchmark file and graph " +
         "statistics are written to. (Defaults to " + OUTPUT_PATH_DEFAULT + ")");
@@ -155,63 +145,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       .addOption(OPTION_DYNAMIC_OUT, "dyn", false, "If true include args in output foldername");
     OPTIONS.addOption(OPTION_BENCHMARK_PATH, "benchmarkfile", true,
       "Path where the " + "benchmark-file is written to");
-    OPTIONS.addOption(OPTION_NO_STATISTICS, "nostat", false,
-      "Disable calculation of statistics. E.g" + ". CrossEdges");
+    OPTIONS.addOption(OPTION_STATISTIC, "statistic", true,
+      "Choose a statistic to compute for the layout. (cre or eld)");
     OPTIONS
       .addOption(OPTION_MULTIJOB, "multijob", false, "Split layouting and statistic in two jobs");
   }
-
-  /**
-   * Build the selected LayoutingAlgorithm with the given constuctor parameters
-   *
-   * @param algo Algorithm to build
-   * @param opts A list of options
-   * @return The Layouter
-   */
-  private static LayoutingAlgorithm buildLayoutingAlgorithm(int algo, String[] opts) {
-    try {
-      int vertexCount = Integer.parseInt(get(opts, 0));
-      int width = Integer.parseInt(get(opts, 1));
-      int height = Integer.parseInt(get(opts, 2));
-      switch (algo) {
-      case 0:
-        return new RandomLayouter(0, width, 0, height);
-      case 1:
-        int iterations = Integer.parseInt(get(opts, 3));
-        double k = Double.parseDouble(get(opts, 4));
-        return new FRLayouterNaive(iterations, vertexCount).area(width, height).k(k);
-      case 2:
-        iterations = Integer.parseInt(get(opts, 3));
-        k = Double.parseDouble(get(opts, 4));
-        int grid = Integer.parseInt(get(opts, 5));
-        return new FRLayouter(iterations, vertexCount).k(k).maxRepulsionDistance(grid)
-          .area(width, height);
-      default:
-        throw new IllegalArgumentException("Unknown layouting-algorithm: " + algo);
-      }
-    } catch (IndexOutOfBoundsException e) {
-      throw new IllegalArgumentException(
-        "Not enogh parameters provided for given algorithm. " + "Found: [" +
-          String.join(",", CONSTRUCTOR_PARAMS) + "] and algorithm: " + algo);
-    } catch (NumberFormatException e) {
-      throw new IllegalArgumentException(
-        "Expected a number as parameter but found: " + e.getMessage());
-    }
-  }
-
-  /** Helper function to get element from array (if present) or "0" as default
-   *
-   * @param arr Get element from here
-   * @param idx Index of element
-   * @return add[idx] or "0"
-   */
-  private static String get(String[] arr, int idx) {
-    if (arr.length <= idx) {
-      return "0";
-    }
-    return arr[idx];
-  }
-
 
   /**
    * Main program to run the benchmark. Required arguments are a path to CSVDataSource compatible
@@ -231,10 +169,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     readCMDArguments(cmd);
 
+    // instantiate selected layouting algorithm and create layout
+    LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(CONSTRUCTOR_PARAMS);
+
+    System.out.println(algorithm);
+
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
 
-    // instantiate selected layouting algorithm and create layout
-    LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(SELECTED_ALGORITHM, CONSTRUCTOR_PARAMS);
     LogicalGraph layouted = algorithm.execute(graph);
 
     // write graph sample and benchmark data
@@ -243,11 +184,10 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       outpath += getDynamicOutputFolderName() + "/";
     }
 
-
-    JobExecutionResult jerlayout = null;
+    JobExecutionResult layoutExecutionEnvironment = null;
     if (MULTIJOB) {
       layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm));
-      jerlayout = getExecutionEnvironment().execute("Layouting");
+      layoutExecutionEnvironment = getExecutionEnvironment().execute("Layouting");
       layouted = readLogicalGraph(outpath, "csv");
     }
 
@@ -255,20 +195,207 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm));
     }
 
-    Double crossedges = -1d;
-    if (!DISABLE_STATISTICS) {
-      //This also executes the flink programm as a side-effect
-      crossedges = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
-    } else if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
-      getExecutionEnvironment().execute("Output-Conversion");
+    Double statisticValue;
+    switch (STATISTIC) {
+    case "cre":
+      //This also executes the flink program as a side-effect
+      statisticValue = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
+      break;
+    case "eld":
+      //This also executes the flink program as a side-effect
+      statisticValue = new EdgeLengthDerivation().execute(layouted).collect().get(0);
+      break;
+    default:
+      statisticValue = 0d;
+      if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
+        getExecutionEnvironment().execute("Output-Conversion");
+      }
+      break;
     }
 
-    if (jerlayout == null) {
-      jerlayout = layouted.getConfig().getExecutionEnvironment().getLastJobExecutionResult();
+    if (layoutExecutionEnvironment == null) {
+      layoutExecutionEnvironment =
+        layouted.getConfig().getExecutionEnvironment().getLastJobExecutionResult();
     }
 
-    writeBenchmark(jerlayout, layouted.getConfig().getExecutionEnvironment().getParallelism(),
-      algorithm, crossedges);
+    writeBenchmark(layoutExecutionEnvironment,
+      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValue);
+  }
+
+  /**
+   * Reads the given arguments from command line.
+   *
+   * @param cmd command line
+   */
+  private static void readCMDArguments(CommandLine cmd) {
+    INPUT_PATH = cmd.getOptionValue(OPTION_INPUT_PATH);
+    CONSTRUCTOR_PARAMS = cmd.getArgList().toArray(new String[0]);
+    OUTPUT_PATH = cmd.getOptionValue(OPTION_OUTPUT_PATH, OUTPUT_PATH_DEFAULT);
+    INPUT_FORMAT = cmd.getOptionValue(OPTION_INPUT_FORMAT, INPUT_FORMAT_DEFAULT);
+    ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
+    OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
+    OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
+    STATISTIC = cmd.getOptionValue(OPTION_STATISTIC);
+    MULTIJOB = cmd.hasOption(OPTION_MULTIJOB);
+  }
+
+  /**
+   * Build the selected LayoutingAlgorithm with the given constructor parameters
+   *
+   * @param opts A list of options
+   * @return The layouter
+   */
+  private static LayoutingAlgorithm buildLayoutingAlgorithm(String[] opts) {
+
+    LayoutingAlgorithm algo = null;
+    try {
+      if (opts.length == 0) {
+        throw new IllegalArgumentException("Please specify an algorithm to use.");
+      }
+
+      String algoname = opts[0];
+
+      switch (algoname) {
+      case "RandomLayouter":
+        if (opts.length != 5) {
+          throw new IllegalArgumentException("Selected algorithm needs exactly 4 arguments");
+        }
+        int minX = Integer.parseInt(opts[1]);
+        int maxX = Integer.parseInt(opts[2]);
+        int minY = Integer.parseInt(opts[3]);
+        int maxY = Integer.parseInt(opts[4]);
+        algo = new RandomLayouter(minX, maxX, minY, maxY);
+        applyOptionalArguments(algo, 5);
+        break;
+      case "FRLayouterNaive":
+        if (opts.length < 3) {
+          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        }
+        int iterations = Integer.parseInt(opts[1]);
+        int vertexcount = Integer.parseInt(opts[2]);
+        algo = new FRLayouterNaive(iterations, vertexcount);
+        applyOptionalArguments(algo, 3);
+        break;
+      case "FRLayouter":
+        if (opts.length < 3) {
+          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        vertexcount = Integer.parseInt(opts[2]);
+        algo = new FRLayouter(iterations, vertexcount);
+        applyOptionalArguments(algo, 3);
+        break;
+      case "SamplingFRLayouter":
+        if (opts.length < 4) {
+          throw new IllegalArgumentException("Selected algorithm has 3 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        vertexcount = Integer.parseInt(opts[2]);
+        double rate = Double.parseDouble(opts[3]);
+        algo = new SamplingFRLayouter(iterations, vertexcount, rate);
+        applyOptionalArguments(algo, 4);
+        break;
+      case "GiLaLayouter":
+        if (opts.length < 4) {
+          throw new IllegalArgumentException("Selected algorithm has 3 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        vertexcount = Integer.parseInt(opts[2]);
+        int kNeighborhood = Integer.parseInt(opts[3]);
+        algo = new GiLaLayouter(iterations, vertexcount, kNeighborhood);
+        applyOptionalArguments(algo, 4);
+        break;
+      case "FusingFRLayouter":
+        if (opts.length < 5) {
+          throw new IllegalArgumentException("Selected algorithm has 4 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        vertexcount = Integer.parseInt(opts[2]);
+        rate = Double.parseDouble(opts[3]);
+        algo = new FusingFRLayouter(iterations, vertexcount, rate,
+          FusingFRLayouter.OutputFormat.valueOf(opts[4]));
+        applyOptionalArguments(algo, 5);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown algorithm: " + algoname);
+      }
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Error when parsing number: " + e.getMessage());
+    }
+    return algo;
+  }
+
+  /**
+   * Parse the optional arguments and call the according setters on the layouting-algorithm
+   *
+   * @param algo  The algorithm to configure
+   * @param start The arguments
+   */
+  private static void applyOptionalArguments(LayoutingAlgorithm algo, int start) {
+    for (int i = start; i < CONSTRUCTOR_PARAMS.length; i++) {
+      String option = CONSTRUCTOR_PARAMS[i];
+      if (!option.contains("=")) {
+        throw new IllegalArgumentException("Optional arguments need to contain a '='");
+      }
+      String optionName = option.split("=")[0];
+      String[] optionValues = option.split("=")[1].split(",");
+      Object[] values = new Object[optionValues.length];
+      Class[] types = new Class[optionValues.length];
+
+      for (int o = 0; o < optionValues.length; o++) {
+        try {
+          values[o] = Integer.parseInt(optionValues[o]);
+          types[o] = int.class;
+          continue;
+        } catch (Exception e) {
+
+        }
+        try {
+          values[o] = Double.parseDouble(optionValues[o]);
+          types[o] = double.class;
+          continue;
+        } catch (Exception e) {
+
+        }
+        try {
+          values[o] = Boolean.parseBoolean(optionValues[o]);
+          types[o] = boolean.class;
+          continue;
+        } catch (Exception e) {
+
+        }
+      }
+
+      try {
+        Method m = algo.getClass().getMethod(optionName, types);
+        if (optionValues.length != m.getParameterCount()) {
+          throw new IllegalArgumentException(
+            "Wrong number of values for optional argument: " + optionName);
+        }
+        m.invoke(algo, values);
+      } catch (NoSuchMethodException e) {
+        String args = "";
+        for (int z = 0; z < types.length; z++) {
+          args += types[z].getName() + ",";
+        }
+        args = args.substring(0, args.length() - 1);
+        throw new IllegalArgumentException(
+          "Unknown optional argument: " + optionName + "(" + args + ")");
+      } catch (IllegalAccessException e) {
+        e.printStackTrace();
+      } catch (InvocationTargetException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  /**
+   * Generates a folder name from the input arguments
+   *
+   * @return A foldername
+   */
+  private static String getDynamicOutputFolderName() {
+    return String.join("-", CONSTRUCTOR_PARAMS)+"p-"+getExecutionEnvironment().getParallelism();
   }
 
   /**
@@ -277,7 +404,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @param directory output path
    * @param format    output format (csv, indexed, json)
    * @param config    gradoop config
-   * @param alg used algorithm
+   * @param alg       used algorithm
    * @return DataSink for EPGM Data
    */
   private static DataSink getDataSink(String directory, String format, GradoopFlinkConfig config,
@@ -293,61 +420,37 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "indexed":
       return new IndexedCSVDataSink(directory, config);
     case "image":
-      int width = Integer.parseInt(CONSTRUCTOR_PARAMS[0]);
-      int height = Integer.parseInt(CONSTRUCTOR_PARAMS[1]);
-      return new Plotter(directory + "image.png", alg.getWidth(), alg.getHeight(), width, height);
+      int width = 1024;
+      int height = 1024;
+      return new Plotter(directory + "image.png", alg, width, height)
+        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
   }
 
   /**
-   * Reads the given arguments from command line.
-   *
-   * @param cmd command line
-   */
-  private static void readCMDArguments(CommandLine cmd) {
-    INPUT_PATH = cmd.getOptionValue(OPTION_INPUT_PATH);
-    SELECTED_ALGORITHM = Integer.parseInt(cmd.getOptionValue(OPTION_SELECTED_ALGORITHM));
-    CONSTRUCTOR_PARAMS = cmd.getArgList().toArray(new String[0]);
-    OUTPUT_PATH = cmd.getOptionValue(OPTION_OUTPUT_PATH, OUTPUT_PATH_DEFAULT);
-    INPUT_FORMAT = cmd.getOptionValue(OPTION_INPUT_FORMAT, INPUT_FORMAT_DEFAULT);
-    ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
-    OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
-    OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
-    DISABLE_STATISTICS = cmd.hasOption(OPTION_NO_STATISTICS);
-    MULTIJOB = cmd.hasOption(OPTION_MULTIJOB);
-  }
-
-  /**
-   * Generates a folder name from the input arguments
-   *
-   * @return A foldername
-   */
-  private static String getDynamicOutputFolderName() {
-    return SELECTED_ALGORITHM + "-" + String.join("-", CONSTRUCTOR_PARAMS);
-  }
-
-  /**
    * Method to crate and add lines to a benchmark file.
    *
-   * @param result      The JoExecutionResult for the layouting
-   * @param parallelism Parallelism level used for the layouting
-   * @param layouting   layouting algorithm under test
-   * @param crossedges  number of detected edge-crossings
+   * @param result         The JoExecutionResult for the layouting
+   * @param parallelism    Parallelism level used for the layouting
+   * @param layouting      layouting algorithm under test
+   * @param statisticValue Result of the statistic the user wanted to calculate for the created
+   *                       layout
    * @throws IOException exception during file writing
    */
   private static void writeBenchmark(JobExecutionResult result, int parallelism,
-    LayoutingAlgorithm layouting, double crossedges) throws IOException {
+    LayoutingAlgorithm layouting, double statisticValue) throws IOException {
     String head = String
       .format("%s|%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params",
-        "Runtime " + "[s]", "Crossedges");
+        "Runtime " + "[s]", "Statistic");
 
     // build log
     String layoutingName = layouting.getClass().getSimpleName();
     String tail = String.format("%s|%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
-      String.join(", ", layouting.toString()), result.getNetRuntime(TimeUnit.SECONDS), crossedges);
+      String.join(", ", layouting.toString()), result.getNetRuntime(TimeUnit.SECONDS),
+      statisticValue);
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
