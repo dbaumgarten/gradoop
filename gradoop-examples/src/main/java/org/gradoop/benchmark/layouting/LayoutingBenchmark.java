@@ -412,7 +412,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @return A foldername
    */
   private static String getDynamicOutputFolderName() {
-    return String.join("-", CONSTRUCTOR_PARAMS)+"p-"+getExecutionEnvironment().getParallelism();
+    String dataset = new File(INPUT_PATH).getName();
+    return dataset + "-" + String.join("-", CONSTRUCTOR_PARAMS)+"p-"+getExecutionEnvironment().getParallelism();
   }
 
   /**
