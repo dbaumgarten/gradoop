@@ -26,6 +26,7 @@ import org.gradoop.flink.io.impl.csv.CSVDataSink;
 import org.gradoop.flink.io.impl.csv.indexed.IndexedCSVDataSink;
 import org.gradoop.flink.io.impl.deprecated.json.JSONDataSink;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.layouting.CentroidFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
 import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
@@ -315,6 +316,15 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         algo = new FusingFRLayouter(iterations, vertexcount, rate,
           FusingFRLayouter.OutputFormat.valueOf(opts[4]));
         applyOptionalArguments(algo, 5);
+        break;
+      case "CentroidFRLayouter":
+        if (opts.length < 3) {
+          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        vertexcount = Integer.parseInt(opts[2]);
+        algo = new CentroidFRLayouter(iterations, vertexcount);
+        applyOptionalArguments(algo, 3);
         break;
       default:
         throw new IllegalArgumentException("Unknown algorithm: " + algoname);
