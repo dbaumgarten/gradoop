@@ -113,6 +113,10 @@ public class FusingFRLayouter extends FRLayouter {
     super(iterations, vertexCount);
     this.threshold = threshold;
     this.outputFormat = of;
+
+    if (threshold < 0 || threshold > 1){
+      throw new IllegalArgumentException("Threshold must be between 0 and 1");
+    }
   }
 
   /**

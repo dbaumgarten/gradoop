@@ -6,28 +6,27 @@ OUTPUT="hdfs:///db32geta/ldbc_1-out/"
 
 #--------------------------------------------------
 
-ALGORITHMS="FRLayouter"
 PARALLELISM="96"
-ARGS="25 4000;50 4000"
+ARGS="FRLayouter 25 4000;FRLayouter 50 4000"
 
 #--------------------------------------------------
 
 IFS=';'
-read -ra ALGORITHMS <<< "$ALGORITHMS"
+read -ra INPUTS <<< "$INPUT"
 read -ra PARALLELISM <<< "$PARALLELISM"
 read -ra ARGS <<< "$ARGS"
 unset IFS
 
 
-for ALGO in "${ALGORITHMS[@]}"
+for INP in "${INPUTS[@]}"
 do
   for P in "${PARALLELISM[@]}"
   do
-    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INPUT} -o ${OUTPUT} -f csv -d -x image -m -s cre -b benchmark.txt"
+    COMMAND="${FLINK_BIN} run -p $P -c ${CLASS} ${JAR} -i ${INP} -o ${OUTPUT} -f csv -d -x image -m -s cre -b benchmark.txt"
 
     for ARG in "${ARGS[@]}"
     do
-      echo ${COMMAND} $ALGO ${ARG}
+      ${COMMAND} ${ARG}
     done
 
   done
