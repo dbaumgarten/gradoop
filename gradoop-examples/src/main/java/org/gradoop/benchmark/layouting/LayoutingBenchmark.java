@@ -22,9 +22,15 @@ import org.apache.flink.api.common.ProgramDescription;
 import org.gradoop.benchmark.sampling.SamplingBenchmark;
 import org.gradoop.examples.AbstractRunner;
 import org.gradoop.flink.io.api.DataSink;
+import org.gradoop.flink.io.api.DataSource;
 import org.gradoop.flink.io.impl.csv.CSVDataSink;
+import org.gradoop.flink.io.impl.csv.CSVDataSource;
 import org.gradoop.flink.io.impl.csv.indexed.IndexedCSVDataSink;
+import org.gradoop.flink.io.impl.csv.indexed.IndexedCSVDataSource;
 import org.gradoop.flink.io.impl.deprecated.json.JSONDataSink;
+import org.gradoop.flink.io.impl.deprecated.json.JSONDataSource;
+import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
+import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphIndexedCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.CentroidFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
@@ -32,6 +38,7 @@ import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
 import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.GiLaLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
+import org.gradoop.flink.model.impl.operators.layouting.MtxDataSource;
 import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.SamplingFRLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
@@ -434,6 +441,36 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       int height = 1024;
       return new Plotter(directory + "image.png", alg, width, height)
         .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
+    default:
+      throw new IllegalArgumentException("Unsupported format: " + format);
+    }
+  }
+
+  /**
+   * Returns an EPGM DataSource for a given directory and format.
+   *
+   * @param directory input path
+   * @param format format in which the data is stored (csv, indexed, json)
+   * @return DataSource for EPGM Data
+   */
+  private static DataSource getDataSource(String directory, String format) {
+    directory = appendSeparator(directory);
+    GradoopFlinkConfig config = GradoopFlinkConfig.createConfig(getExecutionEnvironment());
+    format = format.toLowerCase();
+
+    switch (format) {
+    case "json":
+      return new JSONDataSource(directory, config);
+    case "csv":
+      return new CSVDataSource(directory, config);
+    case "indexed":
+      return new IndexedCSVDataSource(directory, config);
+    case "lgcsv":
+      return new LogicalGraphCSVDataSource(directory, config);
+    case "lgindexed":
+      return new LogicalGraphIndexedCSVDataSource(directory, config);
+    case "mtx":
+      return new MtxDataSource(directory,config);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
