@@ -45,10 +45,8 @@ public abstract class LayoutingAlgorithmTest extends GradoopFlinkTestBase {
 
   @Test
   public void testLayouting() throws Exception {
-    ExecutionEnvironment env = getExecutionEnvironment();
-    GradoopFlinkConfig cfg = getConfig();
 
-    FlinkAsciiGraphLoader loader = new FlinkAsciiGraphLoader(cfg);
+    FlinkAsciiGraphLoader loader = getSocialNetworkLoader();
     loader.initDatabaseFromString(graph);
 
     int width = 600;

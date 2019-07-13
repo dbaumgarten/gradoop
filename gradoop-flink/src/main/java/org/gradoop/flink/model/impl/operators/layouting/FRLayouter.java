@@ -306,8 +306,8 @@ public class FRLayouter implements LayoutingAlgorithm {
 
   @Override
   public String toString() {
-    return "FRLayouter{" + "iterations=" + iterations + ", k=" + k + ", width=" + width +
-      ", height=" + height + ", maxRepulsionDistance=" + maxRepulsionDistance +
+    return "FRLayouter{" + "iterations=" + iterations + ", k=" + getK() + ", with=" + getWidth() +
+      ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
       ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
   }
 }
