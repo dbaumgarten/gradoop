@@ -177,12 +177,17 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     readCMDArguments(cmd);
 
-    // instantiate selected layouting algorithm and create layout
-    LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(CONSTRUCTOR_PARAMS);
-
-    System.out.println(algorithm);
-
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
+
+    // instantiate selected layouting algorithm and create layout
+    LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(CONSTRUCTOR_PARAMS,
+      (int)graph.getVertices().count());
+
+    System.out.println("----------");
+    System.out.println("INPUT: "+new File(INPUT_PATH).getName());
+    System.out.println("PARALLELISM: "+getExecutionEnvironment().getParallelism());
+    System.out.println("ALGO: "+algorithm);
+    System.out.println("----------");
 
     LogicalGraph layouted = algorithm.execute(graph);
 
@@ -194,13 +199,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     JobExecutionResult layoutExecutionEnvironment = null;
     if (MULTIJOB) {
-      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm));
+      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm),true);
       layoutExecutionEnvironment = getExecutionEnvironment().execute("Layouting");
       layouted = readLogicalGraph(outpath, "csv");
     }
 
     if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
-      layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm));
+      layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm),true);
     }
 
     Double statisticValue;
@@ -253,7 +258,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @param opts A list of options
    * @return The layouter
    */
-  private static LayoutingAlgorithm buildLayoutingAlgorithm(String[] opts) {
+  private static LayoutingAlgorithm buildLayoutingAlgorithm(String[] opts, int vertexcount) {
 
     LayoutingAlgorithm algo = null;
     try {
@@ -276,62 +281,56 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         applyOptionalArguments(algo, 5);
         break;
       case "FRLayouterNaive":
-        if (opts.length < 3) {
-          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        if (opts.length < 2) {
+          throw new IllegalArgumentException("Selected algorithm has 1 required arguments");
         }
         int iterations = Integer.parseInt(opts[1]);
-        int vertexcount = Integer.parseInt(opts[2]);
         algo = new FRLayouterNaive(iterations, vertexcount);
-        applyOptionalArguments(algo, 3);
+        applyOptionalArguments(algo, 2);
         break;
       case "FRLayouter":
-        if (opts.length < 3) {
-          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        if (opts.length < 2) {
+          throw new IllegalArgumentException("Selected algorithm has 1 required arguments");
         }
         iterations = Integer.parseInt(opts[1]);
-        vertexcount = Integer.parseInt(opts[2]);
         algo = new FRLayouter(iterations, vertexcount);
-        applyOptionalArguments(algo, 3);
+        applyOptionalArguments(algo, 2);
         break;
       case "SamplingFRLayouter":
-        if (opts.length < 4) {
-          throw new IllegalArgumentException("Selected algorithm has 3 required arguments");
-        }
-        iterations = Integer.parseInt(opts[1]);
-        vertexcount = Integer.parseInt(opts[2]);
-        double rate = Double.parseDouble(opts[3]);
-        algo = new SamplingFRLayouter(iterations, vertexcount, rate);
-        applyOptionalArguments(algo, 4);
-        break;
-      case "GiLaLayouter":
-        if (opts.length < 4) {
-          throw new IllegalArgumentException("Selected algorithm has 3 required arguments");
-        }
-        iterations = Integer.parseInt(opts[1]);
-        vertexcount = Integer.parseInt(opts[2]);
-        int kNeighborhood = Integer.parseInt(opts[3]);
-        algo = new GiLaLayouter(iterations, vertexcount, kNeighborhood);
-        applyOptionalArguments(algo, 4);
-        break;
-      case "FusingFRLayouter":
-        if (opts.length < 5) {
-          throw new IllegalArgumentException("Selected algorithm has 4 required arguments");
-        }
-        iterations = Integer.parseInt(opts[1]);
-        vertexcount = Integer.parseInt(opts[2]);
-        rate = Double.parseDouble(opts[3]);
-        algo = new FusingFRLayouter(iterations, vertexcount, rate,
-          FusingFRLayouter.OutputFormat.valueOf(opts[4]));
-        applyOptionalArguments(algo, 5);
-        break;
-      case "CentroidFRLayouter":
         if (opts.length < 3) {
           throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
         }
         iterations = Integer.parseInt(opts[1]);
-        vertexcount = Integer.parseInt(opts[2]);
-        algo = new CentroidFRLayouter(iterations, vertexcount);
+        double rate = Double.parseDouble(opts[2]);
+        algo = new SamplingFRLayouter(iterations, vertexcount, rate);
         applyOptionalArguments(algo, 3);
+        break;
+      case "GiLaLayouter":
+        if (opts.length < 3) {
+          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        int kNeighborhood = Integer.parseInt(opts[2]);
+        algo = new GiLaLayouter(iterations, vertexcount, kNeighborhood);
+        applyOptionalArguments(algo, 3);
+        break;
+      case "FusingFRLayouter":
+        if (opts.length < 4) {
+          throw new IllegalArgumentException("Selected algorithm has 3 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        rate = Double.parseDouble(opts[2]);
+        algo = new FusingFRLayouter(iterations, vertexcount, rate,
+          FusingFRLayouter.OutputFormat.valueOf(opts[3]));
+        applyOptionalArguments(algo, 4);
+        break;
+      case "CentroidFRLayouter":
+        if (opts.length < 2) {
+          throw new IllegalArgumentException("Selected algorithm has 1 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        algo = new CentroidFRLayouter(iterations, vertexcount);
+        applyOptionalArguments(algo, 2);
         break;
       default:
         throw new IllegalArgumentException("Unknown algorithm: " + algoname);
@@ -413,7 +412,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static String getDynamicOutputFolderName() {
     String dataset = new File(INPUT_PATH).getName();
-    return dataset + "-" + String.join("-", CONSTRUCTOR_PARAMS)+"p-"+getExecutionEnvironment().getParallelism();
+    return dataset + "-" + String.join("-", CONSTRUCTOR_PARAMS)+"-p="+getExecutionEnvironment().getParallelism();
   }
 
   /**
@@ -441,11 +440,25 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       int width = 1024;
       int height = 1024;
       return new Plotter(directory + "image.png", alg, width, height)
-        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true);
+        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true).edgeSize(0.1f);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
   }
+
+  /**
+   * Reads an EPGM database from a given directory.
+   *
+   * @param directory path to EPGM database
+   * @param format format in which the graph is stored (csv, indexed, json)
+   * @return EPGM logical graph
+   * @throws IOException on failure
+   */
+  protected static LogicalGraph readLogicalGraph(String directory, String format)
+    throws IOException {
+    return getDataSource(directory, format).getLogicalGraph();
+  }
+
 
   /**
    * Returns an EPGM DataSource for a given directory and format.
@@ -477,6 +490,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     }
   }
 
+
+
   /**
    * Method to crate and add lines to a benchmark file.
    *
@@ -490,13 +505,12 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   private static void writeBenchmark(JobExecutionResult result, int parallelism,
     LayoutingAlgorithm layouting, double statisticValue) throws IOException {
     String head = String
-      .format("%s|%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Algorithm", "Params",
+      .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Params",
         "Runtime " + "[s]", "Statistic");
 
     // build log
-    String layoutingName = layouting.getClass().getSimpleName();
-    String tail = String.format("%s|%s|%s|%s|%s|%s%n", parallelism,
-      INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1), layoutingName,
+    String tail = String.format("%s|%s|%s|%s|%s%n", parallelism,
+      INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1),
       String.join(", ", layouting.toString()), result.getNetRuntime(TimeUnit.SECONDS),
       statisticValue);
 
