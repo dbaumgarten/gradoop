@@ -359,4 +359,10 @@ public class GiLaLayouter extends
     }
   }
 
+  @Override
+  public String toString() {
+    return "GiLaLayouter{" + "iterations=" + iterations + ", width=" + getWidth() + ", height=" +
+      getHeight() + ", kNeighborhood=" + kNeighborhood + ", optimumDistance=" + getOptimumDistance() +
+      ", numberOfVertices=" + numberOfVertices + '}';
+  }
 }
