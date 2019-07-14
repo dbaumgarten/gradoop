@@ -23,7 +23,6 @@ import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.common.model.impl.properties.Properties;
-import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplicator;
@@ -36,7 +35,6 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,7 +45,8 @@ public class FusingFRLayouter extends FRLayouter {
 
   public enum OutputFormat {
     /** Output the simplified graph. The output-graph will loose all information except for the
-     * GradoopIds. Vertices/Edges will have "SUBELEMENTS"-Property listing all elements that were
+     * GradoopIds. Vertices/Edges will have "SUBELEMENTS"-Property containing a comma
+     * separated string listing all element-ids that were
      * combined into the super-element. Edges and Vertices will have a "SIZE"-Property containing
      * the number of sub-elements contained in this super-element.
      */
@@ -313,16 +312,22 @@ public class FusingFRLayouter extends FRLayouter {
   }
 
   /**
-   * Helper function to convert the List of sub-elements into a List of PropertyValues
+   * Helper function to convert the List of sub-elements into a comma seperated string
+   * Gradoop (especially the CSVDataSink) seems to have trouble with lists of PropertyValues, so
+   * this is the easies workaround
    * @param ids List of GradoopIds
-   * @return A Property value of type List<PropertyValue<GradoopId>>
+   * @return A comma seperated string of ids
    */
-  protected static PropertyValue getSubelementListValue(List<GradoopId> ids){
-    List<PropertyValue> result = new ArrayList<>();
+  protected static String getSubelementListValue(List<GradoopId> ids){
+    StringBuilder sb = new StringBuilder();
     for (GradoopId id : ids){
-      result.add(PropertyValue.create(id));
+      sb.append(id.toString());
+      sb.append(",");
     }
-    return PropertyValue.create(result);
+    if (sb.length() > 0) {
+      sb.deleteCharAt(sb.length() - 1);
+    }
+    return sb.toString();
   }
 
   @Override
