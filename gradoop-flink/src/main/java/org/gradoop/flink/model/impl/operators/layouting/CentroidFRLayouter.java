@@ -25,11 +25,11 @@ import java.util.List;
 
 public class CentroidFRLayouter extends FRLayouter {
 
-  protected static double INITIAL_SAMPLING_RATE = 0.1d;
+  protected static final double INITIAL_SAMPLING_RATE = 0.1d;
 
-  protected static double MIN_MASS_FACTOR = 0.0025d;
+  protected static final double MIN_MASS_FACTOR = 0.0025d;
 
-  protected static double MAX_MASS_FACTOR = 0.05d;
+  protected static final double MAX_MASS_FACTOR = 0.05d;
 
   protected static final String CENTROID_BROADCAST_NAME = "centroids";
 
