@@ -21,6 +21,7 @@ import org.gradoop.flink.model.impl.operators.layouting.util.LGraph;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class CentroidFRLayouter extends FRLayouter {
@@ -238,7 +239,7 @@ public class CentroidFRLayouter extends FRLayouter {
   }
 
 
-  protected static class Centroid implements GraphElement{
+  protected static class Centroid implements GraphElement, Serializable {
     protected GradoopId id;
     protected Vector position;
     protected int count;
