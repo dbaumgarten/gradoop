@@ -15,9 +15,12 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.graph.Edge;
 import org.apache.flink.graph.Graph;
 import org.apache.flink.graph.Vertex;
@@ -25,6 +28,7 @@ import org.apache.flink.graph.pregel.ComputeFunction;
 import org.apache.flink.graph.pregel.MessageIterator;
 import org.apache.flink.types.NullValue;
 import org.gradoop.common.model.impl.id.GradoopId;
+import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.algorithms.gelly.GradoopGellyAlgorithm;
 import org.gradoop.flink.algorithms.gelly.functions.EdgeToGellyEdgeWithNullValue;
 import org.gradoop.flink.algorithms.gelly.functions.VertexToGellyVertex;
@@ -41,7 +45,7 @@ import java.util.List;
 
 /**
  * Implementation of the GiLa-Layouting-Algorithm.
- * Good for sparsely-connected graphs. Really slow for sense graphs.
+ * Good for sparsely-connected graphs. Really slow for dense graphs.
  */
 public class GiLaLayouter extends
   GradoopGellyAlgorithm<GiLaLayouter.VertexValue, NullValue> implements LayoutingAlgorithm {
@@ -96,8 +100,7 @@ public class GiLaLayouter extends
         return new Vertex<>(vertex.getId(), new VertexValue(vertex));
       }
     }, new EdgeToGellyEdgeWithNullValue());
-    // We need extra-iterations for the flooding and one start-iteration for initial messages
-    this.iterations = iterations * kNeighborhood + 1;
+    this.iterations = iterations;
     this.kNeighborhood = kNeighborhood;
     this.numberOfVertices = vertexCount;
   }
@@ -156,13 +159,30 @@ public class GiLaLayouter extends
       new RandomLayouter(getWidth() / 10, getWidth() - (getWidth() / 10), getHeight() / 10,
         getHeight() - (getHeight() / 10));
     graph = rl.execute(graph);
+
+    // GiLa needs an undirected graph. Transform the undirected into a directed Graph by copying
+    // and reversing all edges.
+    DataSet<org.gradoop.common.model.impl.pojo.Edge> edges =
+      graph.getEdges().flatMap((FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
+        org.gradoop.common.model.impl.pojo.Edge>)(e,
+      collector)->{
+      org.gradoop.common.model.impl.pojo.Edge edgeCopy =
+        new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(),e.getLabel(),e.getTargetId(),e.getSourceId(),
+          new Properties(),null);
+      collector.collect(e);
+      collector.collect(edgeCopy);
+    }).returns(new TypeHint<org.gradoop.common.model.impl.pojo.Edge>() {});
+
+    graph = graph.getConfig().getLogicalGraphFactory().fromDataSets(graph.getVertices(),
+      edges);
+
     return super.execute(graph);
   }
 
   @Override
   public LogicalGraph executeInGelly(Graph<GradoopId, VertexValue, NullValue> graph) {
     DataSet<Vertex<GradoopId, VertexValue>> result =
-      graph.runVertexCentricIteration(msgFunc, null, iterations * kNeighborhood).getVertices();
+      graph.runVertexCentricIteration(msgFunc, null, iterations * kNeighborhood + 1).getVertices();
 
 
     DataSet<org.gradoop.common.model.impl.pojo.Vertex> layoutedVertices =
@@ -187,7 +207,7 @@ public class GiLaLayouter extends
    * The ComputeFunction for the GiLa-Algorithm
    */
   protected static class MsgFunc extends
-    ComputeFunction<GradoopId, VertexValue, NullValue, Tuple3<GradoopId, Vector, Integer>> {
+    ComputeFunction<GradoopId, VertexValue, NullValue, Message> {
 
     /**
      * Only vertices in the kNeigboorhood of a vertex are used for repulsion calculation
@@ -242,30 +262,31 @@ public class GiLaLayouter extends
 
     @Override
     public void compute(Vertex<GradoopId, VertexValue> vertex,
-      MessageIterator<Tuple3<GradoopId, Vector, Integer>> messageIterator) throws Exception {
+      MessageIterator<Message> messageIterator) {
 
+      // substact one to get 0-based numbers
       int iteration = getSuperstepNumber() - 1;
 
       VertexValue value = vertex.getValue();
 
-      List<Tuple3<GradoopId, Vector, Integer>> messagesToSend = new LinkedList<>();
+      List<Message> messagesToSend = new LinkedList<>();
 
       int receivedMessages = 0;
-      for (Tuple3<GradoopId, Vector, Integer> msg : messageIterator) {
+      for (Message msg : messageIterator) {
         if (!value.messages.contains(msg.f0)) {
-          value.messages.add(msg.f0);
+          value.messages.add(msg.getSender());
 
           //Attraction from direct neighbors
           if (msg.f2 == kNeighborhood) {
-            value.forces =
-              value.forces.add(attractionForce(vertex.f0, value.position, msg.f0, msg.f1));
+            value.forces = value.forces.add(
+              attractionForce(vertex.getId(), value.position, msg.getSender(), msg.getPosition()));
           }
 
           //Repulsion from all
-          value.forces =
-            value.forces.add(repulsionForce(vertex.f0, value.position, msg.f0, msg.f1));
-          if (msg.f2 > 1) {
-            msg.f2 -= 1;
+          value.forces = value.forces.add(
+            repulsionForce(vertex.getId(), value.position, msg.getSender(), msg.getPosition()));
+          if (msg.getTTL() > 1) {
+            msg.setTTL(msg.getTTL() - 1);
             messagesToSend.add(msg);
           }
         }
@@ -273,19 +294,28 @@ public class GiLaLayouter extends
       }
 
       if (iteration % kNeighborhood == 0 && iteration != 0) {
-        applicator.apply(value.position, value.forces, applicator.speedForIteration(iteration));
-
+        applicator.apply(value.position, value.forces,
+          applicator.speedForIteration(iteration / kNeighborhood));
         value.messages.clear();
         value.forces.reset();
       }
 
       if (iteration % kNeighborhood == 0 || iteration != 0 || receivedMessages == 0) {
-        messagesToSend.add(new Tuple3<>(vertex.getId(), value.position, kNeighborhood));
+        messagesToSend
+          .add(new Message(vertex.getId(), value.position, kNeighborhood, vertex.getId()));
       }
 
       for (Edge<GradoopId, NullValue> e : getEdges()) {
-        for (Tuple3<GradoopId, Vector, Integer> msg : messagesToSend) {
-          sendMessageTo(e.getTarget(), msg);
+        if (!e.getSource().equals(vertex.getId())){
+          System.out.println("HOSSA!");
+        }
+        for (Message msg : messagesToSend) {
+          // do not send message back to the vertex we received it from
+          if (!msg.getLastHop().equals(e.getTarget())) {
+            Message toSend = msg.copy();
+            toSend.setLastHop(vertex.getId());
+            sendMessageTo(e.getTarget(), toSend);
+          }
         }
       }
 
@@ -331,6 +361,102 @@ public class GiLaLayouter extends
   }
 
   /**
+   * Represents a message transmitted between vertices. Just wraps Tuple4 for better readability.
+   */
+  protected static class Message extends Tuple4<GradoopId, Vector, Integer, GradoopId> {
+
+    /**
+     * Construct a new Message
+     * @param sender Initial Sender of the message
+     * @param position Position of the sender
+     * @param ttl TimeToLive of this message
+     * @param lastHop Id of the last vertex that retransmitted this message
+     */
+    public Message(GradoopId sender, Vector position, Integer ttl, GradoopId lastHop) {
+      super(sender, position, ttl, lastHop);
+    }
+
+    /**
+     * Default constructor to conform with Pojo-rules
+     */
+    public Message() {
+      super();
+    }
+
+    /**
+     * Get the initial sender of the message
+     * @return The senders if
+     */
+    public GradoopId getSender() {
+      return f0;
+    }
+
+    /**
+     * Get the position of the sender
+     * @return The position
+     */
+    public Vector getPosition() {
+      return f1;
+    }
+
+    /**
+     * Get the ttl of this message
+     * @return the ttl
+     */
+    public Integer getTTL() {
+      return f2;
+    }
+
+    /**
+     * Get the last vertex send retransmitted this message
+     * @return The id of sais vertex
+     */
+    public GradoopId getLastHop() {
+      return f3;
+    }
+
+    /**
+     * Set the sender id
+     * @param id New id
+     */
+    public void setSender(GradoopId id) {
+      f0 = id;
+    }
+
+    /**
+     * Set the position
+     * @param position New position
+     */
+    public void setPosition(Vector position) {
+      f1 = position;
+    }
+
+    /**
+     * Set the TTL for this message
+     * @param ttl New TTL
+     */
+    public void setTTL(Integer ttl) {
+      f2 = ttl;
+    }
+
+    /**
+     * Set the last hop id of this message
+     * @param hop New id
+     */
+    public void setLastHop(GradoopId hop) {
+      f3 = hop;
+    }
+
+    /**
+     * Create a copy of this message.
+     * @return A shallow copy of this message
+     */
+    public Message copy() {
+      return new Message(f0, f1, f2, f3);
+    }
+  }
+
+  /**
    * Represents the stored values for each vertex.
    */
   protected static class VertexValue {
@@ -362,7 +488,7 @@ public class GiLaLayouter extends
   @Override
   public String toString() {
     return "GiLaLayouter{" + "iterations=" + iterations + ", width=" + getWidth() + ", height=" +
-      getHeight() + ", kNeighborhood=" + kNeighborhood + ", optimumDistance=" + getOptimumDistance() +
-      ", numberOfVertices=" + numberOfVertices + '}';
+      getHeight() + ", kNeighborhood=" + kNeighborhood + ", optimumDistance=" +
+      getOptimumDistance() + ", numberOfVertices=" + numberOfVertices + '}';
   }
 }
