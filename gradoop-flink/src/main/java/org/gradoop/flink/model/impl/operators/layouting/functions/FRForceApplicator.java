@@ -30,11 +30,11 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   /**
    * Width of the layouting-space
    */
-  private int layoutWidth;
+  protected int layoutWidth;
   /**
    * Height of the layouting space
    */
-  private int layoutHeight;
+  protected int layoutHeight;
 
   /**
    * Speed at which the cooling-schedule starts
@@ -51,11 +51,11 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   /**
    * cache the last computed temperature and re-use if possible to reduce needed computing-power
    */
-  private int lastIteration = -1;
+  protected int lastIteration = -1;
   /**
    * cache the last computed temperature and re-use if possible to reduce needed computing-power
    */
-  private double lastSpeedLimit = 0;
+  protected double lastSpeedLimit = 0;
   /**
    * Maximum number of iterations
    */

@@ -197,6 +197,27 @@ public class Vector implements Serializable {
     return new Vector(newx, newy);
   }
 
+  /**
+   * Calculates the (unsigned) angle between this vector and the given vecotr
+   * @param other The other vector
+   * @return The angle
+   */
+  public double angle(Vector other){
+    return Math.acos(scalar(other)/(magnitude()*other.magnitude()))/Math.PI*180;
+  }
+
+  /**
+   * Rotate this vector anti-clockwise by the given angle (in degrees)
+   * @param angle The angle o rotate this vector by
+   * @return The rotated vector
+   */
+  public Vector rotate(double angle){
+    angle = angle / 180 * Math.PI;
+    double newx = x*Math.cos(angle) - y*Math.sin(angle);
+    double newy = x*Math.sin(angle) + y*Math.cos(angle);
+    return new Vector(newx,newy);
+  }
+
   @Override
   public boolean equals(Object other) {
     if (other != null && other instanceof Vector) {
@@ -397,6 +418,21 @@ public class Vector implements Serializable {
   public Vector mConfined(double minX, double maxX, double minY, double maxY) {
     x = Math.min(Math.max(x, minX), maxX);
     y = Math.min(Math.max(y, minY), maxY);
+    return this;
+  }
+
+  /**
+   * Alternative MUTATING variant.  Rotate this vector anti-clockwise by the given angle (in
+   * degrees)
+   * @param angle The angle o rotate this vector by
+   * @return The rotated vector
+   */
+  public Vector mRotate(double angle){
+    angle = angle / 180 * Math.PI;
+    double newx = x*Math.cos(angle) - y*Math.sin(angle);
+    double newy = x*Math.sin(angle) + y*Math.cos(angle);
+    x = newx;
+    y = newy;
     return this;
   }
 
