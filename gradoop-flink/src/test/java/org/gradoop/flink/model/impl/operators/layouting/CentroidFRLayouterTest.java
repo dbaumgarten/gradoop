@@ -16,6 +16,7 @@
 package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.util.ListCollector;
+import org.apache.flink.api.java.DataSet;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
@@ -34,9 +35,16 @@ public class CentroidFRLayouterTest extends LayoutingAlgorithmTest {
     return new CentroidFRLayouter(5, 10);
   }
 
-  @Override
-  public void testLayouting() throws Exception {
-    //do nothing
+  @Test
+  public void testAverageCalculation() throws Exception {
+    DataSet<LVertex> tv = getExecutionEnvironment().fromElements(
+      new LVertex(GradoopId.get(),new Vector(10,10)),
+      new LVertex(GradoopId.get(),new Vector(20,20)),
+      new LVertex(GradoopId.get(),new Vector(30,30))
+      );
+    List<Vector> avg = CentroidFRLayouter.averagePosition(tv).collect();
+    Assert.assertEquals(1,avg.size());
+    Assert.assertEquals(new Vector(20,20),avg.get(0));
   }
 
   @Test
@@ -48,27 +56,20 @@ public class CentroidFRLayouterTest extends LayoutingAlgorithmTest {
     center.add(new Vector(5,5));
 
     FRRepulsionFunction  rf = new FRRepulsionFunction(10);
-    CentroidFRLayouter.RepulsionForceCalculator calc =
-      new CentroidFRLayouter.RepulsionForceCalculator(rf,centroids,center);
+    CentroidFRLayouter.RepulsionForceMapper calc =
+      new CentroidFRLayouter.RepulsionForceMapper(rf,centroids,center);
 
+    LVertex vertex = new LVertex(GradoopId.get(),new Vector(1,1));
 
-    List<Force> collectorlList = new ArrayList<>();
-    ListCollector<Force> collector = new ListCollector<>(collectorlList);
+    Force f = calc.map(vertex).copy();
 
-    LVertex vertex = new LVertex(GradoopId.get(),new Vector(4,4));
+    Assert.assertEquals(f.getId(),vertex.getId());
+    Assert.assertTrue(f.getValue().getX() < 0 && f.getValue().getY() < 0 );
 
-    calc.flatMap(vertex,collector);
+    centroids.add(new CentroidFRLayouter.Centroid(new Vector(-1,-1),0));
+    Force f2 = calc.map(vertex).copy();
 
-    Assert.assertEquals(3,collectorlList.size());
-    Assert.assertEquals(vertex.getId(),collectorlList.get(0).getId());
-    Assert.assertEquals(1.0,
-      new Vector(1,1).normalized().scalar(collectorlList.get(0).getValue().normalized()),0.0000001);
-    Assert.assertEquals(1.0,
-      new Vector(-1,-1).normalized().scalar(collectorlList.get(1).getValue().normalized()),
-      0.0000001);
-    Assert.assertEquals(1.0,
-      new Vector(-1,-1).normalized().scalar(collectorlList.get(2).getValue().normalized()),
-      0.0000001);
+    Assert.assertTrue(f2.getValue().magnitude() < f.getValue().magnitude());
   }
 
   @Test
@@ -95,7 +96,7 @@ public class CentroidFRLayouterTest extends LayoutingAlgorithmTest {
     List<CentroidFRLayouter.Centroid> collectorList = new ArrayList<>();
     ListCollector<CentroidFRLayouter.Centroid> collector = new ListCollector<>(collectorList);
 
-    upd.reduce(forces,collector);
+    upd.calculateNewCentroidPosition(forces,collector);
     Assert.assertEquals(1,collectorList.size());
     Assert.assertEquals(new Vector(20,20),collectorList.get(0).getPosition());
     Assert.assertEquals(3,collectorList.get(0).getCount());
@@ -106,16 +107,16 @@ public class CentroidFRLayouterTest extends LayoutingAlgorithmTest {
     CentroidFRLayouter.Centroid ok = new CentroidFRLayouter.Centroid(new Vector(),30);
     collectorList.clear();
 
-    upd.flatMap(toFew,collector);
+    upd.removeOrSplitCentroids(toFew,collector);
     Assert.assertEquals(0,collectorList.size());
 
-    upd.flatMap(toMany,collector);
+    upd.removeOrSplitCentroids(toMany,collector);
     Assert.assertEquals(2,collectorList.size());
     Assert.assertEquals(50,collectorList.get(0).getCount());
     Assert.assertEquals(50,collectorList.get(1).getCount());
     collectorList.clear();
 
-    upd.flatMap(ok,collector);
+    upd.removeOrSplitCentroids(ok,collector);
     Assert.assertEquals(1,collectorList.size());
     Assert.assertEquals(30,collectorList.get(0).getCount());
     Assert.assertEquals(ok.getId(),collectorList.get(0).getId());
