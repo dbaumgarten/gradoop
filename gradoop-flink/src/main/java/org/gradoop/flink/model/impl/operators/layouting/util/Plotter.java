@@ -16,9 +16,15 @@
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.io.FileOutputFormat;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.aggregation.Aggregations;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.util.Collector;
@@ -113,6 +119,10 @@ public class Plotter implements DataSink, Serializable {
    * If true, use SIZE-Property to dynamically choose vertex-size.
    */
   protected boolean dynamicEdgeSize = false;
+  /**
+   * If true, scale the layout to fill the complete drawing-space.
+   */
+  protected boolean zoom = false;
 
   /**
    * Create new plotter.
@@ -256,6 +266,17 @@ public class Plotter implements DataSink, Serializable {
   }
 
   /**
+   * If true, scale the graph to completely fill the layout-area
+   *
+   * @param zoom the new value
+   * @return this (for method-chaining)
+   */
+  public Plotter zoom(boolean zoom) {
+    this.zoom = zoom;
+    return this;
+  }
+
+  /**
    * Prepare the given edges for drawing. Assign them start- and end-coordinates from their
    * vertices.
    *
@@ -289,17 +310,64 @@ public class Plotter implements DataSink, Serializable {
    * @return vertices with scaled coordinates
    */
   protected DataSet<Vertex> scaleLayout(DataSet<Vertex> inp) {
-    final double widthScale = imageWidth / (double) layoutHeight;
-    final double heightScale = imageHeight / (double) layoutHeight;
-    return inp.map((v) -> {
-      int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
-      int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
-      x = (int) (x * widthScale);
-      y = (int) (y * heightScale);
-      v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, x);
-      v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, y);
-      return v;
-    });
+
+    if (zoom) {
+      final int imageWidthF = imageWidth;
+      final int imageHeightF = imageHeight;
+
+      DataSet<Tuple4<Integer, Integer, Integer, Integer>> minMaxCoords = inp.map((v) -> {
+        int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
+        int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
+        return new Tuple4<>(x, y, x, y);
+      }).returns(new TypeHint<Tuple4<Integer, Integer, Integer, Integer>>() {})
+        .aggregate(Aggregations.MIN, 0).and(Aggregations.MIN, 1).and(Aggregations.MAX, 2)
+        .and(Aggregations.MAX, 3);
+
+      return inp.map(new RichMapFunction<Vertex, Vertex>() {
+        int offsetX = 0;
+        int offsetY = 0;
+        double zoomFactor = 1;
+
+        @Override
+        public void open(Configuration parameters) throws Exception {
+          super.open(parameters);
+          List<Tuple4<Integer, Integer, Integer, Integer>> minmaxlist = getRuntimeContext().getBroadcastVariable("MINMAX");
+          offsetX = minmaxlist.get(0).f0;
+          offsetY = minmaxlist.get(0).f1;
+          int maxX = minmaxlist.get(0).f2;
+          int maxY = minmaxlist.get(0).f3;
+          int xRange = maxX - offsetX;
+          int yRange = maxY - offsetY;
+          zoomFactor = (xRange > yRange) ? imageWidthF / (double) xRange : imageHeightF / (double) yRange;
+        }
+
+        @Override
+        public Vertex map(Vertex v) {
+          int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
+          int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
+          x = (int) ((x - offsetX) * zoomFactor);
+          y = (int) ((y - offsetY) * zoomFactor);
+          v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, x);
+          v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, y);
+          return v;
+        }
+      }).withBroadcastSet(minMaxCoords, "MINMAX");
+
+    }else {
+
+      final double widthScale = imageWidth / (double) layoutHeight;
+      final double heightScale = imageHeight / (double) layoutHeight;
+      return inp.map((v) -> {
+        int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
+        int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
+        x = (int) (x * widthScale);
+        y = (int) (y * heightScale);
+        v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, x);
+        v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, y);
+        return v;
+      });
+
+    }
   }
 
   /**
