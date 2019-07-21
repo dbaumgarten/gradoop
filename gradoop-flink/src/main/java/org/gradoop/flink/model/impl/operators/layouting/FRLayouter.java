@@ -76,6 +76,10 @@ public class FRLayouter implements LayoutingAlgorithm {
    * instead.
    */
   boolean useExistingLayout = false;
+  /**
+   * Perform the layouting as if this number of iterations had already passed
+   */
+  protected int startAtIteration = 0;
 
 
   /**
@@ -138,6 +142,17 @@ public class FRLayouter implements LayoutingAlgorithm {
    */
   public FRLayouter useExistingLayout(boolean uel) {
     this.useExistingLayout = uel;
+    return this;
+  }
+
+  /**
+   * Perform the layouting as if this number of iterations had already passed
+   *
+   * @param startAtIteration the number of previous iterations
+   * @return this (for method-chaining)
+   */
+  public FRLayouter startAtIteration(int startAtIteration) {
+    this.startAtIteration = startAtIteration;
     return this;
   }
 
@@ -245,8 +260,11 @@ public class FRLayouter implements LayoutingAlgorithm {
    */
   protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices, DataSet<Force> forces,
     int iterations) {
+    FRForceApplicator applicator = new FRForceApplicator(getWidth(), getHeight(), getK(),
+      iterations);
+    applicator.setPreviousIterations(startAtIteration);
     return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
-      .with(new FRForceApplicator(getWidth(), getHeight(), getK(), iterations));
+      .with(applicator);
   }
 
 
