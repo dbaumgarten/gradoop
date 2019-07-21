@@ -169,13 +169,13 @@ public class FRLayouter implements LayoutingAlgorithm {
   @Override
   public int getWidth() {
     return (width != 0) ? width :
-      (int) (Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
+      (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
   }
 
   @Override
   public int getHeight() {
     return (height != 0) ? height :
-      (int) (Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices) * 0.5);
+      (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
   }
 
   /**
