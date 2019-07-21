@@ -60,6 +60,10 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * Maximum number of iterations
    */
   private int maxIterations;
+  /**
+   * Calculate temperature as if this number of iterations had already passed
+   */
+  private int previousIterations = 0;
 
   /**
    * Create new FRForceApplicator
@@ -117,6 +121,25 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   }
 
   /**
+   * Gets previousIterations
+   *
+   * @return value of previousIterations
+   */
+  public int getPreviousIterations() {
+    return previousIterations;
+  }
+
+  /**
+   * Sets previousIterations
+   *
+   * @param previousIterations the new value
+   */
+  public void setPreviousIterations(int previousIterations) {
+    this.previousIterations = previousIterations;
+    calculateBase();
+  }
+
+  /**
    * Gets maxIterations
    *
    * @return value of maxIterations
@@ -135,7 +158,7 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   }
 
   private void calculateBase(){
-    this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations - 1));
+    this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations+previousIterations - 1));
   }
 
   /**
@@ -145,6 +168,7 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * @return Desired speed
    */
   public double speedForIteration(int iteration) {
+    iteration += previousIterations;
     // cache last result to avoid costly pow
     if (iteration != lastIteration) {
       lastSpeedLimit = startSpeed * Math.pow(base, iteration);

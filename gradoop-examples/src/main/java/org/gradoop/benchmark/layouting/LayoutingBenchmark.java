@@ -32,15 +32,7 @@ import org.gradoop.flink.io.impl.deprecated.json.JSONDataSource;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphIndexedCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
-import org.gradoop.flink.model.impl.operators.layouting.CentroidFRLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
-import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.GiLaLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
-import org.gradoop.flink.model.impl.operators.layouting.MtxDataSource;
-import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
-import org.gradoop.flink.model.impl.operators.layouting.SamplingFRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.*;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
 import org.gradoop.flink.model.impl.operators.statistics.EdgeLengthDerivation;
@@ -331,6 +323,15 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         iterations = Integer.parseInt(opts[1]);
         algo = new CentroidFRLayouter(iterations, vertexcount);
         applyOptionalArguments(algo, 2);
+        break;
+      case "CombiLayouter":
+        if (opts.length < 3) {
+          throw new IllegalArgumentException("Selected algorithm has 2 required arguments");
+        }
+        iterations = Integer.parseInt(opts[1]);
+        double quality = Double.parseDouble(opts[2]);
+        algo = new CombiLayouter(iterations,vertexcount,quality);
+        applyOptionalArguments(algo, 3);
         break;
       default:
         throw new IllegalArgumentException("Unknown algorithm: " + algoname);
