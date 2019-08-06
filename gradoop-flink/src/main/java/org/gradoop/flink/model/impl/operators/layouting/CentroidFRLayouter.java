@@ -26,8 +26,6 @@ import java.util.List;
 
 public class CentroidFRLayouter extends FRLayouter {
 
-  protected static final double INITIAL_SAMPLING_RATE = 0.0006d;
-
   protected static final double MIN_MASS_FACTOR = 0.0025d;
 
   protected static final double MAX_MASS_FACTOR = 0.05d;
@@ -107,10 +105,13 @@ public class CentroidFRLayouter extends FRLayouter {
    * @return Random centroids to use (always at least one)
    */
   protected DataSet<Centroid> chooseInitialCentroids(DataSet<LVertex> vertices){
+    // Choose a sample rate that will statistically result in clusters with a mass exactly
+    // between min and max allowed mass
+    final double sampleRate = 1.0 / (((MIN_MASS_FACTOR+MAX_MASS_FACTOR)/2.0)*numberOfVertices);
     // Because of the randomness of the layouting it is possible that on small graphs no vertex
     // is chosen as centroid. This would result in problems. Therefore we union with one single
     // vertex, so there is ALWAYS at least one centroid
-    return vertices.filter((v)->Math.random()<INITIAL_SAMPLING_RATE).union(vertices.first(1)).map(v->new Centroid(v.getPosition(),0));
+    return vertices.filter((v)->Math.random()<sampleRate).union(vertices.first(1)).map(v->new Centroid(v.getPosition(),0));
   }
 
   /**
