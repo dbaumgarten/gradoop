@@ -181,9 +181,9 @@ public class FusingFRLayouter extends FRLayouter {
     case SIMPLIFIED:
       return buildSimplifiedGraph(g, graph);
     case EXTRACTED:
-      return buildExtractedGraph(g, graph, 2*getK());
+      return buildExtractedGraph(g, graph, true);
     case RAWEXTRACTED:
-      return buildExtractedGraph(g, graph, 0);
+      return buildExtractedGraph(g, graph, false);
     case POSTLAYOUT:
       return buildPostLayoutGraph(g, graph);
     }
@@ -204,10 +204,11 @@ public class FusingFRLayouter extends FRLayouter {
     final double kf = getK();
     DataSet<LVertex> vertices =
       graph.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
+        double jitterRadius = Math.sqrt(superv.getCount()*kf);
         for (GradoopId id: superv.getSubVertices()){
           LVertex v = new LVertex();
           v.setId(id);
-          v.setPosition(jitterPosition(superv.getPosition(),kf));
+          v.setPosition(jitterPosition(superv.getPosition(),jitterRadius));
           collector.collect(v);
         }
         superv.setSubVertices(null);
@@ -217,12 +218,19 @@ public class FusingFRLayouter extends FRLayouter {
     DataSet<LEdge> edges = input.getEdges().map(e->new LEdge(e));
     graph.setEdges(edges);
 
-    applicator.setStartSpeed(5*kf);
-    applicator.setMaxIterations(POST_ITERATIONS);
+
+    // use a new applicator for all following layouting iterations. The new applicator will
+    // behave as if iteration x of n is actually iterations+x of n+POST_ITERATIONS
+    applicator =
+      new FRForceApplicator(getWidth(),getHeight(),getK(),iterations+POST_ITERATIONS);
+    applicator.setPreviousIterations(iterations);
+
+    // do some more layouting iterations
     IterativeDataSet<LVertex> loop = vertices.iterate(POST_ITERATIONS);
     graph.setVertices(loop);
     layout(graph);
     vertices = loop.closeWith(graph.getVertices());
+
 
 
     DataSet<Vertex> gradoopVertices = vertices.join(input.getVertices()).where(LVertex.ID).equalTo(
@@ -263,16 +271,26 @@ public class FusingFRLayouter extends FRLayouter {
    * location of the super-vertex (and add some random jitter to the positions)
    * @param input Original input graph
    * @param layouted Result of the layouting
-   * @param jitter Maximum distance between super-node position and node-position
+   * @param jitter Enable/disable adding jitter to subvertex positions
    * @return The final graph, containing all vertices and edges from the original graph.
    */
-  protected LogicalGraph buildExtractedGraph(LogicalGraph input, LGraph layouted, final double jitter){
+  protected LogicalGraph buildExtractedGraph(LogicalGraph input, LGraph layouted,
+    final boolean jitter){
+    final double kf = getK();
     DataSet<Vertex> vertices =
       layouted.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
+        double jitterRadius = 0;
+        if (jitter){
+          jitterRadius = Math.sqrt(superv.getCount()*kf);
+        }
       for (GradoopId id: superv.getSubVertices()){
         LVertex v = new LVertex();
         v.setId(id);
-        v.setPosition(jitterPosition(superv.getPosition(),jitter));
+        Vector position = superv.getPosition();
+        if (jitter){
+          position = jitterPosition(position,jitterRadius);
+        }
+        v.setPosition(position);
         collector.collect(v);
       }
       superv.setSubVertices(null);
