@@ -56,8 +56,8 @@ public class EdgeLengthDerivationTest extends GradoopFlinkTestBase {
     DataSet<Double> crossing = eld.execute(g);
     Double result = crossing.collect().get(0);
 
-    Assert.assertTrue(result > 50);
-    Assert.assertTrue(result < 100);
+
+    Assert.assertEquals(0.3047125465010722,result,0.00001);
     System.out.println(result);
 
   }
