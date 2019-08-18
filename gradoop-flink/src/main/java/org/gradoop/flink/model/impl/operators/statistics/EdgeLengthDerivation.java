@@ -34,7 +34,7 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import java.util.List;
 
 /**
- * Computes the standard-derivation of the edge-lengths of a layouted graph.
+ * Computes the NORMALIZED standard-derivation of the edge-lengths of a layouted graph.
  * The better the layout is, the smaller the edge-length derivation. This metric is not as good
  * as CressEdges, but is a lot faster to compute.
  * <p>
@@ -144,7 +144,15 @@ public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<D
       public Double map(Double d) {
         return Math.pow(d - avg, 2) / count;
       }
-    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b).map(v -> Math.sqrt(v));
+    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b).map(new RichMapFunction<Double, Double>() {
+      @Override
+      public Double map(Double v) {
+        List<Tuple2<Integer, Double>> cntAvgL =
+          this.getRuntimeContext().getBroadcastVariable("cntavg");
+        double avg = cntAvgL.get(0).f1;
+        return Math.sqrt(v) / avg;
+      }
+    }).withBroadcastSet(countAndAvg, "cntavg");
 
   }
 }
