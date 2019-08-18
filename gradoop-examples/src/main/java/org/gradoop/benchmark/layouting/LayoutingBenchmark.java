@@ -17,7 +17,6 @@ package org.gradoop.benchmark.layouting;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.io.FileUtils;
-import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.ProgramDescription;
 import org.gradoop.benchmark.sampling.SamplingBenchmark;
 import org.gradoop.examples.AbstractRunner;
@@ -43,7 +42,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Benchmark for the graph-layouting
@@ -79,9 +80,9 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_STATISTIC = "s";
   /**
-   * Option to enable splitting into multiple jobs
+   * Option to skip the layouting (only produce image and statistics)
    */
-  private static final String OPTION_MULTIJOB = "m";
+  private static final String OPTION_SKIP_LAYOUTING = "l";
   /**
    * Default format of input data.
    */
@@ -125,11 +126,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   /**
    * The statistic that shall be computed
    */
-  private static String STATISTIC = "";
+  private static String STATISTICS = "";
   /**
-   * If true split layouting and statistics(+plotting) in two jobs
+   * If true, skip layouting and assume the input is already layouted
    */
-  private static boolean MULTIJOB = false;
+  private static boolean SKIP_LAYOUTING = false;
 
 
   static {
@@ -145,10 +146,10 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       .addOption(OPTION_DYNAMIC_OUT, "dyn", false, "If true include args in output foldername");
     OPTIONS.addOption(OPTION_BENCHMARK_PATH, "benchmarkfile", true,
       "Path where the " + "benchmark-file is written to");
-    OPTIONS.addOption(OPTION_STATISTIC, "statistic", true,
-      "Choose a statistic to compute for the layout. (cre or eld)");
-    OPTIONS
-      .addOption(OPTION_MULTIJOB, "multijob", false, "Split layouting and statistic in two jobs");
+    OPTIONS.addOption(OPTION_STATISTIC, "statistics", true,
+      "Comma seperated list of statistics to compute. (cre,lcre,eld)");
+    OPTIONS.addOption(OPTION_SKIP_LAYOUTING, "skiplayout", false, "Skip layouting. Compute image " +
+      "and statistics for existing layout");
   }
 
   /**
@@ -170,18 +171,18 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     readCMDArguments(cmd);
 
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
+    LogicalGraph layouted;
+    Long layoutingRuntime = -1l;
 
     // instantiate selected layouting algorithm and create layout
-    LayoutingAlgorithm algorithm = buildLayoutingAlgorithm(CONSTRUCTOR_PARAMS,
-      (int)graph.getVertices().count());
+    LayoutingAlgorithm algorithm =
+      buildLayoutingAlgorithm(CONSTRUCTOR_PARAMS, (int) graph.getVertices().count());
 
     System.out.println("----------");
-    System.out.println("INPUT: "+new File(INPUT_PATH).getName());
-    System.out.println("PARALLELISM: "+getExecutionEnvironment().getParallelism());
-    System.out.println("ALGO: "+algorithm);
+    System.out.println("INPUT: " + new File(INPUT_PATH).getName());
+    System.out.println("PARALLELISM: " + getExecutionEnvironment().getParallelism());
+    System.out.println("ALGO: " + algorithm);
     System.out.println("----------");
-
-    LogicalGraph layouted = algorithm.execute(graph);
 
     // write graph sample and benchmark data
     String outpath = OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX;
@@ -189,42 +190,54 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       outpath += getDynamicOutputFolderName() + "/";
     }
 
-    JobExecutionResult layoutExecutionEnvironment = null;
-    if (MULTIJOB) {
+    if (!SKIP_LAYOUTING) {
+      layouted = algorithm.execute(graph);
       layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm),true);
-      layoutExecutionEnvironment = getExecutionEnvironment().execute("Layouting");
+      layoutingRuntime = getExecutionEnvironment().execute("Layouting").getNetRuntime();
       layouted = readLogicalGraph(outpath, "csv");
+
+    }else{
+      layouted = graph;
     }
 
-    if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
+    if (!OUTPUT_FORMAT.equals("csv")){
       layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm),true);
+      getExecutionEnvironment().execute("Output conversion");
     }
 
-    Double statisticValue;
-    switch (STATISTIC) {
-    case "cre":
-      //This also executes the flink program as a side-effect
-      statisticValue = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(layouted).f1;
-      break;
-    case "eld":
-      //This also executes the flink program as a side-effect
-      statisticValue = new EdgeLengthDerivation().execute(layouted).collect().get(0);
-      break;
-    default:
-      statisticValue = 0d;
-      if (!MULTIJOB || !OUTPUT_FORMAT.equals("csv")) {
-        getExecutionEnvironment().execute("Output-Conversion");
+    List<Double> statisticValues = calculateStatistics(layouted);
+
+    writeBenchmark(layoutingRuntime,
+      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValues);
+  }
+
+  /**
+   * Calculate the requested statistics
+   * @param graph The layouted graph to compute statistics for
+   * @return A list of statistic values as requested in STATISTICS
+   * @throws Exception if something goes wrong during the flink execution
+   */
+  private static List<Double> calculateStatistics(LogicalGraph graph) throws Exception{
+    List<Double> results = new ArrayList<>();
+    String[] statistics = STATISTICS.split(",");
+    for (String statistic : statistics){
+      double value = 0d;
+      switch (statistic){
+      case "cre":
+        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).execute(graph).collect().get(0).f1;
+        break;
+      case "lcre":
+        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(graph).f1;
+        break;
+      case "eld":
+        value = new EdgeLengthDerivation().execute(graph).collect().get(0);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown statistic type: "+statistic);
       }
-      break;
+      results.add(value);
     }
-
-    if (layoutExecutionEnvironment == null) {
-      layoutExecutionEnvironment =
-        layouted.getConfig().getExecutionEnvironment().getLastJobExecutionResult();
-    }
-
-    writeBenchmark(layoutExecutionEnvironment,
-      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValue);
+    return results;
   }
 
   /**
@@ -240,8 +253,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     ENABLE_DYNAMIC_OUTPUT_PATH = cmd.hasOption(OPTION_DYNAMIC_OUT);
     OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
     OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
-    STATISTIC = cmd.getOptionValue(OPTION_STATISTIC);
-    MULTIJOB = cmd.hasOption(OPTION_MULTIJOB);
+    STATISTICS = cmd.getOptionValue(OPTION_STATISTIC);
+    SKIP_LAYOUTING = cmd.hasOption(OPTION_SKIP_LAYOUTING);
   }
 
   /**
@@ -496,24 +509,23 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   /**
    * Method to crate and add lines to a benchmark file.
    *
-   * @param result         The JoExecutionResult for the layouting
+   * @param runtime        Runtime of the layouting
    * @param parallelism    Parallelism level used for the layouting
    * @param layouting      layouting algorithm under test
-   * @param statisticValue Result of the statistic the user wanted to calculate for the created
+   * @param statisticValues Results of the statistics the user wanted to calculate for the created
    *                       layout
    * @throws IOException exception during file writing
    */
-  private static void writeBenchmark(JobExecutionResult result, int parallelism,
-    LayoutingAlgorithm layouting, double statisticValue) throws IOException {
+  private static void writeBenchmark(double runtime, int parallelism,
+    LayoutingAlgorithm layouting, List<Double> statisticValues) throws IOException {
     String head = String
       .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Params",
-        "Runtime " + "[s]", "Statistic");
+        "Runtime " + "[s]", "Statistic["+ STATISTICS +"]");
 
     // build log
     String tail = String.format("%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1),
-      String.join(", ", layouting.toString()), result.getNetRuntime(TimeUnit.SECONDS),
-      statisticValue);
+      String.join(", ", layouting.toString()), runtime, statisticValues.toString());
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
