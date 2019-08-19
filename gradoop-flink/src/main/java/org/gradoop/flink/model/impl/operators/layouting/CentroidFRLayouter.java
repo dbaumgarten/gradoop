@@ -306,6 +306,12 @@ public class CentroidFRLayouter extends FRLayouter {
      * @return A Force object with the id of the centroid and the position of the vertex.
      */
     public Force map(LVertex vertex)  {
+
+      if (centroids.size() == 0){
+        throw new IllegalStateException("There are no centroids (left). This should " +
+          "NEVER happen. Layouting failed...");
+      }
+
       Force best = new Force();
       double bestDist = Double.MAX_VALUE;
       for (Centroid c : centroids){
@@ -316,8 +322,7 @@ public class CentroidFRLayouter extends FRLayouter {
         }
       }
       if (best.getId() == null){
-        throw new IllegalStateException("There are no centroids (left). This should " +
-          "NEVER happen. Layouting failed...");
+        throw new IllegalStateException("Ooops. This should never have happened...";
       }
       return best;
     }
@@ -422,8 +427,8 @@ public class CentroidFRLayouter extends FRLayouter {
 
   @Override
   public String toString() {
-    return "CentroidFRLayouter{" + "iterations=" + iterations + ", k=" + k + ", width=" + width +
-      ", height=" + height + ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" +
+    return "CentroidFRLayouter{" + "iterations=" + iterations + ", k=" + getK() + ", width=" + getWidth() +
+      ", height=" + getHeight() + ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" +
       useExistingLayout + '}';
   }
 }
