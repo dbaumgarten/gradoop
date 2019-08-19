@@ -46,6 +46,7 @@ public class Vector implements Serializable {
   public Vector(double x, double y) {
     this.x = x;
     this.y = y;
+    check();
   }
 
   /**
@@ -54,6 +55,13 @@ public class Vector implements Serializable {
   public Vector() {
     x = 0d;
     y = 0d;
+  }
+
+  private void check(){
+    if (Double.isNaN(x) || Double.isNaN(y)){
+      throw new IllegalStateException("A vector should never be NaN. There is probably a bug in " +
+        "your code");
+    }
   }
 
   /**
@@ -250,6 +258,7 @@ public class Vector implements Serializable {
    **/
   public void setX(double x) {
     this.x = x;
+    check();
   }
 
   /** Y-Coordinate of vector */
@@ -265,6 +274,7 @@ public class Vector implements Serializable {
    **/
   public void setY(double y) {
     this.y = y;
+    check();
   }
 
   /**
@@ -277,6 +287,7 @@ public class Vector implements Serializable {
   public Vector set(double x, double y) {
     this.x = x;
     this.y = y;
+    check();
     return this;
   }
 
@@ -289,6 +300,7 @@ public class Vector implements Serializable {
   public Vector set(Vector other) {
     x = other.x;
     y = other.y;
+    check();
     return this;
   }
 
@@ -324,6 +336,7 @@ public class Vector implements Serializable {
   public Vector mSub(Vector other) {
     x -= other.x;
     y -= other.y;
+    check();
     return this;
   }
 
@@ -337,6 +350,7 @@ public class Vector implements Serializable {
   public Vector mAdd(Vector other) {
     x += other.x;
     y += other.y;
+    check();
     return this;
   }
 
@@ -350,6 +364,7 @@ public class Vector implements Serializable {
   public Vector mMul(double factor) {
     x *= factor;
     y *= factor;
+    check();
     return this;
   }
 
@@ -363,6 +378,7 @@ public class Vector implements Serializable {
   public Vector mDiv(double factor) {
     x /= factor;
     y /= factor;
+    check();
     return this;
   }
 
@@ -383,6 +399,7 @@ public class Vector implements Serializable {
     }
     x = (x / len) * Math.min(len, maxLen);
     y = (y / len) * Math.min(len, maxLen);
+    check();
     return this;
   }
 
@@ -402,6 +419,7 @@ public class Vector implements Serializable {
     }
     x /= len;
     y /= len;
+    check();
     return this;
   }
 
@@ -418,6 +436,7 @@ public class Vector implements Serializable {
   public Vector mConfined(double minX, double maxX, double minY, double maxY) {
     x = Math.min(Math.max(x, minX), maxX);
     y = Math.min(Math.max(y, minY), maxY);
+    check();
     return this;
   }
 
@@ -433,6 +452,7 @@ public class Vector implements Serializable {
     double newy = x*Math.sin(angle) + y*Math.cos(angle);
     x = newx;
     y = newy;
+    check();
     return this;
   }
 
