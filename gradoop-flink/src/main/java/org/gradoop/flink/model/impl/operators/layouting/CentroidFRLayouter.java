@@ -322,7 +322,7 @@ public class CentroidFRLayouter extends FRLayouter {
         }
       }
       if (best.getId() == null){
-        throw new IllegalStateException("Ooops. This should never have happened...";
+        throw new IllegalStateException("Ooops. This should never have happened...");
       }
       return best;
     }
