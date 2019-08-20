@@ -80,9 +80,9 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static final String OPTION_STATISTIC = "s";
   /**
-   * Option to skip the layouting (only produce image and statistics)
+   * Option to skip the layouting (assumes layout already exists)
    */
-  private static final String OPTION_SKIP_LAYOUTING = "l";
+  private static final String OPTION_RESUME = "r";
   /**
    * Default format of input data.
    */
@@ -130,7 +130,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
   /**
    * If true, skip layouting and assume the input is already layouted
    */
-  private static boolean SKIP_LAYOUTING = false;
+  private static boolean RESUME = false;
 
 
   static {
@@ -148,8 +148,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       "Path where the " + "benchmark-file is written to");
     OPTIONS.addOption(OPTION_STATISTIC, "statistics", true,
       "Comma seperated list of statistics to compute. (cre,lcre,eld)");
-    OPTIONS.addOption(OPTION_SKIP_LAYOUTING, "skiplayout", false, "Skip layouting. Compute image " +
-      "and statistics for existing layout");
+    OPTIONS.addOption(OPTION_RESUME, "resume", false, "Skip layouting. Assume layouting exists " +
+      "and continue with image and statistics");
   }
 
   /**
@@ -170,6 +170,17 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     readCMDArguments(cmd);
 
+    // write graph sample and benchmark data
+    String outpath = OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX;
+    if (ENABLE_DYNAMIC_OUTPUT_PATH) {
+      outpath += getDynamicOutputFolderName() + "/";
+    }
+
+    if (RESUME){
+      // load the existing layout from the output path
+      INPUT_PATH = outpath;
+    }
+
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
     LogicalGraph layouted;
     Long layoutingRuntime = -1l;
@@ -184,13 +195,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     System.out.println("ALGO: " + algorithm);
     System.out.println("----------");
 
-    // write graph sample and benchmark data
-    String outpath = OUTPUT_PATH + OUTPUT_PATH_GRAPH_LAYOUT_SUFFIX;
-    if (ENABLE_DYNAMIC_OUTPUT_PATH) {
-      outpath += getDynamicOutputFolderName() + "/";
-    }
-
-    if (!SKIP_LAYOUTING) {
+    if (!RESUME) {
       layouted = algorithm.execute(graph);
       layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm),true);
       layoutingRuntime = getExecutionEnvironment().execute("Layouting").getNetRuntime();
@@ -200,7 +205,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       layouted = graph;
     }
 
-    if (!OUTPUT_FORMAT.equals("csv")){
+    if (!OUTPUT_FORMAT.equals("csv") && !OUTPUT_FORMAT.equals("none")){
       layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm),true);
       getExecutionEnvironment().execute("Output conversion");
     }
@@ -254,7 +259,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     OUTPUT_FORMAT = cmd.getOptionValue(OPTION_OUTPUT_FORMAT);
     OUTPUT_PATH_BENCHMARK = cmd.getOptionValue(OPTION_BENCHMARK_PATH);
     STATISTICS = cmd.getOptionValue(OPTION_STATISTIC);
-    SKIP_LAYOUTING = cmd.hasOption(OPTION_SKIP_LAYOUTING);
+    RESUME = cmd.hasOption(OPTION_RESUME);
   }
 
   /**
@@ -525,7 +530,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     // build log
     String tail = String.format("%s|%s|%s|%s|%s%n", parallelism,
       INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1),
-      String.join(", ", layouting.toString()), runtime, statisticValues.toString());
+      String.join(", ", layouting.toString()), runtime/1000.0, statisticValues.toString());
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {
