@@ -516,26 +516,21 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @return True if they overlep, else false
      */
     public boolean overlaps(Line other){
-      System.out.println("called");
       //same start/end points
      if (other.isSame(this) || other.reverse().isSame(this)){
-       System.out.println("same");
        return true;
      }
 
      // must be parallel
      if (!other.isParallel(this)){
-       System.out.println("not parallel");
        return false;
      }
 
      if (isPointOnLine(other.getStart()) || isPointOnLine(other.getEnd())){
-       System.out.println("1");
        return true;
      }
 
      if (other.isPointOnLine(getStart()) || other.isPointOnLine(getEnd())){
-       System.out.println("2");
        return true;
      }
 
