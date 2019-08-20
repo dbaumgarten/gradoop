@@ -22,6 +22,7 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
@@ -29,6 +30,7 @@ import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.operators.UnaryGraphToValueOperator;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
+import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -283,8 +285,8 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @return An id.
      */
     public Integer getCellId(Line line) {
-      double midx = (line.startX + line.endX) / 2;
-      double midy = (line.startY + line.endY) / 2;
+      double midx = (line.getStart().getX() + line.getEnd().getX()) / 2;
+      double midy = (line.getStart().getY() + line.getEnd().getY()) / 2;
       return ((int) (midx / cellSize) << 16) | (int) (midy / cellSize);
     }
 
@@ -297,19 +299,20 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      */
     public List<Line> subdivideByGrid(Line l) {
       List<Line> parts = new LinkedList<>();
-      Line copy = l.clone();
+      Line copy = l.copy();
 
       while (true) {
         Tuple2<Double, Double> intersection = firstGridIntersection(copy);
         if (intersection == null ||
-          (intersection.f0 == copy.endX && intersection.f1 == copy.endY)) {
+          (intersection.f0 == copy.getEnd().getX() && intersection.f1 == copy.getEnd().getY())) {
           parts.add(copy);
           break;
         }
-        Line segment = new Line(l.id, copy.startX, copy.startY, intersection.f0, intersection.f1);
+        Line segment = new Line(l.getId(), copy.getStart().getX(), copy.getStart().getY(),
+          intersection.f0, intersection.f1);
         parts.add(segment);
-        copy.startX = intersection.f0;
-        copy.startY = intersection.f1;
+        copy.getStart().setX(intersection.f0);
+        copy.getStart().setY(intersection.f1);
       }
 
       return parts;
@@ -324,14 +327,14 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      */
     protected Tuple2<Double, Double> firstGridIntersection(Line l) {
 
-      double dx = l.endX - l.startX;
-      double dy = l.endY - l.startY;
+      double dx = l.getEnd().getX() - l.getStart().getX();
+      double dy = l.getEnd().getY() - l.getStart().getY();
 
-      double gridLineX = closestMultipleInDirection(l.startX, cellSize, dx);
-      double gridLineY = closestMultipleInDirection(l.startY, cellSize, dy);
+      double gridLineX = closestMultipleInDirection(l.getStart().getX(), cellSize, dx);
+      double gridLineY = closestMultipleInDirection(l.getStart().getY(), cellSize, dy);
 
-      double xCrossT = (gridLineX - l.startX) / dx;
-      double yCrossT = (gridLineY - l.startY) / dy;
+      double xCrossT = (gridLineX - l.getStart().getX()) / dx;
+      double yCrossT = (gridLineY - l.getStart().getY()) / dy;
 
       if (Double.isNaN(xCrossT)) {
         xCrossT = Double.MAX_VALUE;
@@ -353,9 +356,9 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
         y = gridLineY;
       } else if (Math.abs(xCrossT) < Math.abs(yCrossT)) {
         x = gridLineX;
-        y = xCrossT * dy + l.startY;
+        y = xCrossT * dy + l.getStart().getY();
       } else {
-        x = yCrossT * dx + l.startX;
+        x = yCrossT * dx + l.getStart().getX();
         y = gridLineY;
       }
 
@@ -386,28 +389,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
   /**
    * Pojo-Class to represent a line between two points
    */
-  protected static class Line implements Cloneable {
-    /**
-     * The GradoopId of the original edge
-     */
-    private GradoopId id;
-    /**
-     * X-coordinate of starting-point
-     */
-    private double startX;
-    /**
-     * Y-coordinate of starting-point
-     */
-    private double startY;
-    /**
-     * X-coordinate of end-point
-     */
-    private double endX;
-    /**
-     * Y-coordinate of end-point
-     */
-    private double endY;
-
+  protected static class Line extends Tuple3<GradoopId,Vector,Vector> {
     /**
      * Create new line
      *
@@ -417,10 +399,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @param endY   Y-coordinate of end-point
      */
     public Line(double startX, double startY, double endX, double endY) {
-      this.startX = startX;
-      this.startY = startY;
-      this.endX = endX;
-      this.endY = endY;
+      super(GradoopId.NULL_VALUE, new Vector(startX,startY),new Vector(endX,endY));
     }
 
     /**
@@ -433,25 +412,42 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @param endY   Y-coordinate of end-point
      */
     public Line(GradoopId id, double startX, double startY, double endX, double endY) {
-      this.id = id;
-      this.startX = startX;
-      this.startY = startY;
-      this.endX = endX;
-      this.endY = endY;
+      super(id, new Vector(startX,startY),new Vector(endX,endY));
     }
 
     /**
-     * Clone this line
+     * Create line from two points
+     * @param start start point
+     * @param end end point
+     */
+    public Line(Vector start, Vector end){
+      super(GradoopId.NULL_VALUE,start,end);
+    }
+
+    /**
+     * Create line from two points
+     * @param id id of line
+     * @param start start point
+     * @param end end point
+     */
+    public Line(GradoopId id, Vector start, Vector end){
+      super(id,start,end);
+    }
+
+    /**
+     * Default constructor to conform with POJO rules
+     */
+    public Line(){
+      super(GradoopId.NULL_VALUE,new Vector(),new Vector());
+    }
+
+    /**
+     * Deep Copy this line
      *
      * @return A copy of this line
      */
-    public Line clone() {
-      try {
-        return (Line) super.clone();
-      } catch (CloneNotSupportedException e) {
-        //Can not happen
-      }
-      return null;
+    public Line copy() {
+      return new Line(f1.copy(),f2.copy());
     }
 
     /**
@@ -463,23 +459,41 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @return true if both line-segments cross each other
      */
     public boolean intersects(Line other) {
-      if ((startX == other.startX && startY == other.startY) ||
-        (startX == other.endX && startY == other.endY) ||
-        (endX == other.startX && endY == other.startY) ||
-        (endX == other.endX && endY == other.endY)) {
+      double startX = f1.getX();
+      double startY = f1.getY();
+      double endX = f2.getX();
+      double endY = f2.getY();
+      double otherstartX = other.f1.getX();
+      double otherstartY = other.f1.getY();
+      double otherendX = other.f2.getX();
+      double otherendY = other.f2.getY();
+
+      if ((startX == otherstartX && startY == otherstartY) ||
+        (startX == otherendX && startY == otherendY) ||
+        (endX == otherstartX && endY == otherstartY) ||
+        (endX == otherendX && endY == otherendY)) {
         return false;
       }
-      double div = (startX - endX) * (other.startY - other.endY) -
-        (startY - endY) * (other.startX - other.endX);
+      double div = (startX - endX) * (otherstartY - otherendY) -
+        (startY - endY) * (otherstartX - otherendX);
       if (Math.abs(div) < 0.001) {
         return false;
       }
-      double t = ((startX - other.startX) * (other.startY - other.endY) -
-        (startY - other.startY) * (other.startX - other.endX)) / div;
+      double t = ((startX - otherstartX) * (otherstartY - otherendY) -
+        (startY - otherstartY) * (otherstartX - otherendX)) / div;
       double u =
-        -(((startX - endX) * (startY - other.startY) - (startY - endY) * (startX - other.startX)) /
+        -(((startX - endX) * (startY - otherstartY) - (startY - endY) * (startX - otherstartX)) /
           div);
       return t > 0 && t < 1 && u > 0 && u < 1;
+    }
+
+    /**
+     * Checks if two lines overlap (partially or completely)
+     * @param other The other line
+     * @return True if they overlep, else false
+     */
+    public boolean overlaps(Line other){
+     return true;
     }
 
 
@@ -489,7 +503,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @return value of id
      */
     public GradoopId getId() {
-      return id;
+      return f0;
     }
 
     /**
@@ -498,85 +512,68 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @param id the new value
      */
     public void setId(GradoopId id) {
-      this.id = id;
+      f0 = id;
     }
 
     /**
-     * Gets startX
-     *
-     * @return value of startX
+     * Set the start point
+     * @param start the new point
      */
-    public double getStartX() {
-      return startX;
+    public void setStart(Vector start){
+      f1 = start;
+    }
+
+
+    /**
+     * Set the end point
+     * @param end the new point
+     */
+    public void setEnd(Vector end){
+      f2 = end;
     }
 
     /**
-     * Sets startX
-     *
-     * @param startX the new value
+     * Get the start point
+     * @return start
      */
-    public void setStartX(double startX) {
-      this.startX = startX;
+    public Vector getStart(){
+      return f1;
     }
 
     /**
-     * Gets startY
-     *
-     * @return value of startY
+     * Get the end point
+     * @return end
      */
-    public double getStartY() {
-      return startY;
+    public Vector getEnd(){
+      return f2;
     }
 
     /**
-     * Sets startY
-     *
-     * @param startY the new value
+     * Check if this line is exactly the same as another line (ignoring the id)
+     * @param other
+     * @return True if both are equal
      */
-    public void setStartY(double startY) {
-      this.startY = startY;
+    public boolean isSame(Line other){
+      return getStart().equals(other.getStart()) && getEnd().equals(other.getEnd());
     }
 
     /**
-     * Gets endX
-     *
-     * @return value of endX
+     * Create a new line with swapped start- and endpoint
+     * @return A new line
      */
-    public double getEndX() {
-      return endX;
+    public Line reverse(){
+      return new Line(getId(),getEnd(),getStart());
     }
 
-    /**
-     * Sets endX
-     *
-     * @param endX the new value
-     */
-    public void setEndX(double endX) {
-      this.endX = endX;
-    }
-
-    /**
-     * Gets endY
-     *
-     * @return value of endY
-     */
-    public double getEndY() {
-      return endY;
-    }
-
-    /**
-     * Sets endY
-     *
-     * @param endY the new value
-     */
-    public void setEndY(double endY) {
-      this.endY = endY;
+    public boolean isParallel(Line other){
+      Vector dir = getEnd().sub(getStart());
+      Vector otherdir = other.getEnd().sub(other.getStart());
+      return dir.normalized().scalar(otherdir.normalized()) == 1;
     }
 
     @Override
     public String toString() {
-      return "Line{" + "id=" + id + ", startX=" + startX + ", startY=" + startY + ", endX=" + endX +
-        ", endY=" + endY + '}';
+      return "Line{" + "id=" + getId() + ", " + "start=" + getStart() + ", " + "end=" + getEnd() + "}";
     }
   }
 }

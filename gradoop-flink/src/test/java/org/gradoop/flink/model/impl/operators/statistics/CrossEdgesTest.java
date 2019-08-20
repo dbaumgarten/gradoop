@@ -144,17 +144,17 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     CrossEdges.Line l = new CrossEdges.Line(10, 11, 100, 90);
     List<CrossEdges.Line> parts = lp.subdivideByGrid(l);
 
-    Assert.assertEquals(parts.get(0).getStartX(), l.getStartX(), 0.00001);
-    Assert.assertEquals(parts.get(0).getStartY(), l.getStartY(), 0.00001);
+    Assert.assertEquals(parts.get(0).getStart().getX(), l.getStart().getX(), 0.00001);
+    Assert.assertEquals(parts.get(0).getStart().getY(), l.getStart().getY(), 0.00001);
     for (int i = 0; i < parts.size(); i++) {
       Assert.assertEquals(l.getId(), parts.get(i).getId());
       if (i > 0) {
-        Assert.assertEquals(parts.get(i).getStartX(), parts.get(i - 1).getEndX(), 0.00001);
-        Assert.assertEquals(parts.get(i).getStartY(), parts.get(i - 1).getEndY(), 0.00001);
+        Assert.assertEquals(parts.get(i).getStart().getX(), parts.get(i - 1).getEnd().getX(), 0.00001);
+        Assert.assertEquals(parts.get(i).getStart().getY(), parts.get(i - 1).getEnd().getY(), 0.00001);
       }
     }
-    Assert.assertEquals(parts.get(parts.size() - 1).getEndX(), l.getEndX(), 0.00001);
-    Assert.assertEquals(parts.get(parts.size() - 1).getEndY(), l.getEndY(), 0.00001);
+    Assert.assertEquals(parts.get(parts.size() - 1).getEnd().getX(), l.getEnd().getX(), 0.00001);
+    Assert.assertEquals(parts.get(parts.size() - 1).getEnd().getY(), l.getEnd().getY(), 0.00001);
     Assert.assertTrue(parts.size() == 16);
   }
 
