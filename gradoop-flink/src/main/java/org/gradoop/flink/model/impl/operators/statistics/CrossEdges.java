@@ -60,6 +60,10 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
    * Property for the y-coordinate of a vertex
    */
   private String yCoordinateProperty;
+  /**
+   * If true, ignore overlaps when counting crossings
+   */
+  private boolean ignoreOverlaps;
 
   /**
    * The size (width and height) of cells when dividing the coordinate-space into subcells to
@@ -94,6 +98,17 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
     this.cellSize = cellSize;
     this.xCoordinateProperty = xCoordinateProperty;
     this.yCoordinateProperty = yCoordinateProperty;
+  }
+
+  /**
+   * Sets optional value ignoreOverlaps. If true, do not count overlaps as crossings
+   *
+   * @param ignoreOverlaps the new value
+   * @return this (for method-chaining)
+   */
+  public CrossEdges IgnoreOverlaps(boolean ignoreOverlaps) {
+    this.ignoreOverlaps = ignoreOverlaps;
+    return this;
   }
 
   /**
@@ -134,6 +149,8 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
             for (int j = i + 1; j < lines.size(); j++) {
               Line line2 = lines.get(j);
               if (line1.intersects(line2)) {
+                crosscount++;
+              }else if (!ignoreOverlaps && line1.overlaps(line2)){
                 crosscount++;
               }
             }
@@ -190,12 +207,18 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
 
     DataSet<Integer> crosses;
 
+    final boolean ignorOverlapsf = ignoreOverlaps;
+
     if (cellSize <= DISABLE_OPTIMIZATION) {
       crosses = lines.cross(lines).with(new CrossFunction<Line, Line, Integer>() {
         @Override
         public Integer cross(Line line1, Line line2) throws Exception {
-          if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
-            return 1;
+          if (line1.getId().compareTo(line2.getId()) > 0) {
+            if (line1.intersects(line2)) {
+              return 1;
+            }else if (!ignorOverlapsf && line1.overlaps(line2)){
+              return 1;
+            }
           }
           return 0;
         }
@@ -493,7 +516,30 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
      * @return True if they overlep, else false
      */
     public boolean overlaps(Line other){
-     return true;
+      System.out.println("called");
+      //same start/end points
+     if (other.isSame(this) || other.reverse().isSame(this)){
+       System.out.println("same");
+       return true;
+     }
+
+     // must be parallel
+     if (!other.isParallel(this)){
+       System.out.println("not parallel");
+       return false;
+     }
+
+     if (isPointOnLine(other.getStart()) || isPointOnLine(other.getEnd())){
+       System.out.println("1");
+       return true;
+     }
+
+     if (other.isPointOnLine(getStart()) || other.isPointOnLine(getEnd())){
+       System.out.println("2");
+       return true;
+     }
+
+     return false;
     }
 
 
@@ -565,10 +611,38 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
       return new Line(getId(),getEnd(),getStart());
     }
 
+    /**
+     * Check if two lines are parallel
+     * @param other The other line
+     * @return True if parallel
+     */
     public boolean isParallel(Line other){
       Vector dir = getEnd().sub(getStart());
       Vector otherdir = other.getEnd().sub(other.getStart());
-      return dir.normalized().scalar(otherdir.normalized()) == 1;
+      return dir.normalized().scalar(otherdir.normalized()) > 0.99999;
+    }
+
+    /**
+     * Check if the given point lies on this line
+     * @param point The point
+     * @return True if yes
+     */
+    public boolean isPointOnLine(Vector point){
+
+      if (point.equals(getStart()) || point.equals(getEnd())){
+        return false;
+      }
+
+      Vector dir = getEnd().sub(getStart());
+      Vector pointDir = point.sub(getStart());
+
+      double xt = pointDir.getX() / dir.getX();
+      double yt = pointDir.getY() / dir.getY();
+      if (xt != yt){
+        return false;
+      }
+
+      return xt > 0 && xt < 1;
     }
 
     @Override

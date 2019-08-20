@@ -237,6 +237,13 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       case "eld":
         value = new EdgeLengthDerivation().execute(graph).collect().get(0);
         break;
+      case "crei":
+        value =
+          new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).IgnoreOverlaps(true).execute(graph).collect().get(0).f1;
+        break;
+      case "lcrei":
+        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).IgnoreOverlaps(true).executeLocally(graph).f1;
+        break;
       default:
         throw new IllegalArgumentException("Unknown statistic type: "+statistic);
       }

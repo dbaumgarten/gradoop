@@ -22,6 +22,7 @@ import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
 import org.junit.Assert;
 import org.junit.Test;
@@ -84,6 +85,65 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     Assert.assertFalse(e11.intersects(e12));
     Assert.assertFalse(e12.intersects(e13));
     Assert.assertFalse(e13.intersects(e12));
+  }
+
+  @Test
+  public void pointOnLineTest(){
+    CrossEdges.Line l = new CrossEdges.Line(1,2,10,20);
+    Vector p1 = new Vector(1,2);
+    Vector p2 = new Vector(10,20);
+    Vector p3 = new Vector(2,4);
+    Vector p4 = new Vector(4,8);
+    Vector p5 = new Vector(5,7);
+    Vector p6 = new Vector(15,30);
+
+    Assert.assertFalse(l.isPointOnLine(p1));
+    Assert.assertFalse(l.isPointOnLine(p2));
+    Assert.assertFalse(l.isPointOnLine(p5));
+    Assert.assertFalse(l.isPointOnLine(p6));
+
+    Assert.assertTrue(l.isPointOnLine(p3));
+    Assert.assertTrue(l.isPointOnLine(p4));
+  }
+
+  @Test
+  public void parallelTest(){
+    CrossEdges.Line l1 = new CrossEdges.Line(1,2,10,20);
+    CrossEdges.Line l2 = new CrossEdges.Line(2,4,9,18);
+    CrossEdges.Line l3 = new CrossEdges.Line(1,5,15,23);
+
+    Assert.assertTrue(l1.isParallel(l1));
+    Assert.assertTrue(l1.isParallel(l2));
+    Assert.assertTrue(l2.isParallel(l1));
+
+    Assert.assertFalse(l1.isParallel(l3));
+    Assert.assertFalse(l3.isParallel(l1));
+
+    Assert.assertFalse(l2.isParallel(l3));
+    Assert.assertFalse(l3.isParallel(l2));
+  }
+
+  @Test
+  public void overlapTest(){
+    CrossEdges.Line l1 = new CrossEdges.Line(1,2,10,20);
+    CrossEdges.Line l2 = new CrossEdges.Line(2,4,9,18);
+    CrossEdges.Line l3 = new CrossEdges.Line(1,2,9,18);
+    CrossEdges.Line l4 = new CrossEdges.Line(2,4,9,18);
+    CrossEdges.Line l5 = new CrossEdges.Line(1,2,15,18);
+    CrossEdges.Line l6 = new CrossEdges.Line(1,5,15,23);
+
+    Assert.assertTrue(l1.overlaps(l1));
+    Assert.assertTrue(l1.overlaps(l2));
+    Assert.assertTrue(l2.overlaps(l1));
+    Assert.assertTrue(l1.overlaps(l3));
+    Assert.assertTrue(l3.overlaps(l1));
+    Assert.assertTrue(l1.overlaps(l4));
+    Assert.assertTrue(l4.overlaps(l1));
+
+    Assert.assertFalse(l1.overlaps(l5));
+    Assert.assertFalse(l5.overlaps(l1));
+    Assert.assertFalse(l1.overlaps(l6));
+    Assert.assertFalse(l6.overlaps(l1));
   }
 
   @Test
