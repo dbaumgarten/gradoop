@@ -224,6 +224,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static List<Double> calculateStatistics(LogicalGraph graph) throws Exception{
     List<Double> results = new ArrayList<>();
+
+    if ( STATISTICS == null || STATISTICS.equals("")){
+      return results;
+    }
+
     String[] statistics = STATISTICS.split(",");
     for (String statistic : statistics){
       double value = 0d;
