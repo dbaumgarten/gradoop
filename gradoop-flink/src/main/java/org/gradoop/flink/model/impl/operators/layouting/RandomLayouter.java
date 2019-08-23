@@ -94,4 +94,10 @@ public class RandomLayouter implements LayoutingAlgorithm, MapFunction<Vertex, V
   public int getHeight() {
     return maxY;
   }
+
+  @Override
+  public String toString() {
+    return "RandomLayouter{" + "minX=" + minX + ", maxX=" + maxX + ", minY=" + minY + ", maxY=" +
+      maxY + ", rng=" + rng + '}';
+  }
 }

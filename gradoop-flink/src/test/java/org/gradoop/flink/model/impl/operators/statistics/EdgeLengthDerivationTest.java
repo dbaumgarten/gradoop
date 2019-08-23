@@ -16,6 +16,7 @@
 package org.gradoop.flink.model.impl.operators.statistics;
 
 import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
@@ -53,8 +54,8 @@ public class EdgeLengthDerivationTest extends GradoopFlinkTestBase {
     LogicalGraph g = loader.getLogicalGraph();
 
     EdgeLengthDerivation eld = new EdgeLengthDerivation();
-    DataSet<Double> crossing = eld.execute(g);
-    Double result = crossing.collect().get(0);
+    DataSet<Tuple2<Double,Double>> resds = eld.execute(g);
+    Double result = resds.collect().get(0).f1;
 
 
     Assert.assertEquals(0.3047125465010722,result,0.00001);

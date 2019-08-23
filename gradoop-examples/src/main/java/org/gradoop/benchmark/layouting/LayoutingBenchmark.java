@@ -176,8 +176,11 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       outpath += getDynamicOutputFolderName() + "/";
     }
 
+    String datasetName = INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1);
+
     if (RESUME){
       // load the existing layout from the output path
+      INPUT_FORMAT = "csv";
       INPUT_PATH = outpath;
     }
 
@@ -213,7 +216,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     List<Double> statisticValues = calculateStatistics(layouted);
 
     writeBenchmark(layoutingRuntime,
-      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValues);
+      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValues
+      , datasetName);
   }
 
   /**
@@ -240,7 +244,10 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).executeLocally(graph).f1;
         break;
       case "eld":
-        value = new EdgeLengthDerivation().execute(graph).collect().get(0);
+        value = new EdgeLengthDerivation().execute(graph).collect().get(0).f0;
+        break;
+      case "neld":
+        value = new EdgeLengthDerivation().execute(graph).collect().get(0).f1;
         break;
       case "crei":
         value =
@@ -534,14 +541,14 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * @throws IOException exception during file writing
    */
   private static void writeBenchmark(double runtime, int parallelism,
-    LayoutingAlgorithm layouting, List<Double> statisticValues) throws IOException {
+    LayoutingAlgorithm layouting, List<Double> statisticValues, String dataset) throws IOException {
     String head = String
       .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Params",
         "Runtime " + "[s]", "Statistic["+ STATISTICS +"]");
 
     // build log
     String tail = String.format("%s|%s|%s|%s|%s%n", parallelism,
-      INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1),
+      dataset,
       String.join(", ", layouting.toString()), runtime/1000.0, statisticValues.toString());
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
