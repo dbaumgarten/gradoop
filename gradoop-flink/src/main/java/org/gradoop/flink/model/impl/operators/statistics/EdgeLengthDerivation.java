@@ -34,13 +34,13 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import java.util.List;
 
 /**
- * Computes the NORMALIZED standard-derivation of the edge-lengths of a layouted graph.
+ * Computes the standard-derivation of the edge-lengths of a layouted graph.
  * The better the layout is, the smaller the edge-length derivation. This metric is not as good
  * as CressEdges, but is a lot faster to compute.
  * <p>
  * All vertices of the input graph MUST have coordinates assigned as properties!
  */
-public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<Double>> {
+public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<Tuple2<Double,Double>>> {
 
   /**
    * Property for the x-coordinate of a vertex
@@ -71,8 +71,13 @@ public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<D
     this(LayoutingAlgorithm.X_COORDINATE_PROPERTY, LayoutingAlgorithm.Y_COORDINATE_PROPERTY);
   }
 
+  /**
+   * Calculate edge length derivation for the graph
+   * @param graph input graph
+   * @return Tuple2. f0 is the standard derivation and f1 the normalized standard derivation.
+   */
   @Override
-  public DataSet<Double> execute(LogicalGraph graph) {
+  public DataSet<Tuple2<Double,Double>> execute(LogicalGraph graph) {
     DataSet<Vertex> vertices = graph.getVertices();
     DataSet<Edge> edges = graph.getEdges();
 
@@ -144,13 +149,15 @@ public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<D
       public Double map(Double d) {
         return Math.pow(d - avg, 2) / count;
       }
-    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b).map(new RichMapFunction<Double, Double>() {
+
+    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b).map(new RichMapFunction<Double, Tuple2<Double,Double>>() {
       @Override
-      public Double map(Double v) {
+      public Tuple2<Double,Double> map(Double v) {
         List<Tuple2<Integer, Double>> cntAvgL =
           this.getRuntimeContext().getBroadcastVariable("cntavg");
         double avg = cntAvgL.get(0).f1;
-        return Math.sqrt(v) / avg;
+        double eld = Math.sqrt(v);
+        return new Tuple2<Double,Double>(eld,eld/avg);
       }
     }).withBroadcastSet(countAndAvg, "cntavg");
 
