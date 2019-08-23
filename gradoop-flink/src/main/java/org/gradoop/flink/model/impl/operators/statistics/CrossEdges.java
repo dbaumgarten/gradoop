@@ -19,6 +19,7 @@ import org.apache.flink.api.common.functions.CrossFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -43,7 +44,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * Count number of crossing edges in a graph-layout
  */
-public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Integer, Double>>> {
+public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long, Double>>> {
 
   /**
    * Pass this value as cellSize to the Constructor to disable the anti-cross-product optimization.
@@ -196,54 +197,57 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Inte
    * is the average number of crossings per edge.
    */
   @Override
-  public DataSet<Tuple2<Integer, Double>> execute(LogicalGraph g) {
+  public DataSet<Tuple2<Long, Double>> execute(LogicalGraph g) {
     DataSet<Edge> edges = g.getEdges();
 
     edges = removeSuperflousEdges(edges);
 
-    DataSet<Integer> edgecountds = edges.map(x -> 1).reduce((a, b) -> a + b);
+    DataSet<Long> edgecountds = edges.map(x -> 1l).reduce((a, b) -> a + b);
 
     DataSet<Line> lines = getLinesFromEdges(edges, g.getVertices());
 
-    DataSet<Integer> crosses;
+    DataSet<Long> crosses;
 
     final boolean ignorOverlapsf = ignoreOverlaps;
 
     if (cellSize <= DISABLE_OPTIMIZATION) {
-      crosses = lines.cross(lines).with(new CrossFunction<Line, Line, Integer>() {
+      crosses = lines.cross(lines).with(new CrossFunction<Line, Line, Long>() {
         @Override
-        public Integer cross(Line line1, Line line2) throws Exception {
+        public Long cross(Line line1, Line line2) throws Exception {
           if (line1.getId().compareTo(line2.getId()) > 0) {
             if (line1.intersects(line2)) {
-              return 1;
+              return 1l;
             }else if (!ignorOverlapsf && line1.overlaps(line2)){
-              return 1;
+              return 1l;
             }
           }
-          return 0;
+          return 0l;
         }
       }).reduce((a, b) -> a + b);
     } else {
       DataSet<Tuple2<Integer, Line>> segmentedLines = lines.flatMap(new LinePartitioner(cellSize));
       crosses = segmentedLines.join(segmentedLines).where(0).equalTo(0)
-        .with(new JoinFunction<Tuple2<Integer, Line>, Tuple2<Integer, Line>, Integer>() {
+        .with(new JoinFunction<Tuple2<Integer, Line>, Tuple2<Integer, Line>, Long>() {
           @Override
-          public Integer join(Tuple2<Integer, Line> integerLineTuple1,
+          public Long join(Tuple2<Integer, Line> integerLineTuple1,
             Tuple2<Integer, Line> integerLineTuple2) throws Exception {
             Line line1 = integerLineTuple1.f1;
             Line line2 = integerLineTuple2.f1;
             if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
-              return 1;
+              return 1l;
             }
-            return 0;
+            return 0l;
           }
         }).reduce((a, b) -> a + b);
     }
 
-    return crosses.cross(edgecountds)
-      .with((crosscount, edgecount) -> new Tuple2<>(crosscount, crosscount / (double) edgecount))
-      .returns(new TypeHint<Tuple2<Integer, Double>>() {
-      });
+    return crosses.map(new RichMapFunction<Long, Tuple2<Long, Double>>() {
+      @Override
+      public Tuple2<Long, Double> map(Long crosscount) throws Exception {
+        List<Long> edgecount = getRuntimeContext().getBroadcastVariable("edgecount");
+        return new Tuple2<>(crosscount, crosscount / (double) edgecount.get(0));
+      }
+    }).withBroadcastSet(edgecountds,"edgecount");
   }
 
   /**
