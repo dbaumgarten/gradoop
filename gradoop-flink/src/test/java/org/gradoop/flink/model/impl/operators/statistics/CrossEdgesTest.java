@@ -238,10 +238,10 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     LogicalGraph g = loader.getLogicalGraph();
 
     CrossEdges ce = new CrossEdges(10);
-    DataSet<Tuple2<Integer, Double>> crossing = ce.execute(g);
-    Tuple2<Integer, Double> results = crossing.collect().get(0);
+    DataSet<Tuple2<Long, Double>> crossing = ce.execute(g);
+    Tuple2<Long, Double> results = crossing.collect().get(0);
 
-    Assert.assertEquals(1, (int) results.f0);
+    Assert.assertEquals(1, (long) results.f0);
     Assert.assertEquals(0.06666666, results.f1, 0.0001);
   }
 
@@ -254,10 +254,10 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     LogicalGraph g = loader.getLogicalGraph();
 
     CrossEdges ce = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION);
-    DataSet<Tuple2<Integer, Double>> crossing = ce.execute(g);
-    Tuple2<Integer, Double> results = crossing.collect().get(0);
+    DataSet<Tuple2<Long, Double>> crossing = ce.execute(g);
+    Tuple2<Long, Double> results = crossing.collect().get(0);
 
-    Assert.assertEquals(1, (int) results.f0);
+    Assert.assertEquals(1, (long) results.f0);
     Assert.assertEquals(0.06666666, results.f1, 0.0001);
   }
 
