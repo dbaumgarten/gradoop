@@ -648,7 +648,8 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
 
       double xt = pointDir.getX() / dir.getX();
       double yt = pointDir.getY() / dir.getY();
-      if (Math.abs(xt - yt) < 0.0001) {
+      double dif = Math.abs(xt - yt);
+      if (dif > 0.001 || Double.isNaN(dif)) {
         return false;
       }
 
