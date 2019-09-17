@@ -57,6 +57,10 @@ public class Vector implements Serializable {
     y = 0d;
   }
 
+  /**
+   * Ensure that this vector does not contain any NaN-values.
+   * Throws IllegalStateException if x or y is NaN.
+   */
   private void check() {
     if (Double.isNaN(x) || Double.isNaN(y)) {
       throw new IllegalStateException(

@@ -75,7 +75,7 @@ public class FRLayouter implements LayoutingAlgorithm {
    * If true, do not create a random initial layout but use the existing layout of the graph
    * instead.
    */
-  boolean useExistingLayout = false;
+  protected boolean useExistingLayout = false;
   /**
    * Perform the layouting as if this number of iterations had already passed
    */
@@ -139,6 +139,8 @@ public class FRLayouter implements LayoutingAlgorithm {
   /**
    * Use the existing layout as starting point instead of creating a random one.
    * If used, EVERY vertex in the input-graph MUST have an X and Y property!
+   * @param uel whether to re-use the existing layout or not
+   * @return this (for method chaining)
    */
   public FRLayouter useExistingLayout(boolean uel) {
     this.useExistingLayout = uel;
@@ -216,8 +218,8 @@ public class FRLayouter implements LayoutingAlgorithm {
   /**
    * Creates a random layout as the starting-point for the algorithm
    *
-   * @param g
-   * @return
+   * @param g The graph to layout
+   * @return The randomly layouted input graph
    */
   protected LogicalGraph createInitialLayout(LogicalGraph g) {
     if (useExistingLayout) {
@@ -317,13 +319,14 @@ public class FRLayouter implements LayoutingAlgorithm {
       .where("f0." + LEdge.TARGET_ID).equalTo(LVertex.ID).with(
         (first, second) -> new Tuple3<LVertex, LVertex, Integer>(first.f1, second,
           first.f0.getCount())).returns(new TypeHint<Tuple3<LVertex, LVertex, Integer>>() {
-      }).flatMap(new FRAttractionFunction(getK()));
+          }).flatMap(new FRAttractionFunction(getK()));
   }
 
   @Override
   public String toString() {
     return "FRLayouter{" + "iterations=" + iterations + ", k=" + getK() + ", with=" + getWidth() +
-      ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
-      ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
+          ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
+          ", numberOfVertices=" + numberOfVertices +
+          ", useExistingLayout=" + useExistingLayout + '}';
   }
 }

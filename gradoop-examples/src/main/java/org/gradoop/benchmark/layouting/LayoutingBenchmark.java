@@ -31,7 +31,16 @@ import org.gradoop.flink.io.impl.deprecated.json.JSONDataSource;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphCSVDataSource;
 import org.gradoop.flink.io.impl.deprecated.logicalgraphcsv.LogicalGraphIndexedCSVDataSource;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
-import org.gradoop.flink.model.impl.operators.layouting.*;
+import org.gradoop.flink.model.impl.operators.layouting.RandomLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.MtxDataSource;
+import org.gradoop.flink.model.impl.operators.layouting.FRLayouterNaive;
+import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
+import org.gradoop.flink.model.impl.operators.layouting.FRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.SamplingFRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.FusingFRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.GiLaLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.CentroidFRLayouter;
+import org.gradoop.flink.model.impl.operators.layouting.CombiLayouter;
 import org.gradoop.flink.model.impl.operators.layouting.util.Plotter;
 import org.gradoop.flink.model.impl.operators.statistics.CrossEdges;
 import org.gradoop.flink.model.impl.operators.statistics.EdgeLengthDerivation;
@@ -148,8 +157,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       "Path where the " + "benchmark-file is written to");
     OPTIONS.addOption(OPTION_STATISTIC, "statistics", true,
       "Comma seperated list of statistics to compute. (cre,lcre,eld)");
-    OPTIONS.addOption(OPTION_RESUME, "resume", false, "Skip layouting. Assume layouting exists " +
-      "and continue with image and statistics");
+    OPTIONS.addOption(OPTION_RESUME, "resume", false,
+      "Skip layouting. Assume layouting exists " + "and continue with image and statistics");
   }
 
   /**
@@ -178,7 +187,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     String datasetName = INPUT_PATH.substring(INPUT_PATH.lastIndexOf(File.separator) + 1);
 
-    if (RESUME){
+    if (RESUME) {
       // load the existing layout from the output path
       INPUT_FORMAT = "csv";
       INPUT_PATH = outpath;
@@ -186,7 +195,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
     LogicalGraph layouted;
-    Long layoutingRuntime = 0l;
+    Long layoutingRuntime = 0L;
 
     // instantiate selected layouting algorithm and create layout
     LayoutingAlgorithm algorithm =
@@ -200,43 +209,44 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     if (!RESUME) {
       layouted = algorithm.execute(graph);
-      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm),true);
+      layouted.writeTo(getDataSink(outpath, "csv", graph.getConfig(), algorithm), true);
       layoutingRuntime = getExecutionEnvironment().execute("Layouting").getNetRuntime();
       layouted = readLogicalGraph(outpath, "csv");
 
-    }else{
+    } else {
       layouted = graph;
     }
 
-    if (!OUTPUT_FORMAT.equals("csv") && !OUTPUT_FORMAT.equals("none")){
-      layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm),true);
+    if (!OUTPUT_FORMAT.equals("csv") && !OUTPUT_FORMAT.equals("none")) {
+      layouted.writeTo(getDataSink(outpath, OUTPUT_FORMAT, graph.getConfig(), algorithm), true);
       getExecutionEnvironment().execute("Output conversion");
     }
 
     List<Double> statisticValues = calculateStatistics(layouted);
 
     writeBenchmark(layoutingRuntime,
-      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValues
-      , datasetName);
+      layouted.getConfig().getExecutionEnvironment().getParallelism(), algorithm, statisticValues,
+      datasetName);
   }
 
   /**
    * Calculate the requested statistics
+   *
    * @param graph The layouted graph to compute statistics for
    * @return A list of statistic values as requested in STATISTICS
    * @throws Exception if something goes wrong during the flink execution
    */
-  private static List<Double> calculateStatistics(LogicalGraph graph) throws Exception{
+  private static List<Double> calculateStatistics(LogicalGraph graph) throws Exception {
     List<Double> results = new ArrayList<>();
 
-    if ( STATISTICS == null || STATISTICS.equals("")){
+    if (STATISTICS == null || STATISTICS.equals("")) {
       return results;
     }
 
     String[] statistics = STATISTICS.split(",");
-    for (String statistic : statistics){
+    for (String statistic : statistics) {
       double value = 0d;
-      switch (statistic){
+      switch (statistic) {
       case "cre":
         value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).execute(graph).collect().get(0).f1;
         break;
@@ -250,14 +260,15 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         value = new EdgeLengthDerivation().execute(graph).collect().get(0).f1;
         break;
       case "crei":
-        value =
-          new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).IgnoreOverlaps(true).execute(graph).collect().get(0).f1;
+        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).ignoreOverlaps(true).execute(graph)
+          .collect().get(0).f1;
         break;
       case "lcrei":
-        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).IgnoreOverlaps(true).executeLocally(graph).f1;
+        value = new CrossEdges(CrossEdges.DISABLE_OPTIMIZATION).ignoreOverlaps(true)
+          .executeLocally(graph).f1;
         break;
       default:
-        throw new IllegalArgumentException("Unknown statistic type: "+statistic);
+        throw new IllegalArgumentException("Unknown statistic type: " + statistic);
       }
       results.add(value);
     }
@@ -285,6 +296,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * Build the selected LayoutingAlgorithm with the given constructor parameters
    *
    * @param opts A list of options
+   * @param vertexcount Approximate number of vertices in the graph
    * @return The layouter
    */
   private static LayoutingAlgorithm buildLayoutingAlgorithm(String[] opts, int vertexcount) {
@@ -367,7 +379,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         }
         iterations = Integer.parseInt(opts[1]);
         double quality = Double.parseDouble(opts[2]);
-        algo = new CombiLayouter(iterations,vertexcount,quality);
+        algo = new CombiLayouter(iterations, vertexcount, quality);
         applyOptionalArguments(algo, 3);
         break;
       default:
@@ -401,21 +413,21 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
           values[o] = Integer.parseInt(optionValues[o]);
           types[o] = int.class;
           continue;
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
 
         }
         try {
           values[o] = Double.parseDouble(optionValues[o]);
           types[o] = double.class;
           continue;
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
 
         }
         try {
           values[o] = Boolean.parseBoolean(optionValues[o]);
           types[o] = boolean.class;
           continue;
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
 
         }
       }
@@ -428,10 +440,12 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
         }
         m.invoke(algo, values);
       } catch (NoSuchMethodException e) {
-        String args = "";
+        StringBuilder sb = new StringBuilder();
         for (int z = 0; z < types.length; z++) {
-          args += types[z].getName() + ",";
+          sb.append(types[z].getName());
+          sb.append(",");
         }
+        String args = sb.toString();
         args = args.substring(0, args.length() - 1);
         throw new IllegalArgumentException(
           "Unknown optional argument: " + optionName + "(" + args + ")");
@@ -450,7 +464,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    */
   private static String getDynamicOutputFolderName() {
     String dataset = new File(INPUT_PATH).getName();
-    return dataset + "-" + String.join("-", CONSTRUCTOR_PARAMS)+"-p="+getExecutionEnvironment().getParallelism();
+    return dataset + "-" + String.join("-", CONSTRUCTOR_PARAMS) + "-p=" +
+      getExecutionEnvironment().getParallelism();
   }
 
   /**
@@ -477,8 +492,8 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "image":
       int width = 1024;
       int height = 1024;
-      return new Plotter(directory + "image.png", alg, width, height)
-        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true).edgeSize(0.1f).zoom(true);
+      return new Plotter(directory + "image.png", alg, width, height).vertexSize(2)
+        .dynamicEdgeSize(true).dynamicVertexSize(true).edgeSize(0.1f).zoom(true);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
@@ -488,12 +503,12 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * Reads an EPGM database from a given directory.
    *
    * @param directory path to EPGM database
-   * @param format format in which the graph is stored (csv, indexed, json)
+   * @param format    format in which the graph is stored (csv, indexed, json)
    * @return EPGM logical graph
    * @throws IOException on failure
    */
-  protected static LogicalGraph readLogicalGraph(String directory, String format)
-    throws IOException {
+  protected static LogicalGraph readLogicalGraph(String directory, String format) throws
+    IOException {
     return getDataSource(directory, format).getLogicalGraph();
   }
 
@@ -502,7 +517,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
    * Returns an EPGM DataSource for a given directory and format.
    *
    * @param directory input path
-   * @param format format in which the data is stored (csv, indexed, json)
+   * @param format    format in which the data is stored (csv, indexed, json)
    * @return DataSource for EPGM Data
    */
   private static DataSource getDataSource(String directory, String format) {
@@ -522,34 +537,34 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
     case "lgindexed":
       return new LogicalGraphIndexedCSVDataSource(directory, config);
     case "mtx":
-      return new MtxDataSource(directory,config);
+      return new MtxDataSource(directory, config);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
   }
 
 
-
   /**
    * Method to crate and add lines to a benchmark file.
    *
-   * @param runtime        Runtime of the layouting
-   * @param parallelism    Parallelism level used for the layouting
-   * @param layouting      layouting algorithm under test
+   * @param runtime         Runtime of the layouting
+   * @param parallelism     Parallelism level used for the layouting
+   * @param layouting       layouting algorithm under test
    * @param statisticValues Results of the statistics the user wanted to calculate for the created
-   *                       layout
+   *                        layout
+   * @param dataset         Name of the DataSet that is being used
    * @throws IOException exception during file writing
    */
-  private static void writeBenchmark(double runtime, int parallelism,
-    LayoutingAlgorithm layouting, List<Double> statisticValues, String dataset) throws IOException {
+  private static void writeBenchmark(double runtime, int parallelism, LayoutingAlgorithm layouting,
+    List<Double> statisticValues, String dataset) throws IOException {
     String head = String
-      .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Params",
-        "Runtime " + "[s]", "Statistic["+ STATISTICS +"]");
+      .format("%s|%s|%s|%s|%s%n", "Parallelism", "Dataset", "Params", "Runtime " + "[s]",
+        "Statistic[" + STATISTICS + "]");
 
     // build log
-    String tail = String.format("%s|%s|%s|%s|%s%n", parallelism,
-      dataset,
-      String.join(", ", layouting.toString()), runtime/1000.0, statisticValues.toString());
+    String tail = String
+      .format("%s|%s|%s|%s|%s%n", parallelism, dataset, String.join(", ", layouting.toString()),
+        runtime / 1000.0, statisticValues.toString());
 
     File f = new File(OUTPUT_PATH_BENCHMARK);
     if (f.exists() && !f.isDirectory()) {

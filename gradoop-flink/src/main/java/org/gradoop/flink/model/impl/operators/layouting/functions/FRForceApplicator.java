@@ -35,7 +35,14 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * Height of the layouting space
    */
   protected int layoutHeight;
-
+  /**
+   * cache the last computed temperature and re-use if possible to reduce needed computing-power
+   */
+  protected int lastIteration = -1;
+  /**
+   * cache the last computed temperature and re-use if possible to reduce needed computing-power
+   */
+  protected double lastSpeedLimit = 0;
   /**
    * Speed at which the cooling-schedule starts
    */
@@ -48,14 +55,6 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
    * Base of the exponentially-decreasing function for the speed
    */
   private double base;
-  /**
-   * cache the last computed temperature and re-use if possible to reduce needed computing-power
-   */
-  protected int lastIteration = -1;
-  /**
-   * cache the last computed temperature and re-use if possible to reduce needed computing-power
-   */
-  protected double lastSpeedLimit = 0;
   /**
    * Maximum number of iterations
    */
@@ -158,6 +157,9 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
     this.maxIterations = maxIterations;
   }
 
+  /**
+   * Calculate the base for the exponential function
+   */
   private void calculateBase() {
     this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations + previousIterations - 1));
   }

@@ -127,22 +127,43 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, List<GradoopI
     this.f2 = targetId;
   }
 
+  /**
+   * Get amount of edges that this edge represents. As this edge counts as sub-edge the returned
+   * value is always at least 1
+   * @return The number
+   */
   public int getCount() {
     return (f3 != null) ? f3.size() + 1 : 1;
   }
 
+  /**
+   * Get the list of sub-edge ids for this edge
+   * @return A list of ids
+   */
   public List<GradoopId> getSubEdges() {
     return f3;
   }
 
+  /**
+   * Set the list of sub-edge ids for this edge
+   * @param edges The new list of sub-edges
+   */
   public void setSubEdges(List<GradoopId> edges) {
     f3 = edges;
   }
 
+  /**
+   * Add a sub-edge to this edge
+   * @param edge The sub-edge to add
+   */
   public void addSubEdge(GradoopId edge) {
     f3.add(edge);
   }
 
+  /**
+   * Add amultiple sub-edges to this edge
+   * @param edges The sub-edges to add
+   */
   public void addSubEdges(List<GradoopId> edges) {
     if (edges != null) {
       f3.addAll(edges);

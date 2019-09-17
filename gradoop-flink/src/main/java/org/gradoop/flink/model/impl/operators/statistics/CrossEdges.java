@@ -106,7 +106,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
    * @param ignoreOverlaps the new value
    * @return this (for method-chaining)
    */
-  public CrossEdges IgnoreOverlaps(boolean ignoreOverlaps) {
+  public CrossEdges ignoreOverlaps(boolean ignoreOverlaps) {
     this.ignoreOverlaps = ignoreOverlaps;
     return this;
   }
@@ -202,7 +202,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
 
     edges = removeSuperflousEdges(edges);
 
-    DataSet<Long> edgecountds = edges.map(x -> 1l).reduce((a, b) -> a + b);
+    DataSet<Long> edgecountds = edges.map(x -> 1L).reduce((a, b) -> a + b);
 
     DataSet<Line> lines = getLinesFromEdges(edges, g.getVertices());
 
@@ -216,12 +216,12 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
         public Long cross(Line line1, Line line2) throws Exception {
           if (line1.getId().compareTo(line2.getId()) > 0) {
             if (line1.intersects(line2)) {
-              return 1l;
+              return 1L;
             } else if (!ignorOverlapsf && line1.overlaps(line2)) {
-              return 1l;
+              return 1L;
             }
           }
-          return 0l;
+          return 0L;
         }
       }).reduce((a, b) -> a + b);
     } else {
@@ -234,9 +234,9 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
             Line line1 = integerLineTuple1.f1;
             Line line2 = integerLineTuple2.f1;
             if (line1.getId().compareTo(line2.getId()) > 0 && line1.intersects(line2)) {
-              return 1l;
+              return 1L;
             }
-            return 0l;
+            return 0L;
           }
         }).reduce((a, b) -> a + b);
     }
@@ -603,7 +603,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
     /**
      * Check if this line is exactly the same as another line (ignoring the id)
      *
-     * @param other
+     * @param other Other edge to compare this edge with
      * @return True if both are equal
      */
     public boolean isSame(Line other) {
@@ -648,7 +648,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
 
       double xt = pointDir.getX() / dir.getX();
       double yt = pointDir.getY() / dir.getY();
-      if (xt != yt) {
+      if (Math.abs(xt - yt) < 0.0001) {
         return false;
       }
 

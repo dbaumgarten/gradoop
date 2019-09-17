@@ -151,32 +151,60 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
     this.f2 = cellid;
   }
 
+  /**
+   * Get the number of vertices this vertex represents
+   * @return The number
+   */
   public int getCount() {
     return (f3 != null) ? f3.size() + 1 : 1;
   }
 
+  /**
+   * Get list of sub-vertiex ids
+   * @return The List
+   */
   public List<GradoopId> getSubVertices() {
     return f3;
   }
 
+  /**
+   * Set list of sub-vertiex ids
+   * @param v The new list of subvertex ids
+   */
   public void setSubVertices(List<GradoopId> v) {
     f3 = v;
   }
 
+  /**
+   * Add a sub-vertex to this vertex
+   * @param id The sub-vertex to add
+   */
   public void addSubVertex(GradoopId id) {
     f3.add(id);
   }
 
+  /**
+   * Add multiple sub-vertices to this vertex
+   * @param ids The sub-vertex to add
+   */
   public void addSubVertices(List<GradoopId> ids) {
     if (ids != null) {
       f3.addAll(ids);
     }
   }
 
+  /**
+   * Get the last force that was applied to this vertex
+   * @return The force-vector
+   */
   public Vector getForce() {
     return f4;
   }
 
+  /**
+   * Set the last force that was applied to this vertex
+   * @param v The force-vector
+   */
   public void setForce(Vector v) {
     f4 = v;
   }
