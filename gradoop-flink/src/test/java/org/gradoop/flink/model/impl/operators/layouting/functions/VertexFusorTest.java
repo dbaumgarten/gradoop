@@ -39,8 +39,8 @@ public class VertexFusorTest {
 
     LVertex receiver = new LVertex(GradoopId.get(), new Vector(10, 10), -1, generateSubVertices(4),
       new Vector(10, 10));
-    LVertex donor1 = new LVertex(GradoopId.get(), new Vector(100, 100), -1, null, new Vector(10,
-      10));
+    LVertex donor1 =
+      new LVertex(GradoopId.get(), new Vector(100, 100), -1, null, new Vector(10, 10));
     LVertex donor2 =
       new LVertex(GradoopId.get(), new Vector(1000, 1000), -1, generateSubVertices(2),
         new Vector(10, 10));

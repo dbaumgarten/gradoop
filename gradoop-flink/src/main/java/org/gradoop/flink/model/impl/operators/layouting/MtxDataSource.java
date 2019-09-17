@@ -35,16 +35,16 @@ public class MtxDataSource implements DataSource {
 
   @Override
   public LogicalGraph getLogicalGraph() throws IOException {
-    DataSet<Vertex> vertices =
-      cfg.getExecutionEnvironment().readTextFile(path).flatMap(new VertexMapper(cfg.getVertexFactory())).distinct("id");
+    DataSet<Vertex> vertices = cfg.getExecutionEnvironment().readTextFile(path)
+      .flatMap(new VertexMapper(cfg.getVertexFactory())).distinct("id");
 
-    DataSet<Edge> edges =
-      cfg.getExecutionEnvironment().readTextFile(path).flatMap(new EdgeMapper(cfg.getEdgeFactory()));
+    DataSet<Edge> edges = cfg.getExecutionEnvironment().readTextFile(path)
+      .flatMap(new EdgeMapper(cfg.getEdgeFactory()));
 
-    if (!skipPreprocessing){
-      edges = edges.filter((e)->!e.getSourceId().equals(e.getTargetId()));
-      edges = edges.map(e->{
-        if (e.getSourceId().compareTo(e.getTargetId()) > 0){
+    if (!skipPreprocessing) {
+      edges = edges.filter((e) -> !e.getSourceId().equals(e.getTargetId()));
+      edges = edges.map(e -> {
+        if (e.getSourceId().compareTo(e.getTargetId()) > 0) {
           GradoopId old = e.getSourceId();
           e.setSourceId(e.getTargetId());
           e.setTargetId(old);
@@ -53,7 +53,7 @@ public class MtxDataSource implements DataSource {
       }).distinct("sourceId", "targetId");
     }
 
-    return cfg.getLogicalGraphFactory().fromDataSets(vertices,edges);
+    return cfg.getLogicalGraphFactory().fromDataSets(vertices, edges);
   }
 
   @Override
@@ -61,20 +61,21 @@ public class MtxDataSource implements DataSource {
     throw new NotImplementedException();
   }
 
-  private static boolean isComment(String line){
+  private static boolean isComment(String line) {
     return line.startsWith("#") || line.startsWith("%");
   }
 
-  private static String getSplitCharacter(String text){
-    return text.contains(" ")?" ":"\t";
+  private static String getSplitCharacter(String text) {
+    return text.contains(" ") ? " " : "\t";
   }
 
-  private static GradoopId generateId(String text){
-    String hex = String.format("%24s",  Integer.toHexString(Integer.parseInt(text))).replace(' ', '0');
+  private static GradoopId generateId(String text) {
+    String hex =
+      String.format("%24s", Integer.toHexString(Integer.parseInt(text))).replace(' ', '0');
     return GradoopId.fromString(hex);
   }
 
-  private static class EdgeMapper implements FlatMapFunction<String,Edge> {
+  private static class EdgeMapper implements FlatMapFunction<String, Edge> {
     private EPGMEdgeFactory<Edge> edgeFactory;
 
     public EdgeMapper(EPGMEdgeFactory<Edge> edgeFactory) {
@@ -83,17 +84,15 @@ public class MtxDataSource implements DataSource {
 
     @Override
     public void flatMap(String line, Collector<Edge> collector) {
-      if(!isComment(line)){
+      if (!isComment(line)) {
         String[] splitted = line.split(getSplitCharacter(line));
-        collector.collect(edgeFactory.initEdge(GradoopId.get(),
-          "edge",
-          generateId(splitted[0]),
-          generateId(splitted[1])));
+        collector.collect(edgeFactory
+          .initEdge(GradoopId.get(), "edge", generateId(splitted[0]), generateId(splitted[1])));
       }
     }
   }
 
-  private static class VertexMapper implements FlatMapFunction<String,Vertex> {
+  private static class VertexMapper implements FlatMapFunction<String, Vertex> {
     private EPGMVertexFactory<Vertex> vertexFactory;
 
     public VertexMapper(EPGMVertexFactory<Vertex> vertexFactory) {
@@ -102,10 +101,10 @@ public class MtxDataSource implements DataSource {
 
     @Override
     public void flatMap(String line, Collector<Vertex> collector) {
-      if(!isComment(line)){
+      if (!isComment(line)) {
         String[] splitted = line.split(getSplitCharacter(line));
-        collector.collect(vertexFactory.initVertex(generateId(splitted[0]),"vertex"));
-        collector.collect(vertexFactory.initVertex(generateId(splitted[1]),"vertex"));
+        collector.collect(vertexFactory.initVertex(generateId(splitted[0]), "vertex"));
+        collector.collect(vertexFactory.initVertex(generateId(splitted[1]), "vertex"));
       }
     }
   }

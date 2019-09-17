@@ -40,7 +40,8 @@ import java.util.List;
  * <p>
  * All vertices of the input graph MUST have coordinates assigned as properties!
  */
-public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<Tuple2<Double,Double>>> {
+public class EdgeLengthDerivation implements
+  UnaryGraphToValueOperator<DataSet<Tuple2<Double, Double>>> {
 
   /**
    * Property for the x-coordinate of a vertex
@@ -73,11 +74,12 @@ public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<T
 
   /**
    * Calculate edge length derivation for the graph
+   *
    * @param graph input graph
    * @return Tuple2. f0 is the standard derivation and f1 the normalized standard derivation.
    */
   @Override
-  public DataSet<Tuple2<Double,Double>> execute(LogicalGraph graph) {
+  public DataSet<Tuple2<Double, Double>> execute(LogicalGraph graph) {
     DataSet<Vertex> vertices = graph.getVertices();
     DataSet<Edge> edges = graph.getEdges();
 
@@ -150,16 +152,17 @@ public class EdgeLengthDerivation implements UnaryGraphToValueOperator<DataSet<T
         return Math.pow(d - avg, 2) / count;
       }
 
-    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b).map(new RichMapFunction<Double, Tuple2<Double,Double>>() {
-      @Override
-      public Tuple2<Double,Double> map(Double v) {
-        List<Tuple2<Integer, Double>> cntAvgL =
-          this.getRuntimeContext().getBroadcastVariable("cntavg");
-        double avg = cntAvgL.get(0).f1;
-        double eld = Math.sqrt(v);
-        return new Tuple2<Double,Double>(eld,eld/avg);
-      }
-    }).withBroadcastSet(countAndAvg, "cntavg");
+    }).withBroadcastSet(countAndAvg, "cntavg").reduce((a, b) -> a + b)
+      .map(new RichMapFunction<Double, Tuple2<Double, Double>>() {
+        @Override
+        public Tuple2<Double, Double> map(Double v) {
+          List<Tuple2<Integer, Double>> cntAvgL =
+            this.getRuntimeContext().getBroadcastVariable("cntavg");
+          double avg = cntAvgL.get(0).f1;
+          double eld = Math.sqrt(v);
+          return new Tuple2<Double, Double>(eld, eld / avg);
+        }
+      }).withBroadcastSet(countAndAvg, "cntavg");
 
   }
 }

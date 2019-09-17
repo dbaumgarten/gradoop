@@ -38,7 +38,6 @@ import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFu
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRForceApplicator;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.GiLaDegreePruner;
-import org.gradoop.flink.model.impl.operators.layouting.functions.GiLaForceApplicator;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 
@@ -157,8 +156,9 @@ public class GiLaLayouter extends
 
   @Override
   public LogicalGraph execute(LogicalGraph graph) {
-    msgFunc = new MsgFunc(getWidth(), getHeight(), getOptimumDistance(), kNeighborhood,
-      numberOfVertices, iterations);
+    msgFunc =
+      new MsgFunc(getWidth(), getHeight(), getOptimumDistance(), kNeighborhood, numberOfVertices,
+        iterations);
 
     // random start-layout
     RandomLayouter rl =
@@ -172,19 +172,18 @@ public class GiLaLayouter extends
 
     // GiLa needs an undirected graph. Transform the undirected into a directed Graph by copying
     // and reversing all edges.
-    DataSet<org.gradoop.common.model.impl.pojo.Edge> edges =
-      graph.getEdges().flatMap((FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
-        org.gradoop.common.model.impl.pojo.Edge>)(e,
-      collector)->{
-      org.gradoop.common.model.impl.pojo.Edge edgeCopy =
-        new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(),e.getLabel(),e.getTargetId(),e.getSourceId(),
-          new Properties(),null);
-      collector.collect(e);
-      collector.collect(edgeCopy);
-    }).returns(new TypeHint<org.gradoop.common.model.impl.pojo.Edge>() {});
+    DataSet<org.gradoop.common.model.impl.pojo.Edge> edges = graph.getEdges().flatMap(
+      (FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
+        org.gradoop.common.model.impl.pojo.Edge>) (e, collector) -> {
+        org.gradoop.common.model.impl.pojo.Edge edgeCopy =
+          new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(), e.getLabel(),
+            e.getTargetId(), e.getSourceId(), new Properties(), null);
+        collector.collect(e);
+        collector.collect(edgeCopy);
+      }).returns(new TypeHint<org.gradoop.common.model.impl.pojo.Edge>() {
+    });
 
-    graph = graph.getConfig().getLogicalGraphFactory().fromDataSets(graph.getVertices(),
-      edges);
+    graph = graph.getConfig().getLogicalGraphFactory().fromDataSets(graph.getVertices(), edges);
 
     // perform the layouting
     graph = super.execute(graph);
@@ -265,16 +264,16 @@ public class GiLaLayouter extends
      * @param height          height of the layouting-area
      * @param optimumDistance k of FRLayouter
      * @param kNeighborhood   kNeighborhood for repulsion-calculations
-     * @param numVertices Number of vertices in the graph
+     * @param numVertices     Number of vertices in the graph
      */
-    public MsgFunc(int width, int height, double optimumDistance,
-      int kNeighborhood, int numVertices, int maxIterations) {
+    public MsgFunc(int width, int height, double optimumDistance, int kNeighborhood,
+      int numVertices, int maxIterations) {
       this.kNeighborhood = kNeighborhood;
 
       this.repulsion = new FRRepulsionFunction(optimumDistance);
       this.attraction = new FRAttractionFunction(optimumDistance);
       //this.applicator = new GiLaForceApplicator(width,height,optimumDistance,numVertices);
-      this.applicator = new FRForceApplicator(width,height,optimumDistance,maxIterations);
+      this.applicator = new FRForceApplicator(width, height, optimumDistance, maxIterations);
     }
 
     @Override
@@ -295,13 +294,15 @@ public class GiLaLayouter extends
 
           //Attraction from direct neighbors
           if (msg.f2 == kNeighborhood) {
-            value.getForces().mAdd(attractionForce(vertex.getId(), value.getPosition(), msg.getSender(),
-              msg.getPosition()));
+            value.getForces().mAdd(
+              attractionForce(vertex.getId(), value.getPosition(), msg.getSender(),
+                msg.getPosition()));
           }
 
           //Repulsion from all
-          value.getForces().mAdd(repulsionForce(vertex.getId(), value.getPosition(), msg.getSender(),
-            msg.getPosition()).mMul(msg.getWeight()+1));
+          value.getForces().mAdd(
+            repulsionForce(vertex.getId(), value.getPosition(), msg.getSender(), msg.getPosition())
+              .mMul(msg.getWeight() + 1));
           if (msg.getTTL() > 1) {
             msg.setTTL(msg.getTTL() - 1);
             messagesToSend.add(msg);
@@ -318,8 +319,8 @@ public class GiLaLayouter extends
       }
 
       if (iteration % kNeighborhood == 0 || iteration != 0 || receivedMessages == 0) {
-        messagesToSend
-          .add(new Message(vertex.getId(), value.getPosition(), kNeighborhood, vertex.getId(),
+        messagesToSend.add(
+          new Message(vertex.getId(), value.getPosition(), kNeighborhood, vertex.getId(),
             value.getPrunedNeighbors()));
       }
 
@@ -382,13 +383,13 @@ public class GiLaLayouter extends
 
     /**
      * Construct a new Message
-     * @param sender Initial Sender of the message
+     *
+     * @param sender   Initial Sender of the message
      * @param position Position of the sender
-     * @param ttl TimeToLive of this message
-     * @param lastHop Id of the last vertex that retransmitted this message
+     * @param ttl      TimeToLive of this message
+     * @param lastHop  Id of the last vertex that retransmitted this message
      */
-    public Message(GradoopId sender, Vector position, Integer ttl, GradoopId lastHop,
-      int weight) {
+    public Message(GradoopId sender, Vector position, Integer ttl, GradoopId lastHop, int weight) {
       super(sender, position, ttl, lastHop, weight);
     }
 
@@ -401,6 +402,7 @@ public class GiLaLayouter extends
 
     /**
      * Get the initial sender of the message
+     *
      * @return The senders if
      */
     public GradoopId getSender() {
@@ -409,6 +411,7 @@ public class GiLaLayouter extends
 
     /**
      * Get the position of the sender
+     *
      * @return The position
      */
     public Vector getPosition() {
@@ -417,6 +420,7 @@ public class GiLaLayouter extends
 
     /**
      * Get the ttl of this message
+     *
      * @return the ttl
      */
     public Integer getTTL() {
@@ -425,6 +429,7 @@ public class GiLaLayouter extends
 
     /**
      * Get the last vertex send retransmitted this message
+     *
      * @return The id of sais vertex
      */
     public GradoopId getLastHop() {
@@ -433,14 +438,16 @@ public class GiLaLayouter extends
 
     /**
      * Return the weight of the sending vertex
+     *
      * @return weight
      */
-    public int getWeight(){
+    public int getWeight() {
       return f4;
     }
 
     /**
      * Set the sender id
+     *
      * @param id New id
      */
     public void setSender(GradoopId id) {
@@ -449,6 +456,7 @@ public class GiLaLayouter extends
 
     /**
      * Set the position
+     *
      * @param position New position
      */
     public void setPosition(Vector position) {
@@ -457,6 +465,7 @@ public class GiLaLayouter extends
 
     /**
      * Set the TTL for this message
+     *
      * @param ttl New TTL
      */
     public void setTTL(Integer ttl) {
@@ -465,6 +474,7 @@ public class GiLaLayouter extends
 
     /**
      * Set the last hop id of this message
+     *
      * @param hop New id
      */
     public void setLastHop(GradoopId hop) {
@@ -473,14 +483,16 @@ public class GiLaLayouter extends
 
     /**
      * Set the weight of the sending vertex
+     *
      * @param w The new weight
      */
-    public void setWeight(int w){
+    public void setWeight(int w) {
       f4 = w;
     }
 
     /**
      * Create a copy of this message.
+     *
      * @return A shallow copy of this message
      */
     public Message copy() {
@@ -491,7 +503,7 @@ public class GiLaLayouter extends
   /**
    * Represents the stored values for each vertex.
    */
-  protected static class VertexValue extends Tuple4<Vector,Vector,HashSet<GradoopId>,Integer> {
+  protected static class VertexValue extends Tuple4<Vector, Vector, HashSet<GradoopId>, Integer> {
 
     /**
      * Construct ne vertex-value
@@ -502,10 +514,9 @@ public class GiLaLayouter extends
       f0 = Vector.fromVertexPosition(v);
       f1 = new Vector(0, 0);
       f2 = new HashSet<>();
-      if (v.hasProperty(GiLaDegreePruner.NUM_PRUNED_NEIGHBORS_PROPERTY)){
-        f3 =
-          v.getPropertyValue(GiLaDegreePruner.NUM_PRUNED_NEIGHBORS_PROPERTY).getInt();
-      }else{
+      if (v.hasProperty(GiLaDegreePruner.NUM_PRUNED_NEIGHBORS_PROPERTY)) {
+        f3 = v.getPropertyValue(GiLaDegreePruner.NUM_PRUNED_NEIGHBORS_PROPERTY).getInt();
+      } else {
         f3 = 0;
       }
     }
@@ -513,7 +524,7 @@ public class GiLaLayouter extends
     /**
      * Default constructor to conform woth POJO-rules
      */
-    public VertexValue(){
+    public VertexValue() {
       super();
     }
 

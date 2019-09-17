@@ -95,24 +95,24 @@ public class VectorTest {
   }
 
   @Test
-  public void testAngle(){
-    Vector a = new Vector(0,10);
-    Vector b = new Vector(10,0);
-    Vector c = new Vector(0,-10);
-    Vector d = new Vector(10,10);
+  public void testAngle() {
+    Vector a = new Vector(0, 10);
+    Vector b = new Vector(10, 0);
+    Vector c = new Vector(0, -10);
+    Vector d = new Vector(10, 10);
 
-    Assert.assertEquals(0,a.angle(a),0.000000001);
-    Assert.assertEquals(90,a.angle(b),0.0000001);
-    Assert.assertEquals(180,a.angle(c),0.00000001);
-    Assert.assertEquals(45,a.angle(d),0.00000001);
+    Assert.assertEquals(0, a.angle(a), 0.000000001);
+    Assert.assertEquals(90, a.angle(b), 0.0000001);
+    Assert.assertEquals(180, a.angle(c), 0.00000001);
+    Assert.assertEquals(45, a.angle(d), 0.00000001);
   }
 
   @Test
   public void testRotate() {
-    Vector a = new Vector(100,20);
+    Vector a = new Vector(100, 20);
     Vector b = a.rotate(87);
-    Assert.assertEquals(a.magnitude(),b.magnitude(),0.0000001);
-    Assert.assertEquals(87,a.angle(b),0.00000001);
+    Assert.assertEquals(a.magnitude(), b.magnitude(), 0.0000001);
+    Assert.assertEquals(87, a.angle(b), 0.00000001);
   }
 
   @Test
@@ -204,9 +204,9 @@ public class VectorTest {
 
   @Test
   public void testmRotate() {
-    Vector a = new Vector(100,20);
+    Vector a = new Vector(100, 20);
     Vector b = a.rotate(87);
     a.mRotate(87);
-    Assert.assertEquals(a,b);
+    Assert.assertEquals(a, b);
   }
 }

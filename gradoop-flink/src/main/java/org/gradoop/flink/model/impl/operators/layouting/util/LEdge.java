@@ -128,22 +128,22 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, List<GradoopI
   }
 
   public int getCount() {
-    return (f3 != null)?f3.size()+1:1;
+    return (f3 != null) ? f3.size() + 1 : 1;
   }
 
-  public List<GradoopId> getSubEdges(){
+  public List<GradoopId> getSubEdges() {
     return f3;
   }
 
-  public void setSubEdges(List<GradoopId> edges){
+  public void setSubEdges(List<GradoopId> edges) {
     f3 = edges;
   }
 
-  public void addSubEdge(GradoopId edge){
+  public void addSubEdge(GradoopId edge) {
     f3.add(edge);
   }
 
-  public void addSubEdges(List<GradoopId> edges){
+  public void addSubEdges(List<GradoopId> edges) {
     if (edges != null) {
       f3.addAll(edges);
     }

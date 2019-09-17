@@ -15,7 +15,6 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.functions;
 
-import com.sun.tools.javac.util.List;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.impl.operators.layouting.util.LVertex;
 import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
@@ -44,10 +43,8 @@ public class DefaultVertexCompareFunctionTest {
     Assert.assertEquals(1, cf.compare(v1, v6), 0.0000001);
     Assert.assertEquals(0, cf.compare(v1, v5), 0.0000001);
 
-    LVertex v7 = new LVertex(null, new Vector(10, 10), -1, Arrays.asList(GradoopId.get(),
-      GradoopId.get(),GradoopId.get()),
-      new Vector(50
-      , 0));
+    LVertex v7 = new LVertex(null, new Vector(10, 10), -1,
+      Arrays.asList(GradoopId.get(), GradoopId.get(), GradoopId.get()), new Vector(50, 0));
     Assert.assertEquals(1, cf.compare(v7, v7), 0.0000001);
     Assert.assertEquals(0, cf.compare(v7, v2), 0.0000001);
     Assert.assertTrue(cf.compare(v7, v3) > 0.5);

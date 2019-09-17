@@ -49,85 +49,91 @@ public class GiLaDegreePruner {
   /**
    * Remove all vertices of degree 1 from the graph. Some vertices will receive
    * a property NUM_PRUNED_NEIGHBORS containing the number of neighbors that were pruned
+   *
    * @param g The graph to prune
    * @return A graph like g but without vertices of degree 1
    */
-  public LogicalGraph prune(LogicalGraph g){
+  public LogicalGraph prune(LogicalGraph g) {
     int minDegree = 2;
     DataSet<Vertex> vertices = g.getVertices();
     DataSet<Edge> edges = g.getEdges();
 
     originalEdges = edges;
 
-    DataSet<Tuple2<GradoopId,Integer>> degrees = calculateDegrees(edges);
+    DataSet<Tuple2<GradoopId, Integer>> degrees = calculateDegrees(edges);
 
-    DataSet<Tuple2<GradoopId,Integer>> toRemove = degrees.filter(d->d.f1<minDegree);
+    DataSet<Tuple2<GradoopId, Integer>> toRemove = degrees.filter(d -> d.f1 < minDegree);
 
-    prunedVertices = filterVertices(vertices,toRemove, false);
-    DataSet<Vertex> newVertices = filterVertices(vertices,toRemove, true);
+    prunedVertices = filterVertices(vertices, toRemove, false);
+    DataSet<Vertex> newVertices = filterVertices(vertices, toRemove, true);
 
-    DataSet<Edge> newEdges = filterEdges(edges,toRemove,"sourceId",true);
-    newEdges = filterEdges(newEdges,toRemove,"targetId",true);
+    DataSet<Edge> newEdges = filterEdges(edges, toRemove, "sourceId", true);
+    newEdges = filterEdges(newEdges, toRemove, "targetId", true);
 
-    prunedEdges = filterEdges(edges,toRemove,"sourceId",false).union(filterEdges(edges,
-      toRemove,"targetId",false));
+    prunedEdges = filterEdges(edges, toRemove, "sourceId", false)
+      .union(filterEdges(edges, toRemove, "targetId", false));
 
     newVertices = annotateNumPrunedNeighbors(newVertices);
 
-    return g.getFactory().fromDataSets(newVertices,newEdges);
+    return g.getFactory().fromDataSets(newVertices, newEdges);
   }
 
   /**
    * Reinsert previously pruned Vertices into the graph. Place them near their neighbors.
+   *
    * @param g The pruned AND LAYOUTED! graph
    * @return g with vertices of degree 1 reinserted
    */
-  public LogicalGraph reinsert(LogicalGraph g){
+  public LogicalGraph reinsert(LogicalGraph g) {
     DataSet<Vertex> vertices = g.getVertices();
     DataSet<Edge> edges = g.getEdges();
 
-    vertices = annotateShortestEdge(vertices,edges);
+    vertices = annotateShortestEdge(vertices, edges);
     prunedVertices = positionPrunedVertices(vertices);
 
-    return g.getFactory().fromDataSets(vertices.union(prunedVertices),originalEdges);
+    return g.getFactory().fromDataSets(vertices.union(prunedVertices), originalEdges);
   }
 
   /**
    * Adds a property NUM_PRUNED_NEIGHBORS to all vertices containing the number of pruned neighbors
+   *
    * @param vertices Input vertices
    * @return Output vertices
    */
-  private DataSet<Vertex> annotateNumPrunedNeighbors(DataSet<Vertex> vertices){
-    return vertices.leftOuterJoin(makeUndirected(prunedEdges)).where("id").equalTo("sourceId").with(new JoinFunction<Vertex
-      , Edge, Tuple2<Vertex,Integer>>() {
-      @Override
-      public Tuple2<Vertex, Integer> join(Vertex vertex, Edge edge) throws Exception {
-        return new Tuple2<>(vertex,(edge==null)?0:1);
-      }
-    }).groupBy("f0.id").reduce((a,b)->{
-      a.f1 += b.f1;
-      return a;
-    }).map((MapFunction<Tuple2<Vertex, Integer>,Vertex>)(t)->{
-      t.f0.setProperty(NUM_PRUNED_NEIGHBORS_PROPERTY,t.f1);
-      return t.f0;
-    });
+  private DataSet<Vertex> annotateNumPrunedNeighbors(DataSet<Vertex> vertices) {
+    return vertices.leftOuterJoin(makeUndirected(prunedEdges)).where("id").equalTo("sourceId")
+      .with(new JoinFunction<Vertex, Edge, Tuple2<Vertex, Integer>>() {
+        @Override
+        public Tuple2<Vertex, Integer> join(Vertex vertex, Edge edge) throws Exception {
+          return new Tuple2<>(vertex, (edge == null) ? 0 : 1);
+        }
+      }).groupBy("f0.id").reduce((a, b) -> {
+        a.f1 += b.f1;
+        return a;
+      }).map((MapFunction<Tuple2<Vertex, Integer>, Vertex>) (t) -> {
+        t.f0.setProperty(NUM_PRUNED_NEIGHBORS_PROPERTY, t.f1);
+        return t.f0;
+      });
   }
 
   /**
    * Given the remaining (non-pruned) vertices, place the previously pruned vertices close to them.
    * (Assing similar but randomly offseted coordinates)
+   *
    * @param remainingVertices The non-pruned vertices of the graph
    * @return The pruned vertices with X and Y coordinate properties
    */
-  private DataSet<Vertex> positionPrunedVertices(DataSet<Vertex> remainingVertices){
-    return prunedVertices.join(makeUndirected(prunedEdges)).where("id").equalTo("sourceId").join(remainingVertices).where("f1.targetId").equalTo("id").with(
-      new JoinFunction<Tuple2<Vertex, Edge>, Vertex, Vertex>() {
+  private DataSet<Vertex> positionPrunedVertices(DataSet<Vertex> remainingVertices) {
+    return prunedVertices.join(makeUndirected(prunedEdges)).where("id").equalTo("sourceId")
+      .join(remainingVertices).where("f1.targetId").equalTo("id")
+      .with(new JoinFunction<Tuple2<Vertex, Edge>, Vertex, Vertex>() {
         @Override
-        public Vertex join(Tuple2<Vertex, Edge> vertexEdgeTuple2, Vertex remainingVertex) throws Exception {
+        public Vertex join(Tuple2<Vertex, Edge> vertexEdgeTuple2, Vertex remainingVertex) throws
+          Exception {
           double minEdgeLen = remainingVertex.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble();
           double distance = minEdgeLen * REINSERT_EDGE_LENGHT_FRACTION;
-          Vector offset = new Vector(distance,0);
-          offset.mRotate(Math.random()*360);
+          Vector offset = new Vector(distance, 0);
+          offset.mRotate(Math.random() * 360);
           Vector origPosition = Vector.fromVertexPosition(remainingVertex);
           offset.mAdd(origPosition);
           offset.setVertexPosition(vertexEdgeTuple2.f0);
@@ -138,15 +144,16 @@ public class GiLaDegreePruner {
 
   /**
    * Make edges undirected by copying the edges and swapping source and target for the copies
+   *
    * @param edges The directed edges
    * @return Undirected edges
    */
-  private DataSet<Edge> makeUndirected(DataSet<Edge> edges){
+  private DataSet<Edge> makeUndirected(DataSet<Edge> edges) {
     return edges.flatMap(new FlatMapFunction<Edge, Edge>() {
       @Override
       public void flatMap(Edge e, Collector<Edge> collector) throws Exception {
-        Edge edgeCopy = new Edge(GradoopId.get(),e.getLabel(),e.getTargetId(),e.getSourceId(),
-            new Properties(),e.getGraphIds());
+        Edge edgeCopy = new Edge(GradoopId.get(), e.getLabel(), e.getTargetId(), e.getSourceId(),
+          new Properties(), e.getGraphIds());
         collector.collect(e);
         collector.collect(edgeCopy);
       }
@@ -155,66 +162,69 @@ public class GiLaDegreePruner {
 
   /**
    * Add a property MIN_EDGE_LEN containing the length of the shortest edge for this vertex
+   *
    * @param vertices The non-pruned vertices
-   * @param edges The non-pruned edges
+   * @param edges    The non-pruned edges
    * @return The non-pruned vertices, but some now have a property MIN_EDGE_LEN
    */
-  private DataSet<Vertex> annotateShortestEdge(DataSet<Vertex> vertices, DataSet<Edge> edges){
-    return vertices.join(edges).where("id").equalTo("sourceId").join(vertices).where("f1" +
-      ".targetId").equalTo("id").with(
-      new FlatJoinFunction<Tuple2<Vertex, Edge>, Vertex, Vertex>() {
+  private DataSet<Vertex> annotateShortestEdge(DataSet<Vertex> vertices, DataSet<Edge> edges) {
+    return vertices.join(edges).where("id").equalTo("sourceId").join(vertices)
+      .where("f1" + ".targetId").equalTo("id")
+      .with(new FlatJoinFunction<Tuple2<Vertex, Edge>, Vertex, Vertex>() {
         @Override
         public void join(Tuple2<Vertex, Edge> vertexEdgeTuple2, Vertex vertex,
           Collector<Vertex> collector) throws Exception {
           Vector pos1 = Vector.fromVertexPosition(vertexEdgeTuple2.f0);
           Vector pos2 = Vector.fromVertexPosition(vertex);
           double len = pos1.distance(pos2);
-          vertexEdgeTuple2.f0.setProperty(MIN_EDGE_LEN_PROPERTY,len);
-          vertex.setProperty(MIN_EDGE_LEN_PROPERTY,len);
+          vertexEdgeTuple2.f0.setProperty(MIN_EDGE_LEN_PROPERTY, len);
+          vertex.setProperty(MIN_EDGE_LEN_PROPERTY, len);
           collector.collect(vertexEdgeTuple2.f0);
           collector.collect(vertex);
         }
-      }).groupBy("id").reduce((v1,v2)->{
-        if (v1.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble() < v2.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble()){
+      }).groupBy("id").reduce((v1, v2) -> {
+        if (v1.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble() <
+          v2.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble()) {
           return v1;
         }
         return v2;
-    });
+      });
   }
 
   /**
    * Filter edges based on the pruning criterium
-   * @param edges The original edges
+   *
+   * @param edges    The original edges
    * @param toRemove Dataset containing ids of vertices to prune
-   * @param field choose to filter by targetId oc sourceId
-   * @param keep If true, return non-pruned edges, if false return pruned edges
+   * @param field    choose to filter by targetId oc sourceId
+   * @param keep     If true, return non-pruned edges, if false return pruned edges
    * @return Some edges (depending on keep)
    */
   private DataSet<Edge> filterEdges(DataSet<Edge> edges,
-    DataSet<Tuple2<GradoopId,Integer>> toRemove, String field, boolean keep){
-    return edges.leftOuterJoin(toRemove).where(field).equalTo(0).with(new FlatJoinFunction<Edge,
-      Tuple2<GradoopId, Integer>, Edge>() {
-      @Override
-      public void join(Edge edge, Tuple2<GradoopId, Integer> remove,
-        Collector<Edge> collector) {
-        if ((remove == null) == keep){
-          collector.collect(edge);
+    DataSet<Tuple2<GradoopId, Integer>> toRemove, String field, boolean keep) {
+    return edges.leftOuterJoin(toRemove).where(field).equalTo(0)
+      .with(new FlatJoinFunction<Edge, Tuple2<GradoopId, Integer>, Edge>() {
+        @Override
+        public void join(Edge edge, Tuple2<GradoopId, Integer> remove, Collector<Edge> collector) {
+          if ((remove == null) == keep) {
+            collector.collect(edge);
+          }
         }
-      }
-    });
+      });
   }
 
   /**
    * Calculcates the edge-degree for a vertex
+   *
    * @param edges Original edges
    * @return Tuples containing vertexId and the calculated degree for the vertex
    */
-  private DataSet<Tuple2<GradoopId,Integer>> calculateDegrees(DataSet<Edge> edges){
-    return  edges.flatMap((FlatMapFunction<Edge, Tuple2<GradoopId,Integer>>) (e,
-      collector)->{
-      collector.collect(new Tuple2<>(e.getSourceId(),1));
-      collector.collect(new Tuple2<>(e.getTargetId(),1));
-    }).returns(new TypeHint<Tuple2<GradoopId,Integer>>() {}).groupBy(0).reduce((a,b)->{
+  private DataSet<Tuple2<GradoopId, Integer>> calculateDegrees(DataSet<Edge> edges) {
+    return edges.flatMap((FlatMapFunction<Edge, Tuple2<GradoopId, Integer>>) (e, collector) -> {
+      collector.collect(new Tuple2<>(e.getSourceId(), 1));
+      collector.collect(new Tuple2<>(e.getTargetId(), 1));
+    }).returns(new TypeHint<Tuple2<GradoopId, Integer>>() {
+    }).groupBy(0).reduce((a, b) -> {
       a.f1 += b.f1;
       return a;
     });
@@ -222,23 +232,24 @@ public class GiLaDegreePruner {
 
   /**
    * Filter vertices based on the pruning criterium
+   *
    * @param vertices The original vertices
    * @param toRemove Dataset containing ids of vertices to prune
-   * @param keep If true, return non-pruned vertices, if false return pruned vertices
+   * @param keep     If true, return non-pruned vertices, if false return pruned vertices
    * @return Some vertices (depending on keep)
    */
-  private DataSet<Vertex> filterVertices(DataSet<Vertex> vertices, DataSet<Tuple2<GradoopId,
-    Integer>> toRemove, boolean keep){
-    return vertices.leftOuterJoin(toRemove).where("id").equalTo(0).with(new FlatJoinFunction<Vertex,
-      Tuple2<GradoopId, Integer>, Vertex>() {
-      @Override
-      public void join(Vertex vertex, Tuple2<GradoopId, Integer> remove,
-        Collector<Vertex> collector) {
-        if ((remove == null) == keep){
-          collector.collect(vertex);
+  private DataSet<Vertex> filterVertices(DataSet<Vertex> vertices,
+    DataSet<Tuple2<GradoopId, Integer>> toRemove, boolean keep) {
+    return vertices.leftOuterJoin(toRemove).where("id").equalTo(0)
+      .with(new FlatJoinFunction<Vertex, Tuple2<GradoopId, Integer>, Vertex>() {
+        @Override
+        public void join(Vertex vertex, Tuple2<GradoopId, Integer> remove,
+          Collector<Vertex> collector) {
+          if ((remove == null) == keep) {
+            collector.collect(vertex);
+          }
         }
-      }
-    });
+      });
   }
 
 }

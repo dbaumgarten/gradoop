@@ -16,12 +16,10 @@
 package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.FilterFunction;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
-import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -44,7 +44,8 @@ import java.util.List;
 public class FusingFRLayouter extends FRLayouter {
 
   public enum OutputFormat {
-    /** Output the simplified graph. The output-graph will loose all information except for the
+    /**
+     * Output the simplified graph. The output-graph will loose all information except for the
      * GradoopIds. Vertices/Edges will have "SUBELEMENTS"-Property containing a comma
      * separated string listing all element-ids that were
      * combined into the super-element. Edges and Vertices will have a "SIZE"-Property containing
@@ -106,14 +107,14 @@ public class FusingFRLayouter extends FRLayouter {
    * @param threshold   nly vertices with a similarity of at least threshold are combined. Lower
    *                    values will lead to a more simplified output-graph. Valid values are >= 0
    *                    and <= 1
-   * @param of Chosen OutputFormat. See {@link OutputFormat}
+   * @param of          Chosen OutputFormat. See {@link OutputFormat}
    */
   public FusingFRLayouter(int iterations, int vertexCount, double threshold, OutputFormat of) {
     super(iterations, vertexCount);
     this.threshold = threshold;
     this.outputFormat = of;
 
-    if (threshold < 0 || threshold > 1){
+    if (threshold < 0 || threshold > 1) {
       throw new IllegalArgumentException("Threshold must be between 0 and 1");
     }
   }
@@ -142,7 +143,8 @@ public class FusingFRLayouter extends FRLayouter {
   @Override
   public LogicalGraph execute(LogicalGraph g) {
 
-    applicator = new FRForceApplicator(getWidth(), getHeight(), getK(), (outputFormat!=OutputFormat.POSTLAYOUT)?iterations:iterations-POST_ITERATIONS);
+    applicator = new FRForceApplicator(getWidth(), getHeight(), getK(),
+      (outputFormat != OutputFormat.POSTLAYOUT) ? iterations : iterations - POST_ITERATIONS);
 
     g = createInitialLayout(g);
 
@@ -156,8 +158,8 @@ public class FusingFRLayouter extends FRLayouter {
     DataSet<GraphElement> tmpedges = gradoopEdges.map((e) -> new LEdge(e));
     DataSet<GraphElement> graphElements = tmpvertices.union(tmpedges);
 
-    IterativeDataSet<GraphElement> loop =
-      graphElements.iterate((outputFormat!=OutputFormat.POSTLAYOUT)?iterations:iterations-POST_ITERATIONS);
+    IterativeDataSet<GraphElement> loop = graphElements.iterate(
+      (outputFormat != OutputFormat.POSTLAYOUT) ? iterations : iterations - POST_ITERATIONS);
 
     // split the combined dataset to work with the edges and vertices
     LGraph graph = new LGraph(loop);
@@ -177,7 +179,7 @@ public class FusingFRLayouter extends FRLayouter {
     graph = new LGraph(graphElements);
 
 
-    switch (outputFormat){
+    switch (outputFormat) {
     case SIMPLIFIED:
       return buildSimplifiedGraph(g, graph);
     case EXTRACTED:
@@ -196,33 +198,35 @@ public class FusingFRLayouter extends FRLayouter {
    * Extract all subverties/subedges from the super-vertices/super-edges and place them at the
    * location of the super-vertex (and add some random jitter to the positions).
    * Then some more layouting-iteraions are performed.
+   *
    * @param input Original input graph
    * @param graph Result of the layouting
    * @return The final graph, containing all vertices and edges from the original graph.
    */
-  protected LogicalGraph buildPostLayoutGraph(LogicalGraph input, LGraph graph){
+  protected LogicalGraph buildPostLayoutGraph(LogicalGraph input, LGraph graph) {
     final double kf = getK();
     DataSet<LVertex> vertices =
-      graph.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
-        double jitterRadius = Math.sqrt(superv.getCount()*kf);
-        for (GradoopId id: superv.getSubVertices()){
+      graph.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv, collector) -> {
+        double jitterRadius = Math.sqrt(superv.getCount() * kf);
+        for (GradoopId id : superv.getSubVertices()) {
           LVertex v = new LVertex();
           v.setId(id);
-          v.setPosition(jitterPosition(superv.getPosition(),jitterRadius));
+          v.setPosition(jitterPosition(superv.getPosition(), jitterRadius));
           collector.collect(v);
         }
         superv.setSubVertices(null);
         collector.collect(superv);
-      }).returns(new TypeHint<LVertex>() {});
+      }).returns(new TypeHint<LVertex>() {
+      });
 
-    DataSet<LEdge> edges = input.getEdges().map(e->new LEdge(e));
+    DataSet<LEdge> edges = input.getEdges().map(e -> new LEdge(e));
     graph.setEdges(edges);
 
 
     // use a new applicator for all following layouting iterations. The new applicator will
     // behave as if iteration x of n is actually iterations+x of n+POST_ITERATIONS
     applicator =
-      new FRForceApplicator(getWidth(),getHeight(),getK(),iterations+POST_ITERATIONS);
+      new FRForceApplicator(getWidth(), getHeight(), getK(), iterations + POST_ITERATIONS);
     applicator.setPreviousIterations(iterations);
 
     // do some more layouting iterations
@@ -232,90 +236,93 @@ public class FusingFRLayouter extends FRLayouter {
     vertices = loop.closeWith(graph.getVertices());
 
 
+    DataSet<Vertex> gradoopVertices =
+      vertices.join(input.getVertices()).where(LVertex.ID).equalTo("id").with((lv, v) -> {
+        lv.getPosition().setVertexPosition(v);
+        return v;
+      });
 
-    DataSet<Vertex> gradoopVertices = vertices.join(input.getVertices()).where(LVertex.ID).equalTo(
-             "id").with((lv,v)->{
-             lv.getPosition().setVertexPosition(v);
-             return v;
-           });
-
-    return input.getFactory().fromDataSets(gradoopVertices,input.getEdges());
+    return input.getFactory().fromDataSets(gradoopVertices, input.getEdges());
   }
 
   /**
    * Simply translate the internal representations into GRadoop-types
-   * @param input Original input graph
+   *
+   * @param input    Original input graph
    * @param layouted Result of the layouting
    * @return The layouted graph in the Gradoop-format
    */
-  protected LogicalGraph buildSimplifiedGraph(LogicalGraph input, LGraph layouted){
-    DataSet<Vertex> vertices = layouted.getVertices().map((lv)->{
-      Vertex v = new Vertex(lv.getId(),"vertex",new Properties(),null);
+  protected LogicalGraph buildSimplifiedGraph(LogicalGraph input, LGraph layouted) {
+    DataSet<Vertex> vertices = layouted.getVertices().map((lv) -> {
+      Vertex v = new Vertex(lv.getId(), "vertex", new Properties(), null);
       lv.getPosition().setVertexPosition(v);
       v.setProperty(VERTEX_SIZE_PROPERTY, lv.getCount());
-      v.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(lv.getSubVertices()));
+      v.setProperty(SUB_ELEMENTS_PROPERTY, getSubelementListValue(lv.getSubVertices()));
       return v;
     });
 
-    DataSet<Edge> edges = layouted.getEdges().map((le)->{
-      Edge e = new Edge(le.getId(),"edge",le.getSourceId(),le.getTargetId(),new Properties(),null);
+    DataSet<Edge> edges = layouted.getEdges().map((le) -> {
+      Edge e =
+        new Edge(le.getId(), "edge", le.getSourceId(), le.getTargetId(), new Properties(), null);
       e.setProperty(VERTEX_SIZE_PROPERTY, le.getCount());
-      e.setProperty(SUB_ELEMENTS_PROPERTY,getSubelementListValue(le.getSubEdges()));
+      e.setProperty(SUB_ELEMENTS_PROPERTY, getSubelementListValue(le.getSubEdges()));
       return e;
     });
-    return input.getFactory().fromDataSets(vertices,edges);
+    return input.getFactory().fromDataSets(vertices, edges);
   }
 
   /**
    * Extract all subverties/subedges from the super-vertices/super-edges and place them at the
    * location of the super-vertex (and add some random jitter to the positions)
-   * @param input Original input graph
+   *
+   * @param input    Original input graph
    * @param layouted Result of the layouting
-   * @param jitter Enable/disable adding jitter to subvertex positions
+   * @param jitter   Enable/disable adding jitter to subvertex positions
    * @return The final graph, containing all vertices and edges from the original graph.
    */
   protected LogicalGraph buildExtractedGraph(LogicalGraph input, LGraph layouted,
-    final boolean jitter){
+    final boolean jitter) {
     final double kf = getK();
     DataSet<Vertex> vertices =
-      layouted.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv,collector)->{
+      layouted.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv, collector) -> {
         double jitterRadius = 0;
-        if (jitter){
-          jitterRadius = Math.sqrt(superv.getCount()*kf);
+        if (jitter) {
+          jitterRadius = Math.sqrt(superv.getCount() * kf);
         }
-      for (GradoopId id: superv.getSubVertices()){
-        LVertex v = new LVertex();
-        v.setId(id);
-        Vector position = superv.getPosition();
-        if (jitter){
-          position = jitterPosition(position,jitterRadius);
+        for (GradoopId id : superv.getSubVertices()) {
+          LVertex v = new LVertex();
+          v.setId(id);
+          Vector position = superv.getPosition();
+          if (jitter) {
+            position = jitterPosition(position, jitterRadius);
+          }
+          v.setPosition(position);
+          collector.collect(v);
         }
-        v.setPosition(position);
-        collector.collect(v);
-      }
-      superv.setSubVertices(null);
-      collector.collect(superv);
-    }).returns(new TypeHint<LVertex>() {}).join(input.getVertices()).where(LVertex.ID).equalTo(
-      "id").with((lv,v)->{
-      lv.getPosition().setVertexPosition(v);
-      return v;
-    });
-    return input.getFactory().fromDataSets(vertices,input.getEdges());
+        superv.setSubVertices(null);
+        collector.collect(superv);
+      }).returns(new TypeHint<LVertex>() {
+      }).join(input.getVertices()).where(LVertex.ID).equalTo("id").with((lv, v) -> {
+        lv.getPosition().setVertexPosition(v);
+        return v;
+      });
+    return input.getFactory().fromDataSets(vertices, input.getEdges());
   }
 
   /**
    * Add random jitter to position
+   *
    * @param center Position
    * @param jitter Maximum distance
    * @return Randomly modified position
    */
-  protected static Vector jitterPosition(Vector center, double jitter){
+  protected static Vector jitterPosition(Vector center, double jitter) {
     Vector offset = new Vector();
-    while (true){
-      double x = (Math.random()*jitter)-(jitter/2.0);
-      double y = (Math.random()*jitter)-(jitter/2.0);
-      offset.set(x,y);
-      if (offset.magnitude() <= jitter){
+    while (true) {
+      double x = (Math.random() * jitter) - (jitter / 2.0);
+      double y = (Math.random() * jitter) - (jitter / 2.0);
+      offset.set(x, y);
+      if (offset.magnitude() <= jitter) {
         break;
       }
     }
@@ -325,20 +332,20 @@ public class FusingFRLayouter extends FRLayouter {
   @Override
   protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices, DataSet<Force> forces,
     int iterations) {
-    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
-      .with(applicator);
+    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID).with(applicator);
   }
 
   /**
    * Helper function to convert the List of sub-elements into a comma seperated string
    * Gradoop (especially the CSVDataSink) seems to have trouble with lists of PropertyValues, so
    * this is the easies workaround
+   *
    * @param ids List of GradoopIds
    * @return A comma seperated string of ids
    */
-  protected static String getSubelementListValue(List<GradoopId> ids){
+  protected static String getSubelementListValue(List<GradoopId> ids) {
     StringBuilder sb = new StringBuilder();
-    for (GradoopId id : ids){
+    for (GradoopId id : ids) {
       sb.append(id.toString());
       sb.append(",");
     }
@@ -350,9 +357,9 @@ public class FusingFRLayouter extends FRLayouter {
 
   @Override
   public String toString() {
-    return "FusingFRLayouter{" + "threshold=" + threshold +
-      ", outputFormat=" + outputFormat + ", iterations=" + iterations + ", k=" + getK() + ", width=" +
-      getWidth() + ", height=" + getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() +
-      ", numberOfVertices=" + numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
+    return "FusingFRLayouter{" + "threshold=" + threshold + ", outputFormat=" + outputFormat +
+      ", iterations=" + iterations + ", k=" + getK() + ", width=" + getWidth() + ", height=" +
+      getHeight() + ", maxRepulsionDistance=" + getMaxRepulsionDistance() + ", numberOfVertices=" +
+      numberOfVertices + ", useExistingLayout=" + useExistingLayout + '}';
   }
 }

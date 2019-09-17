@@ -58,9 +58,9 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
   /**
    * Create new LVertex
    *
-   * @param id       Id of the original vertex
-   * @param position Position of the original vertex
-   * @param cellid   Id of grid-cell this vertex should be assigned to
+   * @param id          Id of the original vertex
+   * @param position    Position of the original vertex
+   * @param cellid      Id of grid-cell this vertex should be assigned to
    * @param subVertices List of suvvertex ids to include in this vertex
    */
   public LVertex(GradoopId id, Vector position, int cellid, List<GradoopId> subVertices) {
@@ -70,13 +70,14 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
   /**
    * Create new LVertex
    *
-   * @param id       Id of the original vertex
-   * @param position Position of the original vertex
-   * @param cellid   Id of grid-cell this vertex should be assigned to
+   * @param id          Id of the original vertex
+   * @param position    Position of the original vertex
+   * @param cellid      Id of grid-cell this vertex should be assigned to
    * @param subVertices List of suvvertex ids to include in this vertex
-   * @param force    Last force calculated for this vertex
+   * @param force       Last force calculated for this vertex
    */
-  public LVertex(GradoopId id, Vector position, int cellid, List<GradoopId> subVertices, Vector force) {
+  public LVertex(GradoopId id, Vector position, int cellid, List<GradoopId> subVertices,
+    Vector force) {
     super(id, position, cellid, subVertices, force);
   }
 
@@ -86,14 +87,14 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
    * @param v The original vertex to copy all information from
    */
   public LVertex(Vertex v) {
-    super(v.getId(), Vector.fromVertexPosition(v), -1,  new ArrayList<>(), new Vector());
+    super(v.getId(), Vector.fromVertexPosition(v), -1, new ArrayList<>(), new Vector());
   }
 
   /**
    * Default-Constructor to comply with Pojo-Rules
    */
   public LVertex() {
-    super(null, new Vector(), -1,  new ArrayList<>(), new Vector());
+    super(null, new Vector(), -1, new ArrayList<>(), new Vector());
   }
 
   /**
@@ -151,22 +152,22 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
   }
 
   public int getCount() {
-    return (f3 != null)?f3.size()+1:1;
+    return (f3 != null) ? f3.size() + 1 : 1;
   }
 
-  public List<GradoopId> getSubVertices(){
+  public List<GradoopId> getSubVertices() {
     return f3;
   }
 
-  public void setSubVertices(List<GradoopId> v){
+  public void setSubVertices(List<GradoopId> v) {
     f3 = v;
   }
 
-  public void addSubVertex(GradoopId id){
+  public void addSubVertex(GradoopId id) {
     f3.add(id);
   }
 
-  public void addSubVertices(List<GradoopId> ids){
+  public void addSubVertices(List<GradoopId> ids) {
     if (ids != null) {
       f3.addAll(ids);
     }

@@ -22,8 +22,6 @@ import org.gradoop.flink.model.impl.operators.layouting.util.Vector;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 public class FRForceApplicatorTest {
   @Test
   public void testForceApplicator() {
