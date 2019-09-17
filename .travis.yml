@@ -14,5 +14,5 @@ before_cache:
 
 language: java
 
-install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Dcheckstyle.skip=true
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 script: mvn -Dtest=CrossEdgesTest,EdgeLengthDerivationTest,org.gradoop.flink.model.impl.operators.layouting.*Test -DfailIfNoTests=false -pl gradoop-flink -am test

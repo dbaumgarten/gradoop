@@ -17,7 +17,6 @@ package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
-import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
@@ -28,6 +27,7 @@ import org.apache.flink.graph.Vertex;
 import org.apache.flink.graph.pregel.ComputeFunction;
 import org.apache.flink.graph.pregel.MessageIterator;
 import org.apache.flink.types.NullValue;
+import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.algorithms.gelly.GradoopGellyAlgorithm;
@@ -172,16 +172,22 @@ public class GiLaLayouter extends
 
     // GiLa needs an undirected graph. Transform the undirected into a directed Graph by copying
     // and reversing all edges.
+
+
     DataSet<org.gradoop.common.model.impl.pojo.Edge> edges = graph.getEdges().flatMap(
-      (FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
-        org.gradoop.common.model.impl.pojo.Edge>) (e, collector) -> {
-        org.gradoop.common.model.impl.pojo.Edge edgeCopy =
-          new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(), e.getLabel(),
-            e.getTargetId(), e.getSourceId(), new Properties(), null);
-        collector.collect(e);
-        collector.collect(edgeCopy);
-      }).returns(new TypeHint<org.gradoop.common.model.impl.pojo.Edge>() {
-    });
+      new FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
+        org.gradoop.common.model.impl.pojo.Edge>() {
+
+        @Override
+        public void flatMap(org.gradoop.common.model.impl.pojo.Edge e,
+          Collector<org.gradoop.common.model.impl.pojo.Edge> collector) throws Exception {
+          org.gradoop.common.model.impl.pojo.Edge edgeCopy =
+            new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(), e.getLabel(),
+              e.getTargetId(), e.getSourceId(), new Properties(), null);
+          collector.collect(e);
+          collector.collect(edgeCopy);
+        }
+      });
 
     graph = graph.getConfig().getLogicalGraphFactory().fromDataSets(graph.getVertices(), edges);
 
@@ -265,6 +271,7 @@ public class GiLaLayouter extends
      * @param optimumDistance k of FRLayouter
      * @param kNeighborhood   kNeighborhood for repulsion-calculations
      * @param numVertices     Number of vertices in the graph
+     * @param maxIterations  Number of iterations to perform
      */
     public MsgFunc(int width, int height, double optimumDistance, int kNeighborhood,
       int numVertices, int maxIterations) {
@@ -388,6 +395,7 @@ public class GiLaLayouter extends
      * @param position Position of the sender
      * @param ttl      TimeToLive of this message
      * @param lastHop  Id of the last vertex that retransmitted this message
+     * @param weight   The weight of the vertex
      */
     public Message(GradoopId sender, Vector position, Integer ttl, GradoopId lastHop, int weight) {
       super(sender, position, ttl, lastHop, weight);

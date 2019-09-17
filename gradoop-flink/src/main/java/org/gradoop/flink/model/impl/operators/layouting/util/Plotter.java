@@ -34,7 +34,10 @@ import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.BasicStroke;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -319,9 +322,9 @@ public class Plotter implements DataSink, Serializable {
         .and(Aggregations.MAX, 3);
 
       return inp.map(new RichMapFunction<Vertex, Vertex>() {
-        int offsetX = 0;
-        int offsetY = 0;
-        double zoomFactor = 1;
+        private int offsetX = 0;
+        private int offsetY = 0;
+        private double zoomFactor = 1;
 
         @Override
         public void open(Configuration parameters) throws Exception {

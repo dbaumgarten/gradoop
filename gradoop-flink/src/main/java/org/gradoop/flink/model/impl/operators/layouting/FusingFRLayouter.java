@@ -43,6 +43,9 @@ import java.util.List;
  */
 public class FusingFRLayouter extends FRLayouter {
 
+  /**
+   * Specifies the different available Output-Formats for the layouter
+   */
   public enum OutputFormat {
     /**
      * Output the simplified graph. The output-graph will loose all information except for the
@@ -188,10 +191,10 @@ public class FusingFRLayouter extends FRLayouter {
       return buildExtractedGraph(g, graph, false);
     case POSTLAYOUT:
       return buildPostLayoutGraph(g, graph);
+    default:
+      return null;
     }
 
-    // This should never happen
-    return null;
   }
 
   /**
