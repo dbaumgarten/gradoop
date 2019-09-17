@@ -186,7 +186,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
 
     LogicalGraph graph = readLogicalGraph(INPUT_PATH, INPUT_FORMAT);
     LogicalGraph layouted;
-    Long layoutingRuntime = -1l;
+    Long layoutingRuntime = 0l;
 
     // instantiate selected layouting algorithm and create layout
     LayoutingAlgorithm algorithm =
@@ -478,7 +478,7 @@ public class LayoutingBenchmark extends AbstractRunner implements ProgramDescrip
       int width = 1024;
       int height = 1024;
       return new Plotter(directory + "image.png", alg, width, height)
-        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true).edgeSize(0.1f);
+        .vertexSize(2).dynamicEdgeSize(true).dynamicVertexSize(true).edgeSize(0.1f).zoom(true);
     default:
       throw new IllegalArgumentException("Unsupported format: " + format);
     }
