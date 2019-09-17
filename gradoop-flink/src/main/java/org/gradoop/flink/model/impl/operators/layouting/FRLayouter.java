@@ -168,14 +168,12 @@ public class FRLayouter implements LayoutingAlgorithm {
 
   @Override
   public int getWidth() {
-    return (width != 0) ? width :
-      (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
+    return (width != 0) ? width : (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
   }
 
   @Override
   public int getHeight() {
-    return (height != 0) ? height :
-      (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
+    return (height != 0) ? height : (int) Math.sqrt(Math.pow(DEFAULT_K, 2) * numberOfVertices);
   }
 
   /**
@@ -199,7 +197,7 @@ public class FRLayouter implements LayoutingAlgorithm {
     DataSet<LEdge> edges = gradoopEdges.map((e) -> new LEdge(e));
 
     IterativeDataSet<LVertex> loop = vertices.iterate(iterations);
-    LGraph graph = new LGraph(loop,edges);
+    LGraph graph = new LGraph(loop, edges);
     layout(graph);
     vertices = loop.closeWith(graph.getVertices());
 
@@ -217,10 +215,11 @@ public class FRLayouter implements LayoutingAlgorithm {
 
   /**
    * Creates a random layout as the starting-point for the algorithm
+   *
    * @param g
    * @return
    */
-  protected LogicalGraph createInitialLayout(LogicalGraph g){
+  protected LogicalGraph createInitialLayout(LogicalGraph g) {
     if (useExistingLayout) {
       return g;
     }
@@ -232,9 +231,10 @@ public class FRLayouter implements LayoutingAlgorithm {
 
   /**
    * Perform the actual layouting (calculate and apply forces)
+   *
    * @param g The Graph to layout. Is modified by the method.
    */
-  protected void layout(LGraph g){
+  protected void layout(LGraph g) {
     DataSet<Force> repulsions = repulsionForces(g.getVertices());
     DataSet<Force> attractions = attractionForces(g.getVertices(), g.getEdges());
 
@@ -260,11 +260,10 @@ public class FRLayouter implements LayoutingAlgorithm {
    */
   protected DataSet<LVertex> applyForces(DataSet<LVertex> vertices, DataSet<Force> forces,
     int iterations) {
-    FRForceApplicator applicator = new FRForceApplicator(getWidth(), getHeight(), getK(),
-      iterations);
+    FRForceApplicator applicator =
+      new FRForceApplicator(getWidth(), getHeight(), getK(), iterations);
     applicator.setPreviousIterations(startAtIteration);
-    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID)
-      .with(applicator);
+    return vertices.join(forces).where(LVertex.ID).equalTo(Force.ID).with(applicator);
   }
 
 
@@ -317,9 +316,8 @@ public class FRLayouter implements LayoutingAlgorithm {
     return edges.join(vertices).where(LEdge.SOURCE_ID).equalTo(LVertex.ID).join(vertices)
       .where("f0." + LEdge.TARGET_ID).equalTo(LVertex.ID).with(
         (first, second) -> new Tuple3<LVertex, LVertex, Integer>(first.f1, second,
-          first.f0.getCount()))
-      .returns(new TypeHint<Tuple3<LVertex, LVertex, Integer>>() { })
-      .flatMap(new FRAttractionFunction(getK()));
+          first.f0.getCount())).returns(new TypeHint<Tuple3<LVertex, LVertex, Integer>>() {
+      }).flatMap(new FRAttractionFunction(getK()));
   }
 
   @Override

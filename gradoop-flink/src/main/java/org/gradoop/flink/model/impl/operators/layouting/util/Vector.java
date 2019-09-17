@@ -57,10 +57,10 @@ public class Vector implements Serializable {
     y = 0d;
   }
 
-  private void check(){
-    if (Double.isNaN(x) || Double.isNaN(y)){
-      throw new IllegalStateException("A vector should never be NaN. There is probably a bug in " +
-        "your code");
+  private void check() {
+    if (Double.isNaN(x) || Double.isNaN(y)) {
+      throw new IllegalStateException(
+        "A vector should never be NaN. There is probably a bug in " + "your code");
     }
   }
 
@@ -207,23 +207,25 @@ public class Vector implements Serializable {
 
   /**
    * Calculates the (unsigned) angle between this vector and the given vecotr
+   *
    * @param other The other vector
    * @return The angle
    */
-  public double angle(Vector other){
-    return Math.acos(scalar(other)/(magnitude()*other.magnitude()))/Math.PI*180;
+  public double angle(Vector other) {
+    return Math.acos(scalar(other) / (magnitude() * other.magnitude())) / Math.PI * 180;
   }
 
   /**
    * Rotate this vector anti-clockwise by the given angle (in degrees)
+   *
    * @param angle The angle o rotate this vector by
    * @return The rotated vector
    */
-  public Vector rotate(double angle){
+  public Vector rotate(double angle) {
     angle = angle / 180 * Math.PI;
-    double newx = x*Math.cos(angle) - y*Math.sin(angle);
-    double newy = x*Math.sin(angle) + y*Math.cos(angle);
-    return new Vector(newx,newy);
+    double newx = x * Math.cos(angle) - y * Math.sin(angle);
+    double newy = x * Math.sin(angle) + y * Math.cos(angle);
+    return new Vector(newx, newy);
   }
 
   @Override
@@ -443,13 +445,14 @@ public class Vector implements Serializable {
   /**
    * Alternative MUTATING variant.  Rotate this vector anti-clockwise by the given angle (in
    * degrees)
+   *
    * @param angle The angle o rotate this vector by
    * @return The rotated vector
    */
-  public Vector mRotate(double angle){
+  public Vector mRotate(double angle) {
     angle = angle / 180 * Math.PI;
-    double newx = x*Math.cos(angle) - y*Math.sin(angle);
-    double newy = x*Math.sin(angle) + y*Math.cos(angle);
+    double newx = x * Math.cos(angle) - y * Math.sin(angle);
+    double newy = x * Math.sin(angle) + y * Math.cos(angle);
     x = newx;
     y = newy;
     check();

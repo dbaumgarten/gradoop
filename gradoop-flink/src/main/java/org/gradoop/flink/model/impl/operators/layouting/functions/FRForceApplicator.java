@@ -76,7 +76,8 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
   public FRForceApplicator(int width, int height, double k, int maxIterations) {
     this.layoutWidth = width;
     this.layoutHeight = height;
-    this.startSpeed = Math.sqrt((double)width * (double)width + (double)height * (double)height) / 2.0;
+    this.startSpeed =
+      Math.sqrt((double) width * (double) width + (double) height * (double) height) / 2.0;
     this.endSpeed = k / 10.0;
     this.maxIterations = maxIterations;
     calculateBase();
@@ -157,8 +158,8 @@ public class FRForceApplicator extends RichJoinFunction<LVertex, Force, LVertex>
     this.maxIterations = maxIterations;
   }
 
-  private void calculateBase(){
-    this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations+previousIterations - 1));
+  private void calculateBase() {
+    this.base = Math.pow(endSpeed / startSpeed, 1.0 / (maxIterations + previousIterations - 1));
   }
 
   /**

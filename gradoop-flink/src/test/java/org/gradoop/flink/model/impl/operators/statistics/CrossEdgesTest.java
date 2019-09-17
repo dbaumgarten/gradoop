@@ -88,14 +88,14 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
   }
 
   @Test
-  public void pointOnLineTest(){
-    CrossEdges.Line l = new CrossEdges.Line(1,2,10,20);
-    Vector p1 = new Vector(1,2);
-    Vector p2 = new Vector(10,20);
-    Vector p3 = new Vector(2,4);
-    Vector p4 = new Vector(4,8);
-    Vector p5 = new Vector(5,7);
-    Vector p6 = new Vector(15,30);
+  public void pointOnLineTest() {
+    CrossEdges.Line l = new CrossEdges.Line(1, 2, 10, 20);
+    Vector p1 = new Vector(1, 2);
+    Vector p2 = new Vector(10, 20);
+    Vector p3 = new Vector(2, 4);
+    Vector p4 = new Vector(4, 8);
+    Vector p5 = new Vector(5, 7);
+    Vector p6 = new Vector(15, 30);
 
     Assert.assertFalse(l.isPointOnLine(p1));
     Assert.assertFalse(l.isPointOnLine(p2));
@@ -107,10 +107,10 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
   }
 
   @Test
-  public void parallelTest(){
-    CrossEdges.Line l1 = new CrossEdges.Line(1,2,10,20);
-    CrossEdges.Line l2 = new CrossEdges.Line(2,4,9,18);
-    CrossEdges.Line l3 = new CrossEdges.Line(1,5,15,23);
+  public void parallelTest() {
+    CrossEdges.Line l1 = new CrossEdges.Line(1, 2, 10, 20);
+    CrossEdges.Line l2 = new CrossEdges.Line(2, 4, 9, 18);
+    CrossEdges.Line l3 = new CrossEdges.Line(1, 5, 15, 23);
 
     Assert.assertTrue(l1.isParallel(l1));
     Assert.assertTrue(l1.isParallel(l2));
@@ -124,13 +124,13 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
   }
 
   @Test
-  public void overlapTest(){
-    CrossEdges.Line l1 = new CrossEdges.Line(1,2,10,20);
-    CrossEdges.Line l2 = new CrossEdges.Line(2,4,9,18);
-    CrossEdges.Line l3 = new CrossEdges.Line(1,2,9,18);
-    CrossEdges.Line l4 = new CrossEdges.Line(2,4,9,18);
-    CrossEdges.Line l5 = new CrossEdges.Line(1,2,15,18);
-    CrossEdges.Line l6 = new CrossEdges.Line(1,5,15,23);
+  public void overlapTest() {
+    CrossEdges.Line l1 = new CrossEdges.Line(1, 2, 10, 20);
+    CrossEdges.Line l2 = new CrossEdges.Line(2, 4, 9, 18);
+    CrossEdges.Line l3 = new CrossEdges.Line(1, 2, 9, 18);
+    CrossEdges.Line l4 = new CrossEdges.Line(2, 4, 9, 18);
+    CrossEdges.Line l5 = new CrossEdges.Line(1, 2, 15, 18);
+    CrossEdges.Line l6 = new CrossEdges.Line(1, 5, 15, 23);
 
     Assert.assertTrue(l1.overlaps(l1));
     Assert.assertTrue(l1.overlaps(l2));
@@ -166,28 +166,23 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     Assert.assertEquals(17.5, cross.f1, 0.00001);
 
     //diagonal inverted
-    Tuple2<Double, Double> cross2 =
-      lp.firstGridIntersection(new CrossEdges.Line(25, 20, 15, 15));
+    Tuple2<Double, Double> cross2 = lp.firstGridIntersection(new CrossEdges.Line(25, 20, 15, 15));
     Assert.assertEquals(cross, cross2);
 
     //horizontal
-    Tuple2<Double, Double> cross3 =
-      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 40, 15));
+    Tuple2<Double, Double> cross3 = lp.firstGridIntersection(new CrossEdges.Line(15, 15, 40, 15));
     Assert.assertEquals(new Tuple2<Double, Double>(20d, 15d), cross3);
 
     //horizontal inverted
-    Tuple2<Double, Double> cross4 =
-      lp.firstGridIntersection(new CrossEdges.Line(40, 15, 15, 15));
+    Tuple2<Double, Double> cross4 = lp.firstGridIntersection(new CrossEdges.Line(40, 15, 15, 15));
     Assert.assertEquals(new Tuple2<Double, Double>(30d, 15d), cross4);
 
     //vertical
-    Tuple2<Double, Double> cross5 =
-      lp.firstGridIntersection(new CrossEdges.Line(15, 15, 15, 40));
+    Tuple2<Double, Double> cross5 = lp.firstGridIntersection(new CrossEdges.Line(15, 15, 15, 40));
     Assert.assertEquals(new Tuple2<Double, Double>(15d, 20d), cross5);
 
     //vertical inverted
-    Tuple2<Double, Double> cross6 =
-      lp.firstGridIntersection(new CrossEdges.Line(15, 40, 15, 15));
+    Tuple2<Double, Double> cross6 = lp.firstGridIntersection(new CrossEdges.Line(15, 40, 15, 15));
     Assert.assertEquals(new Tuple2<Double, Double>(15d, 30d), cross6);
 
     //completely inside
@@ -209,8 +204,10 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     for (int i = 0; i < parts.size(); i++) {
       Assert.assertEquals(l.getId(), parts.get(i).getId());
       if (i > 0) {
-        Assert.assertEquals(parts.get(i).getStart().getX(), parts.get(i - 1).getEnd().getX(), 0.00001);
-        Assert.assertEquals(parts.get(i).getStart().getY(), parts.get(i - 1).getEnd().getY(), 0.00001);
+        Assert
+          .assertEquals(parts.get(i).getStart().getX(), parts.get(i - 1).getEnd().getX(), 0.00001);
+        Assert
+          .assertEquals(parts.get(i).getStart().getY(), parts.get(i - 1).getEnd().getY(), 0.00001);
       }
     }
     Assert.assertEquals(parts.get(parts.size() - 1).getEnd().getX(), l.getEnd().getX(), 0.00001);

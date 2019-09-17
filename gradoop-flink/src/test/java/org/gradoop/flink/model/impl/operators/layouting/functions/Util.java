@@ -24,9 +24,9 @@ import java.util.List;
 
 public class Util {
 
-  static List<GradoopId> generateSubVertices(int count){
+  static List<GradoopId> generateSubVertices(int count) {
     List<GradoopId> result = new ArrayList<>();
-    for (int i = 0; i < count; i++){
+    for (int i = 0; i < count; i++) {
       result.add(GradoopId.get());
     }
     return result;

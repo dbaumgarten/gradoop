@@ -54,11 +54,11 @@ public class EdgeLengthDerivationTest extends GradoopFlinkTestBase {
     LogicalGraph g = loader.getLogicalGraph();
 
     EdgeLengthDerivation eld = new EdgeLengthDerivation();
-    DataSet<Tuple2<Double,Double>> resds = eld.execute(g);
+    DataSet<Tuple2<Double, Double>> resds = eld.execute(g);
     Double result = resds.collect().get(0).f1;
 
 
-    Assert.assertEquals(0.3047125465010722,result,0.00001);
+    Assert.assertEquals(0.3047125465010722, result, 0.00001);
     System.out.println(result);
 
   }

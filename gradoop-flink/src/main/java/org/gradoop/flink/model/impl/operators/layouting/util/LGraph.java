@@ -11,13 +11,13 @@ public class LGraph {
     this.edges = edges;
   }
 
-  public LGraph (DataSet<GraphElement> g){
+  public LGraph(DataSet<GraphElement> g) {
     vertices = g.filter(e -> e instanceof LVertex).map(e -> (LVertex) e);
     edges = g.filter(e -> e instanceof LEdge).map(e -> (LEdge) e);
   }
 
-  public DataSet<GraphElement> getGraphElements(){
-    return  vertices.map(x -> (GraphElement) x).union(edges.map(x -> (GraphElement) x));
+  public DataSet<GraphElement> getGraphElements() {
+    return vertices.map(x -> (GraphElement) x).union(edges.map(x -> (GraphElement) x));
   }
 
   /**

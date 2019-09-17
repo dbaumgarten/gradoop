@@ -95,9 +95,10 @@ public class Force extends Tuple2<GradoopId, Vector> {
 
   /**
    * Create a (deep) copy of this object
+   *
    * @return a (deep) copy of this object
    */
-  public Force copy(){
-    return new Force(getId(),getValue().copy());
+  public Force copy() {
+    return new Force(getId(), getValue().copy());
   }
 }
