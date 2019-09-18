@@ -18,11 +18,11 @@ package org.gradoop.flink.model.impl.operators.layouting;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.util.Collector;
-import org.gradoop.common.model.api.entities.EPGMEdgeFactory;
-import org.gradoop.common.model.api.entities.EPGMVertexFactory;
+import org.gradoop.common.model.api.entities.EdgeFactory;
+import org.gradoop.common.model.api.entities.VertexFactory;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.io.api.DataSource;
 import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
@@ -66,11 +66,11 @@ public class MtxDataSource implements DataSource {
 
   @Override
   public LogicalGraph getLogicalGraph() {
-    DataSet<Vertex> vertices = cfg.getExecutionEnvironment().readTextFile(path)
-      .flatMap(new VertexMapper(cfg.getVertexFactory())).distinct("id");
+    DataSet<EPGMVertex> vertices = cfg.getExecutionEnvironment().readTextFile(path)
+      .flatMap(new VertexMapper(cfg.getLogicalGraphFactory().getVertexFactory())).distinct("id");
 
-    DataSet<Edge> edges = cfg.getExecutionEnvironment().readTextFile(path)
-      .flatMap(new EdgeMapper(cfg.getEdgeFactory()));
+    DataSet<EPGMEdge> edges = cfg.getExecutionEnvironment().readTextFile(path)
+      .flatMap(new EdgeMapper(cfg.getLogicalGraphFactory().getEdgeFactory()));
 
     if (!skipPreprocessing) {
       edges = edges.filter((e) -> !e.getSourceId().equals(e.getTargetId()));
@@ -124,20 +124,20 @@ public class MtxDataSource implements DataSource {
   /**
    * Maps mtx-edges to gradoop edges
    */
-  private static class EdgeMapper implements FlatMapFunction<String, Edge> {
+  private static class EdgeMapper implements FlatMapFunction<String, EPGMEdge> {
     /** The EPGMEdgeFactory<Edge> to use for creating Edges */
-    private EPGMEdgeFactory<Edge> edgeFactory;
+    private EdgeFactory<EPGMEdge> edgeFactory;
 
     /**
      * Create new EdgeMapper
      * @param edgeFactory The EPGMEdgeFactory<Edge> to use for creating Edges
      */
-    EdgeMapper(EPGMEdgeFactory<Edge> edgeFactory) {
+    EdgeMapper(EdgeFactory<EPGMEdge> edgeFactory) {
       this.edgeFactory = edgeFactory;
     }
 
     @Override
-    public void flatMap(String line, Collector<Edge> collector) {
+    public void flatMap(String line, Collector<EPGMEdge> collector) {
       if (!isComment(line)) {
         String[] splitted = line.split(getSplitCharacter(line));
         collector.collect(edgeFactory
@@ -149,20 +149,20 @@ public class MtxDataSource implements DataSource {
   /**
    * Maps mtx-vertices to vertices
    */
-  private static class VertexMapper implements FlatMapFunction<String, Vertex> {
+  private static class VertexMapper implements FlatMapFunction<String, EPGMVertex> {
     /** The EPGMVertexFactory<Vertex> to use for creating vertices */
-    private EPGMVertexFactory<Vertex> vertexFactory;
+    private VertexFactory<EPGMVertex> vertexFactory;
 
     /**
      * Create new VertexMapper
      * @param vertexFactory The EPGMVertexFactory<Vertex> to use for creating vertices
      */
-    VertexMapper(EPGMVertexFactory<Vertex> vertexFactory) {
+    VertexMapper(VertexFactory<EPGMVertex> vertexFactory) {
       this.vertexFactory = vertexFactory;
     }
 
     @Override
-    public void flatMap(String line, Collector<Vertex> collector) {
+    public void flatMap(String line, Collector<EPGMVertex> collector) {
       if (!isComment(line)) {
         String[] splitted = line.split(getSplitCharacter(line));
         collector.collect(vertexFactory.initVertex(generateId(splitted[0]), "vertex"));

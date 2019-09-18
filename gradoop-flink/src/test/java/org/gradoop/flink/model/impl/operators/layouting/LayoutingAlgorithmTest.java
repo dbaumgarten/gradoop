@@ -16,7 +16,7 @@
 package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.FilterFunction;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.FlinkAsciiGraphLoader;
@@ -53,8 +53,8 @@ public abstract class LayoutingAlgorithmTest extends GradoopFlinkTestBase {
     LayoutingAlgorithm l = getLayouter(width, height);
     LogicalGraph layouted = l.execute(loader.getLogicalGraph());
 
-    long incorrectVertexes = layouted.getVertices().filter(new FilterFunction<Vertex>() {
-      public boolean filter(Vertex value) throws Exception {
+    long incorrectVertexes = layouted.getVertices().filter(new FilterFunction<EPGMVertex>() {
+      public boolean filter(EPGMVertex value) throws Exception {
         if (!value.hasProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY) ||
           !value.hasProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY)) {
           return true;

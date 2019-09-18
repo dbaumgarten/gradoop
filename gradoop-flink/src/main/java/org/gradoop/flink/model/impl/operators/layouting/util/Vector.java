@@ -15,7 +15,7 @@
  */
 package org.gradoop.flink.model.impl.operators.layouting.util;
 
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
 
 import java.io.Serializable;
@@ -74,7 +74,7 @@ public class Vector implements Serializable {
    * @param v The vertex to extract position coordinates from properties (X,Y)
    * @return A matching vector
    */
-  public static Vector fromVertexPosition(Vertex v) {
+  public static Vector fromVertexPosition(EPGMVertex v) {
     double x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
     double y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
     return new Vector(x, y);
@@ -85,7 +85,7 @@ public class Vector implements Serializable {
    *
    * @param v The vertex that will receive the values of this vector as coordinates
    */
-  public void setVertexPosition(Vertex v) {
+  public void setVertexPosition(EPGMVertex v) {
     v.setProperty(LayoutingAlgorithm.X_COORDINATE_PROPERTY, (int) x);
     v.setProperty(LayoutingAlgorithm.Y_COORDINATE_PROPERTY, (int) y);
   }

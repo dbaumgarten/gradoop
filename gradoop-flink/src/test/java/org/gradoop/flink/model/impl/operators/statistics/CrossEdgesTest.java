@@ -18,7 +18,7 @@ package org.gradoop.flink.model.impl.operators.statistics;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
@@ -215,9 +215,9 @@ public class CrossEdgesTest extends GradoopFlinkTestBase {
     Assert.assertTrue(parts.size() == 16);
   }
 
-  private Edge getDummyEdge(int x1, int y1, int x2, int y2) {
-    Edge e =
-      new Edge(GradoopId.get(), "testedge", GradoopId.get(), GradoopId.get(), new Properties(),
+  private EPGMEdge getDummyEdge(int x1, int y1, int x2, int y2) {
+    EPGMEdge e =
+      new EPGMEdge(GradoopId.get(), "testedge", GradoopId.get(), GradoopId.get(), new Properties(),
         null);
     e.setProperty("source_x", x1);
     e.setProperty("source_y", y1);

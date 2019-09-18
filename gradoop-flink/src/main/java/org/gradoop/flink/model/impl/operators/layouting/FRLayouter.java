@@ -22,8 +22,8 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRAttractionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRCellIdMapper;
@@ -192,8 +192,8 @@ public class FRLayouter implements LayoutingAlgorithm {
 
     g = createInitialLayout(g);
 
-    DataSet<Vertex> gradoopVertices = g.getVertices();
-    DataSet<Edge> gradoopEdges = g.getEdges();
+    DataSet<EPGMVertex> gradoopVertices = g.getVertices();
+    DataSet<EPGMEdge> gradoopEdges = g.getEdges();
 
     DataSet<LVertex> vertices = gradoopVertices.map((v) -> new LVertex(v));
     DataSet<LEdge> edges = gradoopEdges.map((e) -> new LEdge(e));
@@ -204,9 +204,9 @@ public class FRLayouter implements LayoutingAlgorithm {
     vertices = loop.closeWith(graph.getVertices());
 
     gradoopVertices = vertices.join(gradoopVertices).where(LVertex.ID).equalTo("id")
-      .with(new JoinFunction<LVertex, Vertex, Vertex>() {
+      .with(new JoinFunction<LVertex, EPGMVertex, EPGMVertex>() {
         @Override
-        public Vertex join(LVertex lVertex, Vertex vertex) throws Exception {
+        public EPGMVertex join(LVertex lVertex, EPGMVertex vertex) throws Exception {
           lVertex.getPosition().setVertexPosition(vertex);
           return vertex;
         }

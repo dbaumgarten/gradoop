@@ -17,7 +17,7 @@ package org.gradoop.flink.model.impl.operators.layouting;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 
@@ -26,7 +26,7 @@ import java.util.Random;
 /**
  * LayoutingAlgorithm that positions all vertices randomly
  */
-public class RandomLayouter implements LayoutingAlgorithm, MapFunction<Vertex, Vertex> {
+public class RandomLayouter implements LayoutingAlgorithm, MapFunction<EPGMVertex, EPGMVertex> {
 
   /**
    * Minimum value for x coordinates
@@ -70,14 +70,14 @@ public class RandomLayouter implements LayoutingAlgorithm, MapFunction<Vertex, V
     if (rng == null) {
       rng = new Random();
     }
-    DataSet<Vertex> placed = g.getVertices().map(this);
+    DataSet<EPGMVertex> placed = g.getVertices().map(this);
     return g.getFactory().fromDataSets(placed, g.getEdges());
   }
 
 
   //TODO having this public method just to deal with serializability of the map-class is ugly
   @Override
-  public Vertex map(Vertex old) throws Exception {
+  public EPGMVertex map(EPGMVertex old) throws Exception {
     PropertyValue xcoord = PropertyValue.create(rng.nextInt(maxX - minX) + minX);
     PropertyValue ycoord = PropertyValue.create(rng.nextInt(maxY - minY) + minY);
     old.setProperty(X_COORDINATE_PROPERTY, xcoord);

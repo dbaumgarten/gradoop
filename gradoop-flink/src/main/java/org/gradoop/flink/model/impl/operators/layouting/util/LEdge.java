@@ -17,7 +17,7 @@ package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +61,7 @@ public class LEdge extends Tuple4<GradoopId, GradoopId, GradoopId, List<GradoopI
    *
    * @param e The original edge to copy values from
    */
-  public LEdge(Edge e) {
+  public LEdge(EPGMEdge e) {
     super(e.getId(), e.getSourceId(), e.getTargetId(), new ArrayList<>());
   }
 

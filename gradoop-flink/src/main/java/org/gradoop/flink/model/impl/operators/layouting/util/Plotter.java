@@ -26,8 +26,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.util.Collector;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.io.api.DataSink;
 import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
@@ -282,17 +282,17 @@ public class Plotter implements DataSink, Serializable {
    * @param edges    The raw edges
    * @return The prepared edges
    */
-  protected DataSet<Edge> prepareEdges(DataSet<Vertex> vertices, DataSet<Edge> edges) {
+  protected DataSet<EPGMEdge> prepareEdges(DataSet<EPGMVertex> vertices, DataSet<EPGMEdge> edges) {
     edges = edges.join(vertices).where("sourceId").equalTo("id")
-      .with(new JoinFunction<Edge, Vertex, Edge>() {
-        public Edge join(Edge first, Vertex second) throws Exception {
+      .with(new JoinFunction<EPGMEdge, EPGMVertex, EPGMEdge>() {
+        public EPGMEdge join(EPGMEdge first, EPGMVertex second) throws Exception {
           first.setProperty("source_x", second.getPropertyValue("X"));
           first.setProperty("source_y", second.getPropertyValue("Y"));
           return first;
         }
       }).join(vertices).where("targetId").equalTo("id")
-      .with(new JoinFunction<Edge, Vertex, Edge>() {
-        public Edge join(Edge first, Vertex second) throws Exception {
+      .with(new JoinFunction<EPGMEdge, EPGMVertex, EPGMEdge>() {
+        public EPGMEdge join(EPGMEdge first, EPGMVertex second) throws Exception {
           first.setProperty("target_x", second.getPropertyValue("X"));
           first.setProperty("target_y", second.getPropertyValue("Y"));
           return first;
@@ -307,7 +307,7 @@ public class Plotter implements DataSink, Serializable {
    * @param inp original vertices
    * @return vertices with scaled coordinates
    */
-  protected DataSet<Vertex> scaleLayout(DataSet<Vertex> inp) {
+  protected DataSet<EPGMVertex> scaleLayout(DataSet<EPGMVertex> inp) {
 
     if (zoom) {
       final int imageWidthF = imageWidth;
@@ -321,7 +321,7 @@ public class Plotter implements DataSink, Serializable {
       }).aggregate(Aggregations.MIN, 0).and(Aggregations.MIN, 1).and(Aggregations.MAX, 2)
         .and(Aggregations.MAX, 3);
 
-      return inp.map(new RichMapFunction<Vertex, Vertex>() {
+      return inp.map(new RichMapFunction<EPGMVertex, EPGMVertex>() {
         private int offsetX = 0;
         private int offsetY = 0;
         private double zoomFactor = 1;
@@ -342,7 +342,7 @@ public class Plotter implements DataSink, Serializable {
         }
 
         @Override
-        public Vertex map(Vertex v) {
+        public EPGMVertex map(EPGMVertex v) {
           int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
           int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
           x = (int) ((x - offsetX) * zoomFactor);
@@ -424,8 +424,8 @@ public class Plotter implements DataSink, Serializable {
       overwrite ? FileSystem.WriteMode.OVERWRITE : FileSystem.WriteMode.NO_OVERWRITE;
     pof.setWriteMode(writeMode);
 
-    DataSet<Vertex> vertices = scaleLayout(logicalGraph.getVertices());
-    DataSet<Edge> edges = prepareEdges(vertices, logicalGraph.getEdges());
+    DataSet<EPGMVertex> vertices = scaleLayout(logicalGraph.getVertices());
+    DataSet<EPGMEdge> edges = prepareEdges(vertices, logicalGraph.getEdges());
 
     ImageGenerator imgg = new ImageGenerator(this);
     DataSet<byte[]> image = edges.combineGroup(imgg::combineEdges).reduce(imgg::mergeImages);
@@ -478,14 +478,14 @@ public class Plotter implements DataSink, Serializable {
      * @param iterable  The edges to combine
      * @param collector The output-collector
      */
-    public void combineEdges(Iterable<Edge> iterable, Collector<byte[]> collector) {
+    public void combineEdges(Iterable<EPGMEdge> iterable, Collector<byte[]> collector) {
       BufferedImage img =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
       gfx.setColor(plotter.edgeColor);
       gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       gfx.setStroke(new BasicStroke(plotter.edgeSize));
-      for (Edge e : iterable) {
+      for (EPGMEdge e : iterable) {
         drawEdge(gfx, e);
       }
       collector.collect(imgToArr(img));
@@ -498,12 +498,12 @@ public class Plotter implements DataSink, Serializable {
      * @param iterable  The vertices to combine
      * @param collector The output-collector
      */
-    public void combineVertices(Iterable<Vertex> iterable, Collector<byte[]> collector) {
+    public void combineVertices(Iterable<EPGMVertex> iterable, Collector<byte[]> collector) {
       BufferedImage img =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
       Graphics2D gfx = img.createGraphics();
       gfx.setColor(plotter.vertexColor);
-      for (Vertex v : iterable) {
+      for (EPGMVertex v : iterable) {
         drawVertex(gfx, v);
       }
       collector.collect(imgToArr(img));
@@ -516,7 +516,7 @@ public class Plotter implements DataSink, Serializable {
      * @param gfx The graphics-object to use for drawing
      * @param e   The edge to draw
      */
-    private void drawEdge(Graphics2D gfx, Edge e) {
+    private void drawEdge(Graphics2D gfx, EPGMEdge e) {
       gfx.setColor(plotter.edgeColor);
       float edgeSize = plotter.edgeSize;
       if (plotter.dynamicEdgeSize && e.getPropertyValue("SIZE") != null) {
@@ -542,7 +542,7 @@ public class Plotter implements DataSink, Serializable {
      * @param gfx The graphics-object to use for drawing
      * @param v   The vertex to draw
      */
-    private void drawVertex(Graphics2D gfx, Vertex v) {
+    private void drawVertex(Graphics2D gfx, EPGMVertex v) {
       int x = v.getPropertyValue(LayoutingAlgorithm.X_COORDINATE_PROPERTY).getInt();
       int y = v.getPropertyValue(LayoutingAlgorithm.Y_COORDINATE_PROPERTY).getInt();
       int size = plotter.vertexSize;

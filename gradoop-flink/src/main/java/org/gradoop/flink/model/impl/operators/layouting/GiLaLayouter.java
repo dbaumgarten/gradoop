@@ -29,6 +29,8 @@ import org.apache.flink.graph.pregel.MessageIterator;
 import org.apache.flink.types.NullValue;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.algorithms.gelly.GradoopGellyAlgorithm;
 import org.gradoop.flink.algorithms.gelly.functions.EdgeToGellyEdgeWithNullValue;
@@ -98,7 +100,7 @@ public class GiLaLayouter extends
   public GiLaLayouter(int iterations, int vertexCount, int kNeighborhood) {
     super(new VertexToGellyVertex<VertexValue>() {
       @Override
-      public Vertex<GradoopId, VertexValue> map(org.gradoop.common.model.impl.pojo.Vertex vertex) {
+      public Vertex<GradoopId, VertexValue> map(EPGMVertex vertex) {
         return new Vertex<>(vertex.getId(), new VertexValue(vertex));
       }
     }, new EdgeToGellyEdgeWithNullValue());
@@ -174,15 +176,14 @@ public class GiLaLayouter extends
     // and reversing all edges.
 
 
-    DataSet<org.gradoop.common.model.impl.pojo.Edge> edges = graph.getEdges().flatMap(
-      new FlatMapFunction<org.gradoop.common.model.impl.pojo.Edge,
-        org.gradoop.common.model.impl.pojo.Edge>() {
+    DataSet<EPGMEdge> edges = graph.getEdges().flatMap(
+      new FlatMapFunction<EPGMEdge, EPGMEdge>() {
 
         @Override
-        public void flatMap(org.gradoop.common.model.impl.pojo.Edge e,
-          Collector<org.gradoop.common.model.impl.pojo.Edge> collector) throws Exception {
-          org.gradoop.common.model.impl.pojo.Edge edgeCopy =
-            new org.gradoop.common.model.impl.pojo.Edge(GradoopId.get(), e.getLabel(),
+        public void flatMap(EPGMEdge e,
+          Collector<EPGMEdge> collector) throws Exception {
+          EPGMEdge edgeCopy =
+            new EPGMEdge(GradoopId.get(), e.getLabel(),
               e.getTargetId(), e.getSourceId(), new Properties(), null);
           collector.collect(e);
           collector.collect(edgeCopy);
@@ -206,14 +207,13 @@ public class GiLaLayouter extends
       graph.runVertexCentricIteration(msgFunc, null, iterations * kNeighborhood + 1).getVertices();
 
 
-    DataSet<org.gradoop.common.model.impl.pojo.Vertex> layoutedVertices =
+    DataSet<EPGMVertex> layoutedVertices =
       result.join(currentGraph.getVertices()).where(0).equalTo("id").with(
-        new JoinFunction<Vertex<GradoopId, VertexValue>,
-          org.gradoop.common.model.impl.pojo.Vertex, org.gradoop.common.model.impl.pojo.Vertex>() {
+        new JoinFunction<Vertex<GradoopId, VertexValue>, EPGMVertex, EPGMVertex>() {
           @Override
-          public org.gradoop.common.model.impl.pojo.Vertex join(
+          public EPGMVertex join(
             Vertex<GradoopId, VertexValue> gellyVertex,
-            org.gradoop.common.model.impl.pojo.Vertex vertex) throws Exception {
+            EPGMVertex vertex) throws Exception {
             gellyVertex.getValue().getPosition().setVertexPosition(vertex);
             return vertex;
           }
@@ -518,7 +518,7 @@ public class GiLaLayouter extends
      *
      * @param v The gradoop-vertex to extract the position from
      */
-    public VertexValue(org.gradoop.common.model.impl.pojo.Vertex v) {
+    public VertexValue(EPGMVertex v) {
       f0 = Vector.fromVertexPosition(v);
       f1 = new Vector(0, 0);
       f2 = new HashSet<>();

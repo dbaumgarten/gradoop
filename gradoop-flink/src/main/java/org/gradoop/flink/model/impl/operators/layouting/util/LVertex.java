@@ -17,7 +17,7 @@ package org.gradoop.flink.model.impl.operators.layouting.util;
 
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,7 +86,7 @@ public class LVertex extends Tuple5<GradoopId, Vector, Integer, List<GradoopId>,
    *
    * @param v The original vertex to copy all information from
    */
-  public LVertex(Vertex v) {
+  public LVertex(EPGMVertex v) {
     super(v.getId(), Vector.fromVertexPosition(v), -1, new ArrayList<>(), new Vector());
   }
 

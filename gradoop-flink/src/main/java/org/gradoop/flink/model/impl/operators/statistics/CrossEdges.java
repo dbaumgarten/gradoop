@@ -25,8 +25,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.api.operators.UnaryGraphToValueOperator;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
@@ -125,7 +125,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
    * @throws Exception A Flink-run is executed. Therefore exceptions might occur.
    */
   public Tuple2<Integer, Double> executeLocally(LogicalGraph g) throws Exception {
-    DataSet<Edge> edges = g.getEdges();
+    DataSet<EPGMEdge> edges = g.getEdges();
 
     edges = removeSuperflousEdges(edges);
 
@@ -177,8 +177,8 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
    * @param edges The raw edges
    * @return The reduced edges
    */
-  private DataSet<Edge> removeSuperflousEdges(DataSet<Edge> edges) {
-    return edges.map((MapFunction<Edge, Edge>) value -> {
+  private DataSet<EPGMEdge> removeSuperflousEdges(DataSet<EPGMEdge> edges) {
+    return edges.map((MapFunction<EPGMEdge, EPGMEdge>) value -> {
       if (value.getTargetId().compareTo(value.getSourceId()) < 0) {
         GradoopId oldtarget = value.getTargetId();
         value.setTargetId(value.getSourceId());
@@ -198,7 +198,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
    */
   @Override
   public DataSet<Tuple2<Long, Double>> execute(LogicalGraph g) {
-    DataSet<Edge> edges = g.getEdges();
+    DataSet<EPGMEdge> edges = g.getEdges();
 
     edges = removeSuperflousEdges(edges);
 
@@ -257,7 +257,7 @@ public class CrossEdges implements UnaryGraphToValueOperator<DataSet<Tuple2<Long
    * @param vertices The vertices that supply the start/end-coordinates for the lines
    * @return A dataset of lines
    */
-  private DataSet<Line> getLinesFromEdges(DataSet<Edge> edges, DataSet<Vertex> vertices) {
+  private DataSet<Line> getLinesFromEdges(DataSet<EPGMEdge> edges, DataSet<EPGMVertex> vertices) {
     final String xproperty = xCoordinateProperty;
     final String yproperty = yCoordinateProperty;
     return edges.join(vertices).where("sourceId").equalTo("id").with((first, second) -> {

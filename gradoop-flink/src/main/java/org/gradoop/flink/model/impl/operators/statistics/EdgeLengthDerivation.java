@@ -24,8 +24,8 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.api.operators.UnaryGraphToValueOperator;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.LayoutingAlgorithm;
@@ -80,23 +80,23 @@ public class EdgeLengthDerivation implements
    */
   @Override
   public DataSet<Tuple2<Double, Double>> execute(LogicalGraph graph) {
-    DataSet<Vertex> vertices = graph.getVertices();
-    DataSet<Edge> edges = graph.getEdges();
+    DataSet<EPGMVertex> vertices = graph.getVertices();
+    DataSet<EPGMEdge> edges = graph.getEdges();
 
     final String xCoordinatePropertyF = xCoordinateProperty;
     final String yCoordinatePropertyF = yCoordinateProperty;
 
     //get edge-lengths
     DataSet<Double> edgeLengths = edges.join(vertices).where("sourceId").equalTo("id")
-      .with(new JoinFunction<Edge, Vertex, Edge>() {
-        public Edge join(Edge first, Vertex second) throws Exception {
+      .with(new JoinFunction<EPGMEdge, EPGMVertex, EPGMEdge>() {
+        public EPGMEdge join(EPGMEdge first, EPGMVertex second) throws Exception {
           first.setProperty("source_x", second.getPropertyValue(xCoordinatePropertyF));
           first.setProperty("source_y", second.getPropertyValue(yCoordinatePropertyF));
           return first;
         }
       }).join(vertices).where("targetId").equalTo("id")
-      .with(new JoinFunction<Edge, Vertex, Double>() {
-        public Double join(Edge first, Vertex second) throws Exception {
+      .with(new JoinFunction<EPGMEdge, EPGMVertex, Double>() {
+        public Double join(EPGMEdge first, EPGMVertex second) throws Exception {
           Vector source = new Vector(first.getPropertyValue("source_x").getInt(),
             first.getPropertyValue("source_y").getInt());
           Vector target = new Vector(second.getPropertyValue(xCoordinatePropertyF).getInt(),

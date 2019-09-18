@@ -25,8 +25,8 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.FRRepulsionFunction;
 import org.gradoop.flink.model.impl.operators.layouting.util.Force;
@@ -84,8 +84,8 @@ public class CentroidFRLayouter extends FRLayouter {
 
     g = createInitialLayout(g);
 
-    DataSet<Vertex> gradoopVertices = g.getVertices();
-    DataSet<Edge> gradoopEdges = g.getEdges();
+    DataSet<EPGMVertex> gradoopVertices = g.getVertices();
+    DataSet<EPGMEdge> gradoopEdges = g.getEdges();
 
     DataSet<LVertex> vertices = gradoopVertices.map((v) -> new LVertex(v));
     DataSet<LEdge> edges = gradoopEdges.map((e) -> new LEdge(e));
@@ -116,9 +116,9 @@ public class CentroidFRLayouter extends FRLayouter {
     vertices = graphElements.filter(x -> x instanceof LVertex).map(x -> (LVertex) x);
 
     gradoopVertices = vertices.join(gradoopVertices).where(LVertex.ID).equalTo("id")
-      .with(new JoinFunction<LVertex, Vertex, Vertex>() {
+      .with(new JoinFunction<LVertex, EPGMVertex, EPGMVertex>() {
         @Override
-        public Vertex join(LVertex lVertex, Vertex vertex) throws Exception {
+        public EPGMVertex join(LVertex lVertex, EPGMVertex vertex) throws Exception {
           lVertex.getPosition().setVertexPosition(vertex);
           return vertex;
         }

@@ -20,8 +20,8 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.Edge;
-import org.gradoop.common.model.impl.pojo.Vertex;
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.model.impl.operators.layouting.functions.DefaultVertexCompareFunction;
@@ -151,8 +151,8 @@ public class FusingFRLayouter extends FRLayouter {
 
     g = createInitialLayout(g);
 
-    DataSet<Vertex> gradoopVertices = g.getVertices();
-    DataSet<Edge> gradoopEdges = g.getEdges();
+    DataSet<EPGMVertex> gradoopVertices = g.getVertices();
+    DataSet<EPGMEdge> gradoopEdges = g.getEdges();
 
     // Flink can only iterate over a single dataset. Therefore vertices and edges have to be
     // temporarily combined into a single dataset.
@@ -239,7 +239,7 @@ public class FusingFRLayouter extends FRLayouter {
     vertices = loop.closeWith(graph.getVertices());
 
 
-    DataSet<Vertex> gradoopVertices =
+    DataSet<EPGMVertex> gradoopVertices =
       vertices.join(input.getVertices()).where(LVertex.ID).equalTo("id").with((lv, v) -> {
         lv.getPosition().setVertexPosition(v);
         return v;
@@ -256,17 +256,17 @@ public class FusingFRLayouter extends FRLayouter {
    * @return The layouted graph in the Gradoop-format
    */
   protected LogicalGraph buildSimplifiedGraph(LogicalGraph input, LGraph layouted) {
-    DataSet<Vertex> vertices = layouted.getVertices().map((lv) -> {
-      Vertex v = new Vertex(lv.getId(), "vertex", new Properties(), null);
+    DataSet<EPGMVertex> vertices = layouted.getVertices().map((lv) -> {
+      EPGMVertex v = new EPGMVertex(lv.getId(), "vertex", new Properties(), null);
       lv.getPosition().setVertexPosition(v);
       v.setProperty(VERTEX_SIZE_PROPERTY, lv.getCount());
       v.setProperty(SUB_ELEMENTS_PROPERTY, getSubelementListValue(lv.getSubVertices()));
       return v;
     });
 
-    DataSet<Edge> edges = layouted.getEdges().map((le) -> {
-      Edge e =
-        new Edge(le.getId(), "edge", le.getSourceId(), le.getTargetId(), new Properties(), null);
+    DataSet<EPGMEdge> edges = layouted.getEdges().map((le) -> {
+      EPGMEdge e =
+        new EPGMEdge(le.getId(), "edge", le.getSourceId(), le.getTargetId(), new Properties(), null);
       e.setProperty(VERTEX_SIZE_PROPERTY, le.getCount());
       e.setProperty(SUB_ELEMENTS_PROPERTY, getSubelementListValue(le.getSubEdges()));
       return e;
@@ -286,7 +286,7 @@ public class FusingFRLayouter extends FRLayouter {
   protected LogicalGraph buildExtractedGraph(LogicalGraph input, LGraph layouted,
     final boolean jitter) {
     final double kf = getK();
-    DataSet<Vertex> vertices =
+    DataSet<EPGMVertex> vertices =
       layouted.getVertices().flatMap((FlatMapFunction<LVertex, LVertex>) (superv, collector) -> {
         double jitterRadius = 0;
         if (jitter) {
