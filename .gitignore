@@ -7,5 +7,3 @@ dependency-reduced-pom.xml
 .classpath
 .project
 .settings/
-datasets/*
-out/*
