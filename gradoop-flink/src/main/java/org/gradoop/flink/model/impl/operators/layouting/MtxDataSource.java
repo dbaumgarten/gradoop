@@ -53,7 +53,7 @@ public class MtxDataSource implements DataSource {
   }
 
   /**
-   *
+   * Create new MTX-Datasource
    * @param path Pathh to the input-file
    * @param cfg Gradoop-config to use
    * @param skipPreprocessing if true, skip the pre-processing (remove multi-edges, self-edges etc.)

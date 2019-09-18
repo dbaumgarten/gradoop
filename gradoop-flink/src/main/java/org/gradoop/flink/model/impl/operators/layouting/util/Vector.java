@@ -251,15 +251,15 @@ public class Vector implements Serializable {
     return "Vector{" + "x=" + x + ", y=" + y + '}';
   }
 
-  /** X-coordinate of vector */
-  /**
+  /** X-coordinate of vector
+   *
    * @return X coordinate of the vector
-   */
+   **/
   public double getX() {
     return x;
   }
 
-  /**
+  /** Set X-coordinate of vector
    * @param x Set X coordinate of the vector
    **/
   public void setX(double x) {
@@ -267,15 +267,14 @@ public class Vector implements Serializable {
     check();
   }
 
-  /** Y-Coordinate of vector */
-  /**
+  /** Y-Coordinate of vector
    * @return Y coordinate of the vector
    */
   public double getY() {
     return y;
   }
 
-  /**
+  /** Set Y-Coordinate of vector
    * @param y Set Y coordinate of the vector
    **/
   public void setY(double y) {

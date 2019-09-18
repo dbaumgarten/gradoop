@@ -143,8 +143,8 @@ public class GiLaDegreePruner {
       .join(remainingVertices).where("f1.targetId").equalTo("id")
       .with(new JoinFunction<Tuple2<EPGMVertex, EPGMEdge>, EPGMVertex, EPGMVertex>() {
         @Override
-        public EPGMVertex join(Tuple2<EPGMVertex, EPGMEdge> vertexEdgeTuple2, EPGMVertex remainingVertex) throws
-          Exception {
+        public EPGMVertex join(Tuple2<EPGMVertex, EPGMEdge> vertexEdgeTuple2,
+          EPGMVertex remainingVertex) {
           double minEdgeLen = remainingVertex.getPropertyValue(MIN_EDGE_LEN_PROPERTY).getDouble();
           double distance = minEdgeLen * REINSERT_EDGE_LENGHT_FRACTION;
           Vector offset = new Vector(distance, 0);

@@ -577,9 +577,8 @@ public class Plotter implements DataSink, Serializable {
      *
      * @param arr Input image
      * @return Input-image + black background
-     * @throws Exception
      */
-    public byte[] addBackgound(byte[] arr) throws Exception {
+    public byte[] addBackgound(byte[] arr) {
       BufferedImage bufferedImage = arrToImg(arr);
       BufferedImage out =
         new BufferedImage(plotter.imageWidth, plotter.imageHeight, BufferedImage.TYPE_INT_ARGB);
